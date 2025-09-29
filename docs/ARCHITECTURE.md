@@ -6,309 +6,206 @@
 
 ## 📊 Diagramma Architetturale di Alto Livello
 
-```
-┌─────────────────────────────────────────────────────────────────────────┐
-│                          SAP Fiori Launchpad                             │
-│                     (Entry Point per tutti gli utenti)                   │
-└────────────────────────────────┬────────────────────────────────────────┘
-                                 │
-                                 ▼
-┌─────────────────────────────────────────────────────────────────────────┐
-│                  🔔 GLOBAL NOTIFICATION BANNER                           │
-│                    (Componente UI5 Riutilizzabile)                      │
-│                                                                          │
-│  ┌──────────────────────────────────────────────────────────────────┐  │
-│  │  Component.js (Inizializzazione & Orchestrazione)               │  │
-│  │    • Polling automatico ogni 30s                                 │  │
-│  │    • Event listener shell container                              │  │
-│  │    • Lifecycle management                                        │  │
-│  └────────────────┬───────────────────────────────────────────────── │ │
-│                   │                                                    │ │
-│                   ▼                                                    │ │
-│  ┌──────────────────────────────────────────────────────────────────┐ │ │
-│  │  NotificationBanner.js (Core Business Logic)                    │  │ │
-│  │    • Load & process notifications                               │  │ │
-│  │    • Display management (create/update/remove)                  │  │ │
-│  │    • Navigation logic (previous/next)                           │  │ │
-│  │    • User interaction handling                                  │  │ │
-│  └────────────────┬───────────────────────────────────────────────── │ │ │
-│                   │                                                    │ │ │
-│                   ▼                                                    │ │ │
-│  ┌──────────────────────────────────────────────────────────────────┐ │ │ │
-│  │  UI Components (MessageStrip, Button, Text)                     │  │ │ │
-│  │    • Priority-based styling (HIGH/MEDIUM/LOW)                   │  │ │ │
-│  │    • Responsive design (mobile/tablet/desktop)                  │  │ │ │
-│  │    • Accessibility support (ARIA, keyboard nav)                 │  │ │ │
-│  └──────────────────────────────────────────────────────────────────┘  │ │ │
-└──────────────────────────┬──────────────────────────────────────────────┘ │
-                           │                                                │
-                           │ REST API Calls (GET notifications)            │
-                           │                                                │
-                           ▼                                                │
-┌────────────────────────────────────────────────────────────────────────┐
-│                     SAP S/4HANA Backend Layer                           │
-└────────────────────────────────────────────────────────────────────────┘
-                           │
-        ┌──────────────────┼──────────────────┐
-        │                  │                  │
-        ▼                  ▼                  ▼
-┌───────────────┐  ┌──────────────┐  ┌────────────────┐
-│  SICF Service │  │  REST Handler│  │  Authorization │
-│               │  │              │  │                │
-│  /sap/bc/rest/│  │  ZCL_NOTIFY  │  │  Z_NOTIFY      │
-│  zcl_notify   │  │  _REST       │  │  Object        │
-│               │  │              │  │                │
-│  • GET        │  │  • handle_get│  │  • 01 Create   │
-│  • POST       │  │  • handle_post│  │ • 02 Change   │
-│  • PUT        │  │  • handle_put│  │  • 03 Display  │
-│  • DELETE     │  │  • handle_del│  │  • 06 Delete   │
-└───────┬───────┘  └──────┬───────┘  └───────┬────────┘
-        │                  │                  │
-        └──────────────────┼──────────────────┘
-                           │
-                           ▼
-┌────────────────────────────────────────────────────────────────────────┐
-│              Business Logic Layer (ABAP OO)                             │
-│                                                                          │
-│  ┌──────────────────────────────────────────────────────────────────┐  │
-│  │  ZCL_NOTIFICATION_MANAGER                                        │  │
-│  │    • create_notification()                                       │  │
-│  │    • get_active_notifications()                                  │  │
-│  │    • update_notification()                                       │  │
-│  │    • delete_notification()                                       │  │
-│  │    • validate_notification_data()                                │  │
-│  │    • filter_by_user()                                            │  │
-│  │    • filter_by_date_range()                                      │  │
-│  │    • check_authorization()                                       │  │
-│  └──────────────────────────────────────────────────────────────────┘  │
-└─────────────────────────────┬───────────────────────────────────────────┘
-                              │
-                              ▼
-┌────────────────────────────────────────────────────────────────────────┐
-│                      Data Access Layer                                  │
-│                                                                          │
-│  ┌──────────────────────────────────────────────────────────────────┐  │
-│  │  ZT_NOTIFY_MESSAGES (CDS View)                                   │  │
-│  │    • Active notifications filter (WHERE active = 'X')            │  │
-│  │    • Date range filter (WHERE start_date <= today <= end_date)  │  │
-│  │    • User targeting logic                                        │  │
-│  └────────────────┬─────────────────────────────────────────────────┘  │
-│                   │                                                      │
-│                   ▼                                                      │
-│  ┌──────────────────────────────────────────────────────────────────┐  │
-│  │  ZTNOTIFY_MSGS (Database Table)                                  │  │
-│  │                                                                   │  │
-│  │  Fields:                                                          │  │
-│  │    • MESSAGE_ID      (Primary Key - UUID)                        │  │
-│  │    • MESSAGE_TYPE    (URGENT, INFO, WARNING, etc.)               │  │
-│  │    • SEVERITY        (HIGH, MEDIUM, LOW)                         │  │
-│  │    • TITLE           (Short message title)                       │  │
-│  │    • MESSAGE_TEXT    (Detailed description)                      │  │
-│  │    • START_DATE      (Validity start)                            │  │
-│  │    • END_DATE        (Validity end)                              │  │
-│  │    • TARGET_USERS    (ALL, SPECIFIC, ROLE)                       │  │
-│  │    • ACTIVE          (X = active, blank = inactive)              │  │
-│  │    • CREATED_BY      (User who created)                          │  │
-│  │    • CREATED_AT      (Timestamp creation)                        │  │
-│  │    • CHANGED_BY      (Last modifier)                             │  │
-│  │    • CHANGED_AT      (Last modification timestamp)               │  │
-│  └──────────────────────────────────────────────────────────────────┘  │
-└─────────────────────────────────────────────────────────────────────────┘
+```mermaid
+graph TB
+    subgraph FioriLP["SAP Fiori Launchpad"]
+        LP[Entry Point per tutti gli utenti]
+    end
+
+    subgraph Banner["🔔 Global Notification Banner"]
+        Component["Component.js<br/>• Polling automatico ogni 30s<br/>• Event listener shell container<br/>• Lifecycle management"]
+        NotifBanner["NotificationBanner.js<br/>• Load & process notifications<br/>• Display management<br/>• Navigation logic<br/>• User interaction handling"]
+        UIComp["UI Components<br/>• Priority-based styling<br/>• Responsive design<br/>• Accessibility support"]
+
+        Component --> NotifBanner
+        NotifBanner --> UIComp
+    end
+
+    subgraph Backend["SAP S/4HANA Backend Layer"]
+        SICF["SICF Service<br/>/sap/bc/rest/zcl_notify<br/>GET | POST | PUT | DELETE"]
+        REST["REST Handler<br/>ZCL_NOTIFY_REST<br/>handle_get | handle_post<br/>handle_put | handle_del"]
+        Auth["Authorization<br/>Z_NOTIFY Object<br/>01 Create | 02 Change<br/>03 Display | 06 Delete"]
+
+        SICF --> REST
+        SICF --> Auth
+        REST --> Auth
+    end
+
+    subgraph BizLogic["Business Logic Layer"]
+        Manager["ZCL_NOTIFICATION_MANAGER<br/>• create_notification()<br/>• get_active_notifications()<br/>• update_notification()<br/>• delete_notification()<br/>• validate_notification_data()<br/>• filter_by_user()<br/>• filter_by_date_range()<br/>• check_authorization()"]
+    end
+
+    subgraph DataLayer["Data Access Layer"]
+        CDS["ZT_NOTIFY_MESSAGES (CDS View)<br/>• Active filter (active = 'X')<br/>• Date range filter<br/>• User targeting logic"]
+        DB["ZTNOTIFY_MSGS (Table)<br/>MESSAGE_ID, MESSAGE_TYPE<br/>SEVERITY, TITLE, MESSAGE_TEXT<br/>START_DATE, END_DATE<br/>TARGET_USERS, ACTIVE<br/>CREATED_BY, CREATED_AT<br/>CHANGED_BY, CHANGED_AT"]
+
+        CDS --> DB
+    end
+
+    FioriLP --> Banner
+    UIComp -->|REST API Calls| SICF
+    Auth --> Manager
+    REST --> Manager
+    Manager --> CDS
+
+    style FioriLP fill:#e3f2fd
+    style Banner fill:#fff3e0
+    style Backend fill:#fce4ec
+    style BizLogic fill:#f3e5f5
+    style DataLayer fill:#e8f5e9
 ```
 
 ---
 
 ## 🔄 Flusso Dati - Visualizzazione Notifiche
 
-```
-┌──────────┐
-│  START   │
-└────┬─────┘
-     │
-     ▼
-┌─────────────────────────────────────┐
-│  1. User apre Fiori App             │
-│     • Shell container inizializzato │
-│     • Component.js caricato         │
-└────────┬────────────────────────────┘
-         │
-         ▼
-┌─────────────────────────────────────┐
-│  2. Component Init                  │
-│     • Create NotificationBanner     │
-│     • Attach to shell event         │
-│     • Start polling (30s interval)  │
-└────────┬────────────────────────────┘
-         │
-         ▼
-┌─────────────────────────────────────┐
-│  3. Load Notifications (AJAX GET)   │
-│     • URL: /sap/bc/rest/...         │
-│     • Data: {user_id: current_user} │
-│     • Headers: Auth + CSRF token    │
-└────────┬────────────────────────────┘
-         │
-         ▼
-┌─────────────────────────────────────┐
-│  4. Backend Processing              │
-│     • Validate authorization        │
-│     • Execute CDS view query        │
-│     • Filter by date & user         │
-│     • Sort by priority & date       │
-└────────┬────────────────────────────┘
-         │
-         ▼
-┌─────────────────────────────────────┐
-│  5. Return JSON Response            │
-│     [{                              │
-│       message_id: "uuid",           │
-│       title: "Alert",               │
-│       severity: "HIGH",             │
-│       ...                           │
-│     }]                              │
-└────────┬────────────────────────────┘
-         │
-         ▼
-┌─────────────────────────────────────┐
-│  6. Process Notifications           │
-│     • Compare with cached version   │
-│     • Detect new/updated messages   │
-│     • Update internal array         │
-└────────┬────────────────────────────┘
-         │
-         ▼
-┌─────────────────────────────────────┐
-│  7. Display Banner                  │
-│     • Create MessageStrip           │
-│     • Apply priority styling        │
-│     • Add navigation controls       │
-│     • Insert in shell header        │
-└────────┬────────────────────────────┘
-         │
-         ▼
-┌─────────────────────────────────────┐
-│  8. User Interaction                │
-│     • Click ➡️ : Next notification │
-│     • Click ⬅️ : Prev notification │
-│     • Click ❌ : Close notification│
-└────────┬────────────────────────────┘
-         │
-         ▼
-┌─────────────────────────────────────┐
-│  9. Polling Loop                    │
-│     • Wait 30 seconds               │
-│     • Goto step 3 (repeat)          │
-└─────────────────────────────────────┘
+```mermaid
+sequenceDiagram
+    actor User
+    participant FLP as Fiori Launchpad
+    participant Comp as Component.js
+    participant Banner as NotificationBanner.js
+    participant REST as REST Service
+    participant Backend as ABAP Backend
+    participant DB as Database
+
+    User->>FLP: Apre Fiori App
+    activate FLP
+    FLP->>Comp: Inizializza Component
+    activate Comp
+    Comp->>Banner: Create NotificationBanner
+    activate Banner
+    Banner->>Comp: Instance ready
+    Comp->>FLP: Attach to shell event
+    Comp->>Banner: Start polling (30s)
+
+    loop Ogni 30 secondi
+        Banner->>REST: GET /sap/bc/rest/zcl_notification_rest
+        Note right of REST: Headers: Auth + CSRF token<br/>Query: user_id=current_user
+        activate REST
+        REST->>Backend: Validate authorization
+        activate Backend
+        Backend->>Backend: Check Z_NOTIFY object
+        Backend->>DB: Execute CDS view query
+        activate DB
+        DB->>DB: Filter by active='X'<br/>Filter by date range<br/>Sort by priority
+        DB-->>Backend: Return rows
+        deactivate DB
+        Backend-->>REST: JSON Response
+        deactivate Backend
+        REST-->>Banner: [{message_id, title, severity...}]
+        deactivate REST
+
+        Banner->>Banner: Compare with cache
+        Banner->>Banner: Detect new/updated
+
+        alt New notification found
+            Banner->>FLP: Create MessageStrip
+            FLP->>User: Display banner
+            Banner->>FLP: Add navigation controls
+        end
+    end
+
+    User->>Banner: Click ➡️ (Next)
+    Banner->>FLP: Update MessageStrip
+    FLP->>User: Show next notification
+
+    User->>Banner: Click ❌ (Close)
+    Banner->>FLP: Remove MessageStrip
+    FLP->>User: Banner hidden
+
+    deactivate Banner
+    deactivate Comp
+    deactivate FLP
 ```
 
 ---
 
 ## 🔐 Flusso Sicurezza e Autorizzazioni
 
-```
-┌──────────────┐
-│ User Request │
-└──────┬───────┘
-       │
-       ▼
-┌─────────────────────────────────────┐
-│  SAP Authentication                 │
-│    • SAP Logon Ticket               │
-│    • Basic Authentication (dev)     │
-│    • SSO Token (production)         │
-└────────┬────────────────────────────┘
-         │
-         ▼
-┌─────────────────────────────────────┐
-│  SICF Service Check                 │
-│    • Verify service active          │
-│    • Check handler class assigned   │
-│    • Validate HTTP method           │
-└────────┬────────────────────────────┘
-         │
-         ▼
-┌─────────────────────────────────────┐
-│  Authorization Check                │
-│    • Object: Z_NOTIFY               │
-│    • Activity:                      │
-│      - 03 (Display) for GET         │
-│      - 01 (Create) for POST         │
-│      - 02 (Change) for PUT          │
-│      - 06 (Delete) for DELETE       │
-└────────┬────────────────────────────┘
-         │
-         ▼
-┌─────────────────────────────────────┐
-│  CSRF Token Validation              │
-│    • Check X-CSRF-Token header      │
-│    • Validate token (POST/PUT/DEL)  │
-│    • Generate new token if needed   │
-└────────┬────────────────────────────┘
-         │
-         ▼
-┌─────────────────────────────────────┐
-│  Input Validation                   │
-│    • Sanitize input data            │
-│    • Check required fields          │
-│    • Validate data types            │
-│    • Prevent XSS/SQL injection      │
-└────────┬────────────────────────────┘
-         │
-         ▼
-┌─────────────────────────────────────┐
-│  Execute Business Logic             │
-│    • ZCL_NOTIFICATION_MANAGER       │
-│    • Database operations            │
-│    • Audit logging                  │
-└────────┬────────────────────────────┘
-         │
-         ▼
-┌─────────────────────────────────────┐
-│  Return Response                    │
-│    • Success: 200 + JSON data       │
-│    • Error: 401/403/500 + message   │
-└─────────────────────────────────────┘
+```mermaid
+flowchart TD
+    Start([User Request]) --> Auth[SAP Authentication]
+    Auth -->|SAP Logon Ticket<br/>Basic Auth dev<br/>SSO Token prod| SICF[SICF Service Check]
+
+    SICF -->|Verify service active<br/>Check handler class<br/>Validate HTTP method| AuthCheck{Authorization Check}
+
+    AuthCheck -->|Object: Z_NOTIFY| Activities[Check Activity]
+    Activities -->|GET| Display[03 - Display]
+    Activities -->|POST| Create[01 - Create]
+    Activities -->|PUT| Change[02 - Change]
+    Activities -->|DELETE| Delete[06 - Delete]
+
+    Display --> CSRF[CSRF Token Validation]
+    Create --> CSRF
+    Change --> CSRF
+    Delete --> CSRF
+
+    CSRF -->|Check X-CSRF-Token<br/>Validate for POST/PUT/DELETE<br/>Generate if needed| InputVal[Input Validation]
+
+    InputVal -->|Sanitize input<br/>Check required fields<br/>Validate data types<br/>Prevent XSS/SQL injection| BizLogic[Execute Business Logic]
+
+    BizLogic -->|ZCL_NOTIFICATION_MANAGER<br/>Database operations<br/>Audit logging| Response{Return Response}
+
+    Response -->|Success| Success[200 OK + JSON data]
+    Response -->|Auth Error| AuthError[401/403 Unauthorized]
+    Response -->|Server Error| ServerError[500 Internal Server Error]
+
+    style Start fill:#e3f2fd
+    style Auth fill:#fff3e0
+    style SICF fill:#fce4ec
+    style AuthCheck fill:#f3e5f5
+    style CSRF fill:#e8f5e9
+    style InputVal fill:#fff9c4
+    style BizLogic fill:#f1f8e9
+    style Success fill:#c8e6c9
+    style AuthError fill:#ffccbc
+    style ServerError fill:#ffccbc
 ```
 
 ---
 
 ## 💾 Modello Dati E-R
 
+```mermaid
+erDiagram
+    ZTNOTIFY_MSGS ||--o{ ZT_NOTIFY_MESSAGES : "used by"
+
+    ZTNOTIFY_MSGS {
+        uuid MESSAGE_ID PK "Primary Key"
+        varchar10 MESSAGE_TYPE "URGENT, INFO, WARNING"
+        varchar10 SEVERITY "HIGH, MEDIUM, LOW"
+        varchar255 TITLE "INDEXED"
+        varchar1000 MESSAGE_TEXT
+        date START_DATE "INDEXED"
+        date END_DATE "INDEXED"
+        varchar255 TARGET_USERS "ALL, SPECIFIC, ROLE"
+        char1 ACTIVE "INDEXED - X or blank"
+        varchar12 CREATED_BY
+        timestamp CREATED_AT
+        varchar12 CHANGED_BY
+        timestamp CHANGED_AT "INDEXED"
+    }
+
+    ZT_NOTIFY_MESSAGES {
+        uuid MESSAGE_ID "From ZTNOTIFY_MSGS"
+        varchar10 MESSAGE_TYPE
+        varchar10 SEVERITY
+        varchar255 TITLE
+        varchar1000 MESSAGE_TEXT
+        date START_DATE
+        date END_DATE
+        varchar255 TARGET_USERS
+        char1 ACTIVE "Always X"
+    }
 ```
-┌──────────────────────────────────────────────┐
-│          ZTNOTIFY_MSGS (Table)               │
-├──────────────────────────────────────────────┤
-│  PK: MESSAGE_ID (UUID)                       │
-├──────────────────────────────────────────────┤
-│  • MESSAGE_TYPE     VARCHAR(10)              │
-│  • SEVERITY         VARCHAR(10)              │
-│  • TITLE            VARCHAR(255)   [INDEXED] │
-│  • MESSAGE_TEXT     VARCHAR(1000)            │
-│  • START_DATE       DATE           [INDEXED] │
-│  • END_DATE         DATE           [INDEXED] │
-│  • TARGET_USERS     VARCHAR(255)             │
-│  • ACTIVE           CHAR(1)        [INDEXED] │
-│  • CREATED_BY       VARCHAR(12)              │
-│  • CREATED_AT       TIMESTAMP                │
-│  • CHANGED_BY       VARCHAR(12)              │
-│  • CHANGED_AT       TIMESTAMP      [INDEXED] │
-└──────────────────────────────────────────────┘
-                     │
-                     │ (Used by)
-                     ▼
-┌──────────────────────────────────────────────┐
-│      ZT_NOTIFY_MESSAGES (CDS View)           │
-├──────────────────────────────────────────────┤
-│  SELECT * FROM ZTNOTIFY_MSGS                 │
-│  WHERE ACTIVE = 'X'                          │
-│    AND START_DATE <= $session.system_date    │
-│    AND END_DATE >= $session.system_date      │
-├──────────────────────────────────────────────┤
-│  Provides:                                   │
-│  • Active notifications only                 │
-│  • Date-filtered results                     │
-│  • Optimized query performance               │
-└──────────────────────────────────────────────┘
+
+**CDS View Logic:**
+```sql
+SELECT * FROM ZTNOTIFY_MSGS
+WHERE ACTIVE = 'X'
+  AND START_DATE <= $session.system_date
+  AND END_DATE >= $session.system_date
 ```
 
 ### Indici Database Raccomandati
@@ -585,43 +482,71 @@ Ogni operazione viene loggata con:
 
 ## 🚀 Deployment Architecture
 
-```
-Development Environment
-   ├── Local workstation
-   ├── npm run start (port 8080)
-   ├── Mock data / Test backend
-   └── Git repository
+```mermaid
+flowchart LR
+    subgraph Dev["Development Environment"]
+        Local[Local Workstation]
+        NPM[npm run start<br/>port 8080]
+        Mock[Mock data /<br/>Test backend]
+        GitLocal[Git repository]
 
-         ↓ (git push)
+        Local --> NPM
+        NPM --> Mock
+        Mock --> GitLocal
+    end
 
-Git Repository (GitHub/GitLab)
-   ├── main branch (production)
-   ├── develop branch
-   └── feature branches
+    subgraph Repo["Git Repository<br/>GitHub/GitLab"]
+        Main[main branch<br/>production]
+        Develop[develop branch]
+        Feature[feature branches]
 
-         ↓ (CI/CD Pipeline)
+        Feature --> Develop
+        Develop --> Main
+    end
 
-SAP DEV System
-   ├── ABAP deployment (transport)
-   ├── UI5 deployment (BSP application)
-   ├── Integration testing
-   └── User acceptance testing
+    subgraph DEV["SAP DEV System"]
+        ABAPDev[ABAP deployment<br/>transport]
+        UI5Dev[UI5 deployment<br/>BSP application]
+        IntTest[Integration testing]
+        UAT[User acceptance<br/>testing]
 
-         ↓ (Transport to QA)
+        ABAPDev --> UI5Dev
+        UI5Dev --> IntTest
+        IntTest --> UAT
+    end
 
-SAP QA System
-   ├── Quality assurance testing
-   ├── Performance testing
-   ├── Security scanning
-   └── Regression testing
+    subgraph QA["SAP QA System"]
+        QATest[Quality assurance<br/>testing]
+        PerfTest[Performance<br/>testing]
+        SecScan[Security scanning]
+        RegTest[Regression testing]
 
-         ↓ (Transport to PROD)
+        QATest --> PerfTest
+        PerfTest --> SecScan
+        SecScan --> RegTest
+    end
 
-SAP Production System
-   ├── Blue-green deployment
-   ├── Monitoring active
-   ├── Rollback plan ready
-   └── User notification
+    subgraph PROD["SAP Production System"]
+        BlueGreen[Blue-green<br/>deployment]
+        Monitor[Monitoring active]
+        Rollback[Rollback plan ready]
+        UserNotif[User notification]
+
+        BlueGreen --> Monitor
+        Monitor --> Rollback
+        Rollback --> UserNotif
+    end
+
+    GitLocal -->|git push| Repo
+    Main -->|CI/CD Pipeline| DEV
+    UAT -->|Transport to QA| QA
+    RegTest -->|Transport to PROD| PROD
+
+    style Dev fill:#e3f2fd
+    style Repo fill:#fff3e0
+    style DEV fill:#fce4ec
+    style QA fill:#f3e5f5
+    style PROD fill:#c8e6c9
 ```
 
 ---
