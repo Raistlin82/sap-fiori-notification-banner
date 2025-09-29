@@ -1,0 +1,26 @@
+<mvc:View
+    controllerName="com.sap.notifications.banner.controller.View1"
+    xmlns:mvc="sap.ui.core.mvc"
+    displayBlock="true"
+    xmlns="sap.m">
+    <Page id="page" title="{i18n>title}">
+        <content>
+            <MessageStrip
+                text="{i18n>welcomeMessage}"
+                type="Information"
+                showIcon="true"
+                class="sapUiMediumMargin">
+            </MessageStrip>
+
+            <Panel headerText="{i18n>notificationPanelTitle}" class="sapUiMediumMargin">
+                <content>
+                    <Text text="{i18n>notificationDescription}" class="sapUiMediumMarginBottom"/>
+                    <Button
+                        text="{i18n>testNotificationButton}"
+                        type="Emphasized"
+                        press="onTestNotification"/>
+                </content>
+            </Panel>
+        </content>
+    </Page>
+</mvc:View>

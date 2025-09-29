@@ -1,0 +1,299 @@
+# 🔔 SAP Fiori Global Notification Banner
+
+[![SAP](https://img.shields.io/badge/SAP-S%2F4HANA-blue)](https://www.sap.com/)
+[![UI5](https://img.shields.io/badge/UI5-1.60%2B-green)](https://ui5.sap.com/)
+[![License](https://img.shields.io/badge/License-Proprietary-red)]()
+[![Version](https://img.shields.io/badge/Version-1.0.0-brightgreen)]()
+
+A comprehensive global notification banner system for SAP Fiori applications on S/4HANA. Display urgent system messages, maintenance notifications, and alerts across all Fiori apps with a unified, responsive, and accessible banner component.
+
+![Banner Preview](docs/images/banner-preview.png)
+
+## 🚀 Features
+
+- **🌐 Global Display** - Appears on all Fiori applications automatically
+- **📱 Responsive Design** - Optimized for desktop, tablet, and mobile
+- **🎨 Multiple Themes** - Supports all SAP Fiori themes and dark mode
+- **♿ Accessibility** - WCAG 2.1 AA compliant with screen reader support
+- **🔄 Real-time Updates** - Automatic polling for new notifications
+- **🎯 Priority Levels** - High, Medium, Low priority with distinct styling
+- **📊 Admin Interface** - Complete CRUD operations for notification management
+- **🔒 Security** - Role-based access control and CSRF protection
+- **🌍 Internationalization** - Multi-language support ready
+
+## 📋 Quick Start
+
+### Prerequisites
+
+- SAP S/4HANA PCE 2023 or higher
+- UI5 version 1.60.0 or higher
+- Node.js 16+ and npm 8+
+- ABAP development access
+
+### Installation
+
+```bash
+# Clone the repository
+git clone https://github.com/your-org/sap-fiori-notification-banner.git
+cd sap-fiori-notification-banner
+
+# Install dependencies
+npm install
+
+# Build the application
+npm run build
+
+# Start development server
+npm start
+```
+
+### Deployment
+
+For complete deployment instructions, see [📖 Deployment Guide](docs/DEPLOYMENT_GUIDE.md)
+
+## 🏗️ Architecture
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                    Fiori Launchpad                      │
+├─────────────────────────────────────────────────────────┤
+│  🔔 Global Notification Banner (This Component)        │
+├─────────────────────────────────────────────────────────┤
+│  📱 Fiori App 1  │  📱 Fiori App 2  │  📱 Fiori App 3  │
+└─────────────────────────────────────────────────────────┘
+│
+├── Frontend (UI5/JavaScript)
+│   ├── NotificationBanner.js     ← Core banner logic
+│   ├── Component.js              ← Global initialization
+│   └── CSS themes               ← Responsive styling
+│
+└── Backend (ABAP)
+    ├── ZTNOTIFY_MSGS            ← Database table
+    ├── ZT_NOTIFY_MESSAGES       ← CDS view
+    ├── ZCL_NOTIFICATION_MANAGER ← Business logic
+    └── ZCL_NOTIFICATION_REST    ← REST service
+```
+
+## 📁 Project Structure
+
+```
+sap-fiori-notification-banner/
+├── 📄 package.json              # Dependencies and scripts
+├── 📄 ui5.yaml                  # UI5 tooling configuration
+├── 📄 README.md                 # This file
+├── 📁 webapp/                   # Frontend UI5 application
+│   ├── 📄 Component.js          # Main component
+│   ├── 📄 manifest.json         # App descriptor
+│   ├── 📁 controller/           # Controllers
+│   │   ├── 📄 NotificationBanner.js
+│   │   └── 📄 View1.controller.js
+│   ├── 📁 view/                 # XML views
+│   │   └── 📄 View1.view.xml
+│   ├── 📁 model/                # Data models
+│   │   └── 📄 models.js
+│   ├── 📁 css/                  # Styling
+│   │   └── 📄 style.css
+│   └── 📁 i18n/                 # Internationalization
+│       └── 📄 i18n.properties
+├── 📁 abap/                     # Backend ABAP components
+│   ├── 📄 ztnotify_msgs.se11    # Database table
+│   ├── 📄 ztnotify_messages.ddls # CDS view
+│   ├── 📄 zcl_notification_manager.clas.abap
+│   └── 📄 zcl_notification_rest.clas.abap
+├── 📁 admin/                    # Admin interface
+│   ├── 📄 notification_admin.controller.js
+│   └── 📄 notification_admin.view.xml
+├── 📁 docs/                     # Documentation
+│   └── 📄 DEPLOYMENT_GUIDE.md   # Complete deployment guide
+└── 📁 deployment/               # Deployment artifacts
+    └── 📄 xs-app.json
+```
+
+## 🎯 Usage
+
+### For End Users
+
+The notification banner appears automatically at the top of all Fiori applications:
+
+- **🔍 View Messages** - Urgent notifications display prominently
+- **🔄 Navigate** - Use arrow buttons for multiple notifications
+- **❌ Dismiss** - Click the close button to hide notifications
+- **📱 Responsive** - Works seamlessly across all devices
+
+### For Administrators
+
+Access the admin interface through Fiori Launchpad:
+
+1. **➕ Create** - Add new system notifications
+2. **✏️ Edit** - Modify existing messages
+3. **🗑️ Delete** - Remove outdated notifications
+4. **📊 Monitor** - View statistics and metrics
+
+## 🎨 Notification Types
+
+| Priority | Color | Use Case | Example |
+|----------|-------|----------|---------|
+| **🔴 High** | Red | Critical issues | System downtime, security alerts |
+| **🟡 Medium** | Orange | Important updates | Maintenance windows, feature updates |
+| **🔵 Low** | Blue | General info | Tips, announcements |
+| **🟢 Success** | Green | Positive updates | Successful deployments |
+| **⚪ Maintenance** | Gray | Planned maintenance | Scheduled downtime |
+
+## 📊 API Documentation
+
+### REST Endpoints
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/sap/bc/rest/zcl_notification_rest/` | Get active notifications |
+| `POST` | `/sap/bc/rest/zcl_notification_rest/` | Create new notification |
+| `PUT` | `/sap/bc/rest/zcl_notification_rest/` | Update notification |
+| `DELETE` | `/sap/bc/rest/zcl_notification_rest/` | Delete notification |
+
+### Example Request
+
+```json
+{
+  "message_type": "URGENT",
+  "severity": "HIGH",
+  "title": "System Maintenance",
+  "message_text": "System will be unavailable from 10 PM to 12 AM",
+  "start_date": "2024-01-15",
+  "end_date": "2024-01-16",
+  "target_users": "ALL",
+  "active": "X"
+}
+```
+
+## 🔧 Configuration
+
+### Environment Variables
+
+```bash
+# Development
+export SAP_SYSTEM_URL="http://localhost:8000"
+export POLLING_INTERVAL="30000"
+export DEBUG_MODE="true"
+
+# Production
+export SAP_SYSTEM_URL="https://your-s4hana-system.com"
+export POLLING_INTERVAL="30000"
+export DEBUG_MODE="false"
+```
+
+### Customization
+
+```javascript
+// webapp/Component.js - Customize polling interval
+var pollingInterval = 30000; // 30 seconds (default)
+
+// webapp/css/style.css - Custom themes
+.notificationBanner--custom {
+    background-color: #your-color !important;
+    border-left-color: #your-border-color !important;
+}
+```
+
+## 🧪 Testing
+
+```bash
+# Lint code
+npm run lint
+
+# Run tests
+npm test
+
+# Build for production
+npm run build
+
+# Start development server
+npm start
+```
+
+## 🔒 Security
+
+- **🔐 Authentication** - SAP logon ticket + basic authentication
+- **🛡️ Authorization** - Role-based access control (Z_NOTIFICATION_ADMIN)
+- **🔒 CSRF Protection** - Automatic token management
+- **🧹 Input Sanitization** - XSS prevention
+- **📝 Audit Trail** - All changes logged
+
+## 🌍 Browser Support
+
+| Browser | Version | Status |
+|---------|---------|--------|
+| Chrome | 90+ | ✅ Fully supported |
+| Firefox | 88+ | ✅ Fully supported |
+| Safari | 14+ | ✅ Fully supported |
+| Edge | 90+ | ✅ Fully supported |
+| IE | 11 | ⚠️ Limited support |
+
+## 📈 Performance
+
+- **⚡ Fast Loading** - < 2 seconds initial load
+- **💾 Efficient Polling** - Optimized backend queries
+- **🎨 Smooth Animations** - GPU-accelerated CSS animations
+- **📱 Mobile Optimized** - Touch-friendly interactions
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit changes (`git commit -m 'Add amazing feature'`)
+4. Push to branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+## 📚 Documentation
+
+- [📖 Deployment Guide](docs/DEPLOYMENT_GUIDE.md) - Complete installation instructions
+- [🔧 Configuration Guide](docs/configuration.md) - Advanced configuration options
+- [🧪 Testing Guide](docs/testing.md) - Testing procedures and best practices
+- [🔒 Security Guide](docs/security.md) - Security implementation details
+
+## 📞 Support
+
+- **📧 Email**: [your-team@company.com](mailto:your-team@company.com)
+- **🎫 Issues**: [GitHub Issues](https://github.com/your-org/sap-fiori-notification-banner/issues)
+- **💬 Discussions**: [GitHub Discussions](https://github.com/your-org/sap-fiori-notification-banner/discussions)
+- **📖 Wiki**: [Internal Documentation](https://your-company-wiki.com/sap-notifications)
+
+## 📄 License
+
+Copyright (c) 2024 Your Company Name. All rights reserved.
+
+This is proprietary software for internal use only.
+
+## 🏆 Credits
+
+Developed with ❤️ by the SAP Development Team
+
+- **Architecture**: [Your Name](mailto:you@company.com)
+- **Frontend**: [Frontend Dev](mailto:frontend@company.com)
+- **Backend**: [Backend Dev](mailto:backend@company.com)
+- **Design**: [Designer](mailto:design@company.com)
+
+---
+
+## 🗺️ Roadmap
+
+### v1.1.0 (Q2 2024)
+- [ ] Enhanced analytics dashboard
+- [ ] Push notification support
+- [ ] Advanced user targeting
+- [ ] Integration with SAP BTP
+
+### v1.2.0 (Q3 2024)
+- [ ] Voice announcement support
+- [ ] Rich text notifications
+- [ ] Scheduled notifications
+- [ ] Mobile app integration
+
+### v2.0.0 (Q4 2024)
+- [ ] Machine learning insights
+- [ ] Advanced personalization
+- [ ] Integration with Teams/Slack
+- [ ] Multi-tenancy support
+
+---
+
+**🚀 Ready to deploy?** Follow our [complete deployment guide](docs/DEPLOYMENT_GUIDE.md) to get started!

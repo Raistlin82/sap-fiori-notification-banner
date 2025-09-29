@@ -1,0 +1,111 @@
+<mvc:View
+    controllerName="com.sap.notifications.admin.controller.NotificationAdmin"
+    xmlns:mvc="sap.ui.core.mvc"
+    xmlns:core="sap.ui.core"
+    xmlns="sap.m"
+    xmlns:f="sap.f"
+    xmlns:layout="sap.ui.layout">
+
+    <f:DynamicPage id="dynamicPageId" headerExpanded="true">
+        <f:title>
+            <f:DynamicPageTitle>
+                <f:heading>
+                    <Title text="Notification Administration"/>
+                </f:heading>
+                <f:actions>
+                    <Button text="Create Notification" type="Emphasized" press="onCreateNotification"/>
+                    <Button text="Refresh" press="onRefresh"/>
+                </f:actions>
+            </f:DynamicPageTitle>
+        </f:title>
+
+        <f:header>
+            <f:DynamicPageHeader pinnable="true">
+                <layout:HorizontalLayout allowWrapping="true">
+                    <VBox class="sapUiMediumMarginEnd">
+                        <Label text="Active Notifications:"/>
+                        <ObjectNumber number="{/statistics/active}" emphasized="true"/>
+                    </VBox>
+                    <VBox class="sapUiMediumMarginEnd">
+                        <Label text="High Priority:"/>
+                        <ObjectNumber number="{/statistics/highPriority}" state="Error"/>
+                    </VBox>
+                    <VBox>
+                        <Label text="Total:"/>
+                        <ObjectNumber number="{/statistics/total}" state="Information"/>
+                    </VBox>
+                </layout:HorizontalLayout>
+            </f:DynamicPageHeader>
+        </f:header>
+
+        <f:content>
+            <Table id="notificationsTable"
+                   items="{/notifications}"
+                   mode="SingleSelect"
+                   growing="true"
+                   growingThreshold="50"
+                   class="sapUiResponsiveMargin">
+                <headerToolbar>
+                    <Toolbar>
+                        <Title text="Notifications" level="H2"/>
+                        <ToolbarSpacer/>
+                        <SearchField width="15rem" search="onSearch"/>
+                    </Toolbar>
+                </headerToolbar>
+
+                <columns>
+                    <Column width="12em">
+                        <Text text="Priority"/>
+                    </Column>
+                    <Column minScreenWidth="Desktop" demandPopin="true">
+                        <Text text="Title"/>
+                    </Column>
+                    <Column minScreenWidth="Tablet" demandPopin="true" hAlign="Center">
+                        <Text text="Type"/>
+                    </Column>
+                    <Column minScreenWidth="Tablet" demandPopin="true" hAlign="Center">
+                        <Text text="Start Date"/>
+                    </Column>
+                    <Column minScreenWidth="Desktop" demandPopin="true" hAlign="Center">
+                        <Text text="End Date"/>
+                    </Column>
+                    <Column minScreenWidth="Desktop" demandPopin="true" hAlign="Center">
+                        <Text text="Status"/>
+                    </Column>
+                    <Column width="12em" hAlign="End">
+                        <Text text="Actions"/>
+                    </Column>
+                </columns>
+
+                <items>
+                    <ColumnListItem press="onItemPress">
+                        <ObjectStatus
+                            text="{severity}"
+                            state="{path: 'severity', formatter: '.formatSeverityState'}"/>
+                        <Text text="{title}" maxLines="2"/>
+                        <Text text="{message_type}"/>
+                        <Text text="{start_date}"/>
+                        <Text text="{end_date}"/>
+                        <ObjectStatus
+                            text="{path: 'active', formatter: '.formatActiveStatus'}"
+                            state="{path: 'active', formatter: '.formatActiveState'}"/>
+                        <HBox>
+                            <Button icon="{path: 'active', formatter: '.formatToggleIcon'}"
+                                    type="Transparent"
+                                    press="onToggleNotification"
+                                    tooltip="{path: 'active', formatter: '.formatToggleTooltip'}"/>
+                            <Button icon="sap-icon://edit"
+                                    type="Transparent"
+                                    press="onEditNotification"
+                                    tooltip="Edit"/>
+                            <Button icon="sap-icon://delete"
+                                    type="Transparent"
+                                    press="onDeleteNotification"
+                                    tooltip="Delete"/>
+                        </HBox>
+                    </ColumnListItem>
+                </items>
+            </Table>
+        </f:content>
+    </f:DynamicPage>
+</mvc:View>

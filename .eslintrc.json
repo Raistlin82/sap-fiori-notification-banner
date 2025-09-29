@@ -1,0 +1,28 @@
+{
+  "env": {
+    "browser": true,
+    "es6": true,
+    "amd": true
+  },
+  "extends": [
+    "eslint:recommended"
+  ],
+  "globals": {
+    "sap": "readonly",
+    "jQuery": "readonly",
+    "$": "readonly"
+  },
+  "parserOptions": {
+    "ecmaVersion": 2018,
+    "sourceType": "module"
+  },
+  "rules": {
+    "indent": ["error", 4],
+    "linebreak-style": ["error", "unix"],
+    "quotes": ["error", "double"],
+    "semi": ["error", "always"],
+    "no-console": "warn",
+    "no-unused-vars": "warn",
+    "no-undef": "error"
+  }
+}
