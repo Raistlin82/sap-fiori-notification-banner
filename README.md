@@ -245,14 +245,19 @@ npm start
 
 ## 📚 Documentation
 
-- [📖 Deployment Guide](docs/DEPLOYMENT_GUIDE.md) - Complete installation instructions
-- [🔧 Configuration Guide](docs/configuration.md) - Advanced configuration options
-- [🧪 Testing Guide](docs/testing.md) - Testing procedures and best practices
-- [🔒 Security Guide](docs/security.md) - Security implementation details
+### 📖 **[Centro Documentazione Completo →](docs/INDEX.md)**
+
+**Guide per Ruolo:**
+- 👤 **[Guida Utente](docs/USER_GUIDE.md)** - Per utenti finali che vedono le notifiche
+- 👨‍💼 **[Guida Amministratore](docs/ADMIN_GUIDE.md)** - Per chi gestisce e pubblica notifiche
+- 🔧 **[Guida Deployment](docs/DEPLOYMENT_GUIDE.md)** - Per installazione e configurazione tecnica
+- 🧪 **[Test Report](TEST_REPORT.md)** - Report completo test e validazioni
+
+**Inizia qui:** [📚 Documentation Hub](docs/INDEX.md) per navigare tutta la documentazione
 
 ## 📞 Support
 
-- **📧 Email**: [your-team@company.com](mailto:your-team@company.com)
+- **📧 Email**: [gabriele.rendina@lutech.it, ileana.scaglia@lutech.it](mailto:gabriele.rendina@lutech.it, ileana.scaglia@lutech.it)
 - **🎫 Issues**: [GitHub Issues](https://github.com/your-org/sap-fiori-notification-banner/issues)
 - **💬 Discussions**: [GitHub Discussions](https://github.com/your-org/sap-fiori-notification-banner/discussions)
 - **📖 Wiki**: [Internal Documentation](https://your-company-wiki.com/sap-notifications)
@@ -267,10 +272,10 @@ This is proprietary software for internal use only.
 
 Developed with ❤️ by the SAP Development Team
 
-- **Architecture**: [Your Name](mailto:you@company.com)
-- **Frontend**: [Frontend Dev](mailto:frontend@company.com)
-- **Backend**: [Backend Dev](mailto:backend@company.com)
-- **Design**: [Designer](mailto:design@company.com)
+- **Architecture**: [Gabriele Rendina](mailto:you@lutech.it)
+- **Frontend**: [Ileana Scaglia](mailto:frontend@lutech.it)
+- **Backend**: [Backend Dev](mailto:backend@lutech.it)
+- **Design**: [Designer](mailto:design@lutech.it)
 
 ---
 

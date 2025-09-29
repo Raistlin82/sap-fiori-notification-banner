@@ -23,9 +23,7 @@
   ],
   "author": "SAP Development Team",
   "license": "PROPRIETARY",
-  "dependencies": {
-    "@sap/ui5-runtime": "^1.60.0"
-  },
+  "dependencies": {},
   "devDependencies": {
     "@ui5/cli": "^3.0.0",
     "@ui5/fs": "^3.0.0",
