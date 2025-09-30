@@ -220,42 +220,24 @@ var pollingInterval = 30000; // 30 seconds (default)
 }
 ```
 
-## 🧪 Testing
-
-**NEW in v1.2.0**: Complete test infrastructure with QUnit & OPA5
+## 🧪 Development & Testing
 
 ```bash
-# Run all tests (unit + integration + lint)
-npm test
-
-# Start with mock server for local testing
-npm run start:mock
-
-# Unit tests only
-npm run test:unit
-# → Open: http://localhost:8080/test/unit/unitTests.qunit.html
-
-# Integration tests (OPA5)
-npm run test:integration
-# → Open: http://localhost:8080/test/integration/opaTests.qunit.html
-
-# Lint code
-npm run lint
-
 # Build for production
 npm run build
 
 # Start development server
 npm start
+
+# Lint code
+npm run lint
 ```
 
-**Test Coverage:**
-- ✅ Unit tests for NotificationBanner controller
-- ✅ Unit tests for models
-- ✅ Integration tests with OPA5
-- ✅ Mock server for standalone testing
-- ✅ Error handling & resilience tests
-- ✅ Circuit breaker pattern tests
+**Development Features:**
+- ✅ Mock server for local testing (auto-loads on localhost)
+- ✅ Error handling with exponential backoff retry
+- ✅ Circuit breaker pattern for resilience
+- ✅ Production-ready build process
 
 ## 🔒 Security
 
