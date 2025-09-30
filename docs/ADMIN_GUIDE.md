@@ -1,57 +1,57 @@
-# 👨‍💼 Guida Amministratore - SAP Fiori Global Notification Banner
+# 👨‍💼 Administrator Guide - SAP Fiori Global Notification Banner
 
-**Per amministratori di sistema che gestiscono le notifiche**
+**For system administrators managing notifications**
 
 ---
 
-## 📋 Indice
-1. [Panoramica](#panoramica)
-2. [Accesso all'Interfaccia Admin](#accesso-allinterfaccia-admin)
-3. [Creare una Notifica](#creare-una-notifica)
-4. [Modificare una Notifica](#modificare-una-notifica)
-5. [🆕 Chiudere Anticipatamente una Notifica](#chiudere-anticipatamente-una-notifica)
-6. [Eliminare una Notifica](#eliminare-una-notifica)
-7. [Gestione Notifiche Multiple](#gestione-notifiche-multiple)
+## 📋 Table of Contents
+1. [Overview](#overview)
+2. [Accessing the Admin Interface](#accessing-the-admin-interface)
+3. [Creating a Notification](#creating-a-notification)
+4. [Modifying a Notification](#modifying-a-notification)
+5. [🆕 Closing a Notification Early](#closing-a-notification-early)
+6. [Deleting a Notification](#deleting-a-notification)
+7. [Managing Multiple Notifications](#managing-multiple-notifications)
 8. [Best Practices](#best-practices)
-9. [Monitoraggio e Statistiche](#monitoraggio-e-statistiche)
-10. [Risoluzione Problemi](#risoluzione-problemi)
+9. [Monitoring and Statistics](#monitoring-and-statistics)
+10. [Troubleshooting](#troubleshooting)
 11. [API Reference](#api-reference)
 
 ---
 
-## 🎯 Panoramica
+## 🎯 Overview
 
-Come amministratore, hai la responsabilità di:
-- ✅ Creare notifiche per tutti gli utenti
-- ✅ Gestire priorità e validità temporale
-- ✅ Monitorare notifiche attive
-- ✅ Garantire comunicazioni efficaci
+As an administrator, you have the responsibility to:
+- ✅ Create notifications for all users
+- ✅ Manage priorities and temporal validity
+- ✅ Monitor active notifications
+- ✅ Ensure effective communications
 
-### Autorizzazioni Richieste
-- **Ruolo SAP**: `Z_NOTIFICATION_ADMIN`
-- **Oggetto Autorizzazione**: `Z_NOTIFY`
-- **Attività**: Create (01), Change (02), Display (03), Delete (06)
+### Required Authorizations
+- **SAP Role**: `Z_NOTIFICATION_ADMIN`
+- **Authorization Object**: `Z_NOTIFY`
+- **Activities**: Create (01), Change (02), Display (03), Delete (06)
 
 ---
 
-## 🔐 Accesso all'Interfaccia Admin
+## 🔐 Accessing the Admin Interface
 
-### Metodo 1: Via Fiori Launchpad
-1. Accedi al **Fiori Launchpad**
-2. Cerca il tile **"Notification Administration"**
-3. Clicca per aprire l'interfaccia admin
+### Method 1: Via Fiori Launchpad
+1. Access the **Fiori Launchpad**
+2. Search for the tile **"Notification Administration"**
+3. Click to open the admin interface
 
-### Metodo 2: URL Diretto
+### Method 2: Direct URL
 ```
 https://your-s4hana-system.com/sap/bc/ui5_ui5/sap/z_notification_admin/index.html
 ```
 
-### Dashboard Iniziale
-Vedrai subito:
-- 📊 **Statistiche**: Notifiche attive, per priorità, totali
-- 📋 **Tabella**: Lista di tutte le notifiche
-- 🔍 **Ricerca**: Campo per filtrare notifiche
-- ➕ **Pulsanti**: Crea nuova, Aggiorna
+### Initial Dashboard
+You will immediately see:
+- 📊 **Statistics**: Active notifications, by priority, totals
+- 📋 **Table**: List of all notifications
+- 🔍 **Search**: Field to filter notifications
+- ➕ **Buttons**: Create new, Refresh
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
@@ -726,9 +726,9 @@ Response Header conterrà: `X-CSRF-Token: <actual-token>`
 - **Security**: [security@lutech.it](mailto:security@lutech.it)
 
 ### Escalation
-1. **Livello 1**: Help Desk interno
-2. **Livello 2**: Team sviluppo SAP
-3. **Livello 3**: SAP Basis / consultants esterni
+1. **Livello 1**: Technical & Functional Support (Gabriele Rendina / Ileana Scaglia)
+2. **Livello 2**: SAP Basis Team
+3. **Livello 3**: External SAP consultants
 
 ---
 

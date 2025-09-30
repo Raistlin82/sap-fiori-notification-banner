@@ -233,8 +233,7 @@ Codice di esempio
 ### Non Trovi Quello Che Cerchi?
 
 #### Per Utenti Finali
-📧 Email: [helpdesk@lutech.it](mailto:helpdesk@lutech.it)
-☎️ Telefono: +39 XXX XXX XXXX
+📧 Email: [gabriele.rendina@lutech.it](mailto:gabriele.rendina@lutech.it) / [ileana.scaglia@lutech.it](mailto:ileana.scaglia@lutech.it)
 
 #### Per Amministratori
 📧 Email: [Ileana Scaglia - ileana.scaglia@lutech.it](mailto:Ileana Scaglia - ileana.scaglia@lutech.it)

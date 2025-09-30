@@ -1,228 +1,227 @@
-# 👤 Guida Utente - SAP Fiori Global Notification Banner
+# 👤 User Guide - SAP Fiori Global Notification Banner
 
-**Per utenti finali delle applicazioni SAP Fiori**
+**For end users of SAP Fiori applications**
 
 ---
 
-## 📋 Indice
-1. [Introduzione](#introduzione)
-2. [Come Funziona](#come-funziona)
-3. [Tipi di Notifiche](#tipi-di-notifiche)
-4. [Interazioni Utente](#interazioni-utente)
-5. [Dispositivi Supportati](#dispositivi-supportati)
-6. [Accessibilità](#accessibilità)
+## 📋 Table of Contents
+1. [Introduction](#introduction)
+2. [How It Works](#how-it-works)
+3. [Notification Types](#notification-types)
+4. [User Interactions](#user-interactions)
+5. [Supported Devices](#supported-devices)
+6. [Accessibility](#accessibility)
 7. [FAQ](#faq)
 
 ---
 
-## 🎯 Introduzione
+## 🎯 Introduction
 
-Il **Global Notification Banner** è un sistema che mostra automaticamente messaggi importanti in cima a tutte le applicazioni SAP Fiori che utilizzi. Non devi installare nulla - il banner appare automaticamente quando ci sono notifiche attive.
+The **Global Notification Banner** is a system that automatically displays important messages at the top of all SAP Fiori applications you use. You don't need to install anything - the banner appears automatically when there are active notifications.
 
-### Cosa Vedrai
-- Banner colorati con messaggi importanti
-- Icone che indicano il tipo di messaggio
-- Pulsanti per navigare e chiudere
-- Design responsive su tutti i dispositivi
-
----
-
-## 🔄 Come Funziona
-
-### Apparizione Automatica
-Il banner appare automaticamente quando:
-- Accedi a qualsiasi applicazione Fiori
-- Vengono pubblicate nuove notifiche
-- Il sistema trova messaggi attivi per il tuo utente
-
-### Aggiornamento in Tempo Reale
-- Il sistema controlla ogni **30 secondi** se ci sono nuove notifiche
-- Le notifiche scadute scompaiono automaticamente
-- Non devi ricaricare la pagina
+### What You'll See
+- Colored banners with important messages
+- Icons indicating the message type
+- Buttons to navigate and close
+- Responsive design on all devices
 
 ---
 
-## 🎨 Tipi di Notifiche
+## 🔄 How It Works
 
-### 🔴 **Priorità Alta (Critica)**
-- **Colore**: Rosso con bordo rosso scuro
-- **Utilizzo**: Problemi critici, emergenze, system down
-- **Esempio**: *"Sistema in manutenzione straordinaria dalle 14:00 alle 16:00"*
-- **Azione**: Leggi subito e prendi nota
+### Automatic Display
+The banner appears automatically when:
+- You access any Fiori application
+- New notifications are published
+- The system finds active messages for your user
 
-### 🟡 **Priorità Media (Avviso)**
-- **Colore**: Giallo/Arancione
-- **Utilizzo**: Avvisi importanti, modifiche programmate
-- **Esempio**: *"Nuova funzionalità disponibile da lunedì prossimo"*
-- **Azione**: Leggi quando possibile
-
-### 🔵 **Priorità Bassa (Informativa)**
-- **Colore**: Blu
-- **Utilizzo**: Informazioni generali, suggerimenti
-- **Esempio**: *"Ricorda di aggiornare i tuoi dati di profilo"*
-- **Azione**: Leggi quando hai tempo
-
-### 🟢 **Successo**
-- **Colore**: Verde
-- **Utilizzo**: Conferme positive, completamenti
-- **Esempio**: *"Migrazione dati completata con successo"*
-
-### ⚪ **Manutenzione**
-- **Colore**: Grigio
-- **Utilizzo**: Manutenzioni programmate
-- **Esempio**: *"Manutenzione pianificata domenica notte"*
+### Real-time Updates
+- The system checks every **30 seconds** for new notifications
+- Expired notifications disappear automatically
+- No need to reload the page
 
 ---
 
-## 🖱️ Interazioni Utente
+## 🎨 Notification Types
 
-### Visualizzazione Base
+### 🔴 **High Priority (Critical)**
+- **Color**: Red with dark red border
+- **Usage**: Critical issues, emergencies, system down
+- **Example**: *"System under extraordinary maintenance from 2:00 PM to 4:00 PM"*
+- **Action**: Read immediately and take note
+
+### 🟡 **Medium Priority (Warning)**
+- **Color**: Yellow/Orange
+- **Usage**: Important warnings, scheduled changes
+- **Example**: *"New feature available from next Monday"*
+- **Action**: Read when possible
+
+### 🔵 **Low Priority (Informative)**
+- **Color**: Blue
+- **Usage**: General information, tips
+- **Example**: *"Remember to update your profile data"*
+- **Action**: Read when you have time
+
+### 🟢 **Success**
+- **Color**: Green
+- **Usage**: Positive confirmations, completions
+- **Example**: *"Data migration completed successfully"*
+
+### ⚪ **Maintenance**
+- **Color**: Gray
+- **Usage**: Scheduled maintenance
+- **Example**: *"Planned maintenance Sunday night"*
+
+---
+
+## 🖱️ User Interactions
+
+### Basic Display
 ```
 ┌─────────────────────────────────────────────────────────┐
-│ ⚠️ TITOLO NOTIFICA: Testo del messaggio importante     ❌ │
+│ ⚠️ NOTIFICATION TITLE: Important message text          ❌ │
 └─────────────────────────────────────────────────────────┘
 ```
 
-### Con Notifiche Multiple
+### With Multiple Notifications
 ```
 ┌─────────────────────────────────────────────────────────┐
-│ ⚠️ TITOLO: Messaggio    ⬅️ [1 di 3] ➡️              ❌ │
+│ ⚠️ TITLE: Message    ⬅️ [1 of 3] ➡️                   ❌ │
 └─────────────────────────────────────────────────────────┘
 ```
 
-### Azioni Disponibili
+### Available Actions
 
-#### ❌ **Chiudi Notifica**
-- **Cosa fa**: Rimuove la notifica corrente dalla visualizzazione
-- **Come**: Clicca sulla **X** a destra
-- **Nota**: La notifica non verrà più mostrata a te, ma resta attiva per altri utenti
+#### ❌ **Close Notification**
+- **What it does**: Removes the current notification from display
+- **How**: Click the **X** on the right
+- **Note**: The notification won't be shown to you again, but remains active for other users
 
-#### ⬅️ **Notifica Precedente**
-- **Cosa fa**: Mostra la notifica precedente
-- **Come**: Clicca sulla **freccia sinistra**
-- **Disponibile**: Solo se ci sono più notifiche
+#### ⬅️ **Previous Notification**
+- **What it does**: Shows the previous notification
+- **How**: Click the **left arrow**
+- **Available**: Only if there are multiple notifications
 
-#### ➡️ **Notifica Successiva**
-- **Cosa fa**: Mostra la notifica successiva
-- **Come**: Clicca sulla **freccia destra**
-- **Disponibile**: Solo se ci sono più notifiche
+#### ➡️ **Next Notification**
+- **What it does**: Shows the next notification
+- **How**: Click the **right arrow**
+- **Available**: Only if there are multiple notifications
 
-#### 📊 **Contatore**
-- **Cosa mostra**: Posizione corrente (es. "1 di 3")
-- **Utilità**: Capire quante notifiche totali ci sono
+#### 📊 **Counter**
+- **What it shows**: Current position (e.g., "1 of 3")
+- **Utility**: Understand how many total notifications there are
 
 ---
 
-## 📱 Dispositivi Supportati
+## 📱 Supported Devices
 
 ### 🖥️ **Desktop**
-- **Visualizzazione**: Banner completo con tutti i controlli
-- **Posizione**: Fisso in cima alla pagina
-- **Interazione**: Click con mouse
+- **Display**: Full banner with all controls
+- **Position**: Fixed at top of page
+- **Interaction**: Mouse click
 
 ### 📱 **Tablet**
-- **Visualizzazione**: Layout adattivo, controlli essenziali
-- **Posizione**: Fisso in cima, si adatta alla larghezza
-- **Interazione**: Touch ottimizzato
+- **Display**: Adaptive layout, essential controls
+- **Position**: Fixed at top, adapts to width
+- **Interaction**: Touch optimized
 
 ### 📱 **Smartphone**
-- **Visualizzazione**: Compatto, testo su più righe se necessario
-- **Controlli**: Semplificati (nasconde contatore su schermi piccoli)
-- **Interazione**: Touch friendly con target più grandi
+- **Display**: Compact, text wraps if needed
+- **Controls**: Simplified (hides counter on small screens)
+- **Interaction**: Touch friendly with larger targets
 
-### Browser Supportati
+### Supported Browsers
 - ✅ **Chrome 90+**
 - ✅ **Firefox 88+**
 - ✅ **Safari 14+**
 - ✅ **Edge 90+**
-- ⚠️ **Internet Explorer 11** (supporto limitato)
+- ⚠️ **Internet Explorer 11** (limited support)
 
 ---
 
-## ♿ Accessibilità
+## ♿ Accessibility
 
 ### Screen Reader
-- **Supporto completo** per NVDA, JAWS, VoiceOver
-- **Annunci automatici** quando appaiono nuove notifiche
-- **Navigazione tastiera** completa
+- **Full support** for NVDA, JAWS, VoiceOver
+- **Automatic announcements** when new notifications appear
+- **Full keyboard navigation**
 
-### Navigazione da Tastiera
-- **Tab**: Naviga tra i controlli
-- **Enter/Space**: Attiva pulsanti
-- **Escape**: Chiude la notifica
-- **Frecce**: Naviga tra notifiche multiple
+### Keyboard Navigation
+- **Tab**: Navigate between controls
+- **Enter/Space**: Activate buttons
+- **Escape**: Close notification
+- **Arrows**: Navigate between multiple notifications
 
-### Alto Contrasto
-- **Supporto automatico** per modalità alto contrasto del sistema
-- **Bordi più spessi** e colori contrastanti
-- **Compatibile** con impostazioni di accessibilità Windows/Mac
+### High Contrast
+- **Automatic support** for system high contrast mode
+- **Thicker borders** and contrasting colors
+- **Compatible** with Windows/Mac accessibility settings
 
-### Riduzione Movimento
-- **Animazioni disabilitate** se impostato nel sistema
-- **Transizioni semplificate** per utenti sensibili al movimento
-
----
-
-## ❓ FAQ - Domande Frequenti
-
-### **Q: Il banner non appare, cosa faccio?**
-**A**: Verifica che:
-- Sei loggato correttamente in SAP
-- Il tuo browser sia supportato
-- Non ci siano blocker di popup attivi
-- Contatta l'amministratore se il problema persiste
-
-### **Q: Posso disattivare le notifiche?**
-**A**: No, le notifiche sono gestite centralmente dagli amministratori per garantire che informazioni critiche raggiungano tutti gli utenti.
-
-### **Q: Ho chiuso una notifica per errore, come la rivedo?**
-**A**: Una volta chiusa, la notifica non riapparirà per il tuo utente. Contatta l'amministratore se hai bisogno di rivedere il contenuto.
-
-### **Q: Perché alcune notifiche hanno priorità diversa?**
-**A**: Le priorità aiutano a distinguere:
-- **Alta**: Azioni immediate richieste
-- **Media**: Informazioni importanti
-- **Bassa**: Informazioni generali
-
-### **Q: Le notifiche funzionano su tutte le app Fiori?**
-**A**: Sì, il banner appare automaticamente su tutte le applicazioni Fiori del sistema.
-
-### **Q: Cosa succede se sono offline?**
-**A**: Le notifiche vengono caricate quando torni online. Il sistema verifica automaticamente ogni 30 secondi.
-
-### **Q: Posso vedere notifiche vecchie?**
-**A**: No, vengono mostrate solo le notifiche attive nel periodo corrente. Le notifiche scadute non sono più visibili.
-
-### **Q: Il banner copre contenuto importante, cosa faccio?**
-**A**: Il banner è progettato per non interferire, ma puoi:
-- Chiudere la notifica se non più rilevante
-- Scrollare la pagina per vedere il contenuto sottostante
-
-### **Q: Su mobile il banner è diverso?**
-**A**: Sì, è ottimizzato per schermi piccoli:
-- Layout più compatto
-- Controlli touch-friendly
-- Testo che si adatta alla larghezza
-
-### **Q: Posso segnalare problemi con una notifica?**
-**A**: Contatta direttamente l'amministratore del sistema o il team IT per problemi con il contenuto o il funzionamento.
+### Reduced Motion
+- **Animations disabled** if set in system
+- **Simplified transitions** for motion-sensitive users
 
 ---
 
-## 📞 Supporto
+## ❓ FAQ - Frequently Asked Questions
 
-### Contatti
-- **Team IT**: [Gabriele Rendina - gabriele.rendina@lutech.it](mailto:Gabriele Rendina - gabriele.rendina@lutech.it)
-- **Help Desk**: [Ileana Scaglia - ileana.scaglia@lutech.it](mailto:Ileana Scaglia - ileana.scaglia@lutech.it)
-- **Telefono**: +39 XXX XXX XXXX
+### **Q: The banner doesn't appear, what should I do?**
+**A**: Verify that:
+- You are logged in correctly to SAP
+- Your browser is supported
+- No popup blockers are active
+- Contact the administrator if the problem persists
 
-### Segnalazioni
-Per problemi tecnici, includi sempre:
-- Browser utilizzato e versione
-- Dispositivo (desktop/mobile/tablet)
-- Screenshot se possibile
-- Ora e data del problema
+### **Q: Can I disable notifications?**
+**A**: No, notifications are managed centrally by administrators to ensure that critical information reaches all users.
+
+### **Q: I closed a notification by mistake, how can I see it again?**
+**A**: Once closed, the notification won't reappear for your user. Contact the administrator if you need to review the content.
+
+### **Q: Why do some notifications have different priorities?**
+**A**: Priorities help distinguish:
+- **High**: Immediate actions required
+- **Medium**: Important information
+- **Low**: General information
+
+### **Q: Do notifications work on all Fiori apps?**
+**A**: Yes, the banner appears automatically on all Fiori applications in the system.
+
+### **Q: What happens if I'm offline?**
+**A**: Notifications are loaded when you come back online. The system checks automatically every 30 seconds.
+
+### **Q: Can I see old notifications?**
+**A**: No, only active notifications within the current period are shown. Expired notifications are no longer visible.
+
+### **Q: The banner covers important content, what should I do?**
+**A**: The banner is designed not to interfere, but you can:
+- Close the notification if no longer relevant
+- Scroll the page to see content underneath
+
+### **Q: Is the banner different on mobile?**
+**A**: Yes, it's optimized for small screens:
+- More compact layout
+- Touch-friendly controls
+- Text adapts to width
+
+### **Q: Can I report problems with a notification?**
+**A**: Contact the system administrator or IT team directly for problems with content or functionality.
 
 ---
 
-**📱 Per una migliore esperienza, tieni il browser aggiornato e abilita JavaScript.**
+## 📞 Support
+
+### Contacts
+- **Technical Support**: [Gabriele Rendina - gabriele.rendina@lutech.it](mailto:gabriele.rendina@lutech.it)
+- **Functional Support**: [Ileana Scaglia - ileana.scaglia@lutech.it](mailto:ileana.scaglia@lutech.it)
+
+### Reporting Issues
+For technical problems, always include:
+- Browser used and version
+- Device (desktop/mobile/tablet)
+- Screenshot if possible
+- Date and time of the problem
+
+---
+
+**📱 For the best experience, keep your browser updated and enable JavaScript.**

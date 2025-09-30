@@ -295,55 +295,323 @@ npm run deploy
 
 #### Step 1: Shell Integration
 
-Ensure the notification banner integrates with all Fiori apps:
+Ensure the notification banner integrates with all Fiori apps by customizing the Fiori Launchpad theme.
 
-**File**: Add to Fiori Launchpad theme extension
+**Option A: Via Fiori Theme Designer (Recommended)**
+
+1. **Access Theme Designer**
+   - Transaction: **`/UI2/FLPD_CUST`** (Fiori Launchpad Designer Customizing)
+   - Or direct URL: `https://your-system.com/sap/bc/ui5_ui5/ui2/ushell/shells/abap/FioriLaunchpad.html`
+   - Navigate to: **Settings → Theme Manager**
+
+2. **Create Custom Theme**
+   - Click **"Create New Theme"**
+   - Base Theme: Select **"SAP Quartz"** or **"SAP Horizon"**
+   - Theme ID: `Z_NOTIFICATION_THEME`
+   - Description: `Custom theme with notification banner`
+
+3. **Add Custom CSS**
+   - In Theme Designer, navigate to **"Quick Theming"** tab
+   - Click **"Custom CSS"** section
+   - Add the following CSS:
 
 ```css
-/* Include in custom theme CSS */
+/* Notification Banner Shell Integration */
 @import url("./webapp/css/style.css");
 
-/* Ensure shell compatibility */
+/* Ensure shell header compatibility */
 .sapUshellShellHeader ~ #globalNotificationBanner {
     top: 2.75rem !important;
+    z-index: 1000;
+}
+
+/* Mobile adjustments */
+@media (max-width: 600px) {
+    .sapUshellShellHeader ~ #globalNotificationBanner {
+        top: 3rem !important;
+    }
 }
 ```
 
+4. **Save and Publish Theme**
+   - Click **"Save"**
+   - Click **"Publish"**
+   - Note: Publishing may take 5-10 minutes
+
+5. **Assign Theme to Users**
+   - Go to transaction **`/UI2/FLPD_CONF`** (FLP Configuration)
+   - Navigate to **User Settings**
+   - Set `Z_NOTIFICATION_THEME` as default theme
+   - Or per-user: Transaction **`SU01`** → User → Parameters → ID: `FLP_THEME`, Value: `Z_NOTIFICATION_THEME`
+
+**Option B: Via Transport (For Basis Team)**
+
+1. **Create Transport Request**
+   - Transaction: **`SE09`** (Transport Organizer)
+   - Create new request
+   - Type: **Customizing Request**
+
+2. **Export Theme Files**
+   - Package theme CSS in transport
+   - Path: `/UI5/THEME_DESIGNER/Z_NOTIFICATION_THEME`
+
+3. **Transport to Target Systems**
+   - Transaction: **`STMS`** (Transport Management System)
+   - Import to QA → Production
+
 #### Step 2: Component Integration
 
-For automatic loading across all apps, register the component globally:
+For automatic loading across all apps, register the component globally using Fiori Launchpad Designer.
 
-**Fiori Launchpad Configuration**:
-```javascript
-// Add to shell plugins configuration
+**Detailed Procedure**:
+
+1. **Access Fiori Launchpad Designer**
+   - Transaction: **`/UI2/FLPD_CUST`**
+   - Or URL: `https://your-system.com/sap/bc/ui5_ui5/sap/arsrvc_upb_admn/main.html`
+   - Log in with user having authorization `SAP_FLP_ADMIN`
+
+2. **Navigate to Configuration**
+   - Click on **"Configuration"** tab (left sidebar)
+   - Select **"Common Data Model"** → **"Global Settings"**
+
+3. **Add Plugin Configuration**
+   - Section: **"Shell Plugins"**
+   - Click **"+"** to add new plugin
+   - Enter configuration:
+
+   | Field | Value |
+   |-------|-------|
+   | **Plugin ID** | `NotificationBanner` |
+   | **Component Name** | `com.sap.notifications.banner` |
+   | **Component Path** | `/sap/bc/ui5_ui5/sap/z_notification` |
+   | **Enabled** | ✅ Yes |
+   | **Auto Start** | ✅ Yes |
+
+4. **Add Plugin Configuration JSON**
+   - In the **"Configuration"** text area, add:
+
+```json
 {
-  "sap.ushell.plugins": {
-    "NotificationBanner": {
-      "component": "com.sap.notifications.banner",
-      "config": {
-        "autoStart": true,
-        "pollingInterval": 30000
-      }
-    }
+  "component": "com.sap.notifications.banner",
+  "config": {
+    "autoStart": true,
+    "pollingInterval": 30000,
+    "enabled": true,
+    "displayOnStartup": true
   }
 }
 ```
 
-### Environment-Specific Settings
+5. **Save Configuration**
+   - Click **"Save"**
+   - Click **"Publish"** to make changes active
 
-#### Development
-```javascript
-// webapp/Component.js - Development settings
-var isDevelopment = window.location.hostname === 'localhost';
-var pollingInterval = isDevelopment ? 10000 : 30000; // 10s vs 30s
+**Alternative Method: Via Transaction `/IWFND/MAINT_SERVICE`**
+
+1. **Register Service in Service Catalog**
+   - Transaction: **`/IWFND/MAINT_SERVICE`** (Maintain Services)
+   - Click **"Add Service"**
+   - System Alias: `LOCAL`
+   - External Service Name: `Z_NOTIFICATION_SRV`
+
+2. **Add Service to Catalog**
+   - Transaction: **`/IWFND/GW_CLIENT`** (Gateway Client)
+   - Test service URL: `/sap/opu/odata/sap/Z_NOTIFICATION_SRV/`
+   - Verify HTTP 200 response
+
+3. **Configure in Fiori Launchpad**
+   - Go back to **`/UI2/FLPD_CUST`**
+   - Navigate to **Catalogs** → **Create New Catalog**
+   - Catalog ID: `Z_NOTIFICATION_CATALOG`
+   - Title: `Notification Management`
+
+4. **Add Tile to Catalog**
+   - Click **"+"** in Tiles section
+   - Tile type: **"App Launcher - Dynamic"**
+   - Configuration:
+
+```json
+{
+  "semanticObject": "Notification",
+  "action": "display",
+  "title": "System Notifications",
+  "subtitle": "View active notifications",
+  "icon": "sap-icon://alert",
+  "info": "Global Banner"
+}
 ```
 
-#### Production
+5. **Assign to User Groups**
+   - Transaction: **`PFCG`** (Role Maintenance)
+   - Edit role `Z_NOTIFICATION_ADMIN`
+   - Tab: **"Menu"**
+   - Add catalog: `Z_NOTIFICATION_CATALOG`
+   - Save and generate profile
+
+### Environment-Specific Settings
+
+Configure different settings for Development, QA, and Production environments using SAP System Profile Parameters.
+
+#### Development Environment Configuration
+
+**Step-by-Step Procedure**:
+
+1. **Access System Profile**
+   - Transaction: **`RZ10`** (Edit Profiles)
+   - Profile: Select **"Default Profile"** or instance-specific profile
+   - Click **"Extended Maintenance"**
+
+2. **Add Development Parameters**
+   - Click **"Create Parameter"**
+   - Add the following parameters:
+
+| Parameter Name | Value | Description |
+|---------------|--------|-------------|
+| `znotif/polling_interval` | `10000` | Poll every 10 seconds (dev) |
+| `znotif/debug_mode` | `TRUE` | Enable debug logging |
+| `znotif/cache_enabled` | `FALSE` | Disable caching for dev |
+| `znotif/log_level` | `DEBUG` | Detailed logging |
+
+3. **Save and Activate Profile**
+   - Click **"Save"**
+   - Click **"Copy"** to activate
+   - Restart required: Yes (use **`SM50`** to check)
+
+4. **Verify in Code**
+   - Edit `webapp/Component.js`:
+
 ```javascript
-// Production optimizations
-var isProduction = !isDevelopment;
-var enableCaching = isProduction;
-var logLevel = isProduction ? 'ERROR' : 'DEBUG';
+// Read system parameters
+var sPollingInterval = jQuery.sap.getUriParameters().get("pollingInterval") || "30000";
+var bDebugMode = jQuery.sap.getUriParameters().get("debugMode") === "true";
+
+// Environment detection
+var sHostname = window.location.hostname;
+var isDevelopment = sHostname === 'localhost' || sHostname.includes('dev');
+
+// Apply development settings
+if (isDevelopment) {
+    this.pollingInterval = 10000; // 10 seconds
+    jQuery.sap.log.setLevel(jQuery.sap.log.Level.DEBUG);
+    console.log("🔧 Development Mode Active - Polling: 10s");
+} else {
+    this.pollingInterval = parseInt(sPollingInterval);
+    jQuery.sap.log.setLevel(jQuery.sap.log.Level.ERROR);
+}
+```
+
+#### Quality Assurance (QA) Configuration
+
+1. **Transaction `RZ10`** - QA System
+   - Parameters for QA:
+
+| Parameter | Value | Description |
+|-----------|-------|-------------|
+| `znotif/polling_interval` | `20000` | 20 seconds (moderate) |
+| `znotif/debug_mode` | `TRUE` | Keep debugging for testing |
+| `znotif/cache_enabled` | `TRUE` | Enable caching |
+| `znotif/log_level` | `INFO` | Moderate logging |
+
+2. **Performance Monitoring**
+   - Transaction: **`ST03N`** (Workload Analysis)
+   - Monitor notification service performance
+   - Check response times under load
+
+#### Production Environment Configuration
+
+**Critical Production Setup**:
+
+1. **Access Profile Parameters**
+   - Transaction: **`RZ10`** - Production System
+   - ⚠️ **IMPORTANT**: Always test in QA first!
+   - Create backup before changes: **`RZ10` → Profile → Download**
+
+2. **Production Parameters**
+
+| Parameter | Value | Description |
+|-----------|-------|-------------|
+| `znotif/polling_interval` | `30000` | 30 seconds (optimal) |
+| `znotif/debug_mode` | `FALSE` | Disable debug mode |
+| `znotif/cache_enabled` | `TRUE` | Enable full caching |
+| `znotif/log_level` | `ERROR` | Error logging only |
+| `znotif/max_notifications` | `10` | Limit active notifications |
+| `znotif/enable_compression` | `TRUE` | GZIP compression |
+
+3. **Performance Optimization**
+   - Transaction: **`SMICM`** (ICM Monitor)
+   - Navigate to **"Services"** tab
+   - Verify HTTP service settings:
+     - Keep-Alive: **Enabled**
+     - Max Connections: **500**
+     - Timeout: **300 seconds**
+
+4. **Caching Configuration**
+   - Transaction: **`SICF`** (HTTP Service Maintenance)
+   - Navigate to: `/sap/bc/rest/zcl_notification_rest/`
+   - Double-click service → **"Configuration"** tab
+   - Enable caching:
+     - Cache Control: **public, max-age=30**
+     - ETag: **Enabled**
+
+5. **Monitoring Setup**
+   - Transaction: **`SLG1`** (Application Log)
+   - Object: `Z_NOTIFICATION`
+   - Subobject: `BANNER`
+   - Set retention: **30 days**
+
+6. **Alert Configuration**
+   - Transaction: **`SOST`** (Send Object Status)
+   - Configure email alerts for errors
+   - Recipients: Technical team email list
+
+#### Testing Environment Settings
+
+After configuration, test each environment:
+
+**Development Testing**:
+```bash
+# Test URL with debug parameters
+https://dev-system.com/fiori?debugMode=true&pollingInterval=5000
+```
+
+**QA Testing**:
+- Transaction: **`ST22`** - Check for dumps
+- Transaction: **`SM21`** - Check system log
+- Transaction: **`ST03N`** - Verify performance
+
+**Production Validation**:
+- Transaction: **`SM50`** - Monitor work processes
+- Transaction: **`SM51`** - Check all servers
+- Transaction: **`SMICM`** - Monitor HTTP traffic
+- Transaction: **`SLG1`** - Review application logs
+
+#### Environment Variable Management
+
+Create a centralized configuration table:
+
+1. **Transaction `SE11`** - Create Config Table
+   - Table: `ZTNOTIFY_CONFIG`
+   - Fields:
+     - `ENVIRONMENT` (DEV/QA/PRD)
+     - `PARAMETER` (parameter name)
+     - `VALUE` (parameter value)
+
+2. **Maintain Values**
+   - Transaction: **`SM30`** (Table Maintenance)
+   - View: `V_ZTNOTIFY_CONFIG`
+   - Maintain environment-specific values
+
+3. **Read in Code**:
+
+```javascript
+// Read from backend config table
+jQuery.ajax({
+    url: "/sap/bc/rest/zcl_notification_rest/config",
+    success: function(config) {
+        this.pollingInterval = config.polling_interval;
+        this.debugMode = config.debug_mode;
+    }
+});
 ```
 
 ---

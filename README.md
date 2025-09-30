@@ -273,10 +273,9 @@ This is proprietary software for internal use only.
 
 Developed with ❤️ by the SAP Development Team
 
-- **Architecture**: [Gabriele Rendina](mailto:you@lutech.it)
-- **Frontend**: [Ileana Scaglia](mailto:frontend@lutech.it)
-- **Backend**: [Backend Dev](mailto:backend@lutech.it)
-- **Design**: [Designer](mailto:design@lutech.it)
+- **Architects**: [Gabriele Rendina](mailto:gabriele.rendina@lutech.it) & [Ileana Scaglia](mailto:ileana.scaglia@lutech.it)
+- **Technical Lead**: [Gabriele Rendina](mailto:gabriele.rendina@lutech.it)
+- **Frontend Lead**: [Ileana Scaglia](mailto:ileana.scaglia@lutech.it)
 
 ---
 

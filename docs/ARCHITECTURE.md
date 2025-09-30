@@ -555,11 +555,11 @@ flowchart LR
 
 | Ruolo | Responsabilità | Contatto |
 |-------|----------------|----------|
-| **Technical Lead** | Architettura, codice backend | Gabriele Rendina |
-| **Frontend Developer** | UI5, UX, responsive design | Ileana Scaglia |
+| **Architect** | Architettura, design sistema | Gabriele Rendina & Ileana Scaglia |
+| **Technical Lead** | Codice backend, integrazioni | Gabriele Rendina |
+| **Frontend Lead** | UI5, UX, responsive design | Ileana Scaglia |
 | **SAP Basis** | Infrastructure, authorizations | Basis Team |
 | **Security Team** | Security review, penetration test | Security Team |
-| **End Users** | Feedback, bug reporting | Help Desk |
 
 ---
 
