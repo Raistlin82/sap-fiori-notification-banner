@@ -13,19 +13,30 @@
         data-sap-ui-resourceroots='{
             "com.sap.notifications.banner": "./"
         }'
+        data-sap-ui-preload=""
         data-sap-ui-async="true"
-        data-sap-ui-onInit="module:sap/ui/core/ComponentSupport"
         data-sap-ui-compatVersion="edge"
+        data-sap-ui-xx-waitForTheme="true"
         data-sap-ui-frameOptions="trusted">
+    </script>
+
+    <script>
+        sap.ui.getCore().attachInit(function() {
+            sap.ui.require([
+                "sap/m/Shell",
+                "sap/ui/core/ComponentContainer"
+            ], function(Shell, ComponentContainer) {
+                new Shell({
+                    app: new ComponentContainer({
+                        id: "app",
+                        height : "100%",
+                        name : "com.sap.notifications.banner"
+                    })
+                }).placeAt("content");
+            });
+        });
     </script>
 </head>
 <body class="sapUiBody" id="content">
-    <div
-        data-sap-ui-component
-        data-name="com.sap.notifications.banner"
-        data-id="container"
-        data-settings='{"id" : "notificationBanner"}'
-        data-handle-validation="true">
-    </div>
 </body>
 </html>

@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test - Notification Banner</title>
+    <script
+        id="sap-ui-bootstrap"
+        src="https://ui5.sap.com/1.120.0/resources/sap-ui-core.js"
+        data-sap-ui-theme="sap_fiori_3"
+        data-sap-ui-libs="sap.m"
+        data-sap-ui-resourceroots='{
+            "com.sap.notifications.banner": "./"
+        }'
+        data-sap-ui-async="true"
+        data-sap-ui-preload="">
+    </script>
+    <script>
+        sap.ui.getCore().attachInit(function() {
+            sap.ui.xmlview({
+                viewName: "com.sap.notifications.banner.view.View1"
+            }).placeAt("content");
+        });
+    </script>
+</head>
+<body class="sapUiBody" id="content">
+</body>
+</html>

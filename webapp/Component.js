@@ -68,9 +68,6 @@ sap.ui.define([
          * @private
          */
         _finishInitialization: function() {
-            // enable routing
-            this.getRouter().initialize();
-
             // set the device model
             this.setModel(models.createDeviceModel(), "device");
 

@@ -63,34 +63,11 @@
         }
       ]
     },
-    "routing": {
-      "config": {
-        "routerClass": "sap.m.routing.Router",
-        "viewType": "XML",
-        "async": true,
-        "viewPath": "com.sap.notifications.banner.view",
-        "controlAggregation": "pages",
-        "controlId": "app",
-        "clearControlAggregation": false
-      },
-      "routes": [
-        {
-          "name": "RouteView1",
-          "pattern": "",
-          "target": [
-            "TargetView1"
-          ]
-        }
-      ],
-      "targets": {
-        "TargetView1": {
-          "viewType": "XML",
-          "transition": "slide",
-          "clearControlAggregation": false,
-          "viewId": "View1",
-          "viewName": "View1"
-        }
-      }
+    "rootView": {
+      "viewName": "com.sap.notifications.banner.view.View1",
+      "type": "XML",
+      "async": true,
+      "id": "View1"
     }
   }
 }
