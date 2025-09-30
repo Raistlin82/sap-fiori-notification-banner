@@ -1,0 +1,79 @@
+*&---------------------------------------------------------------------*
+*& Data Element: ZNOTIFY_TARGET_USERS
+*&---------------------------------------------------------------------*
+*& Target Audience Filter for Notifications
+*& Based on domain ZDOMAIN_TARGET_USERS
+*& S/4HANA PCE 2023 Compatible
+*&
+*& INSTRUCTIONS FOR SE11 DATA ELEMENT CREATION:
+*& 1. Transaction: SE11
+*& 2. Select "Data Type"
+*& 3. Enter data element name: ZNOTIFY_TARGET_USERS
+*& 4. Click "Create"
+*& 5. Select "Data Element" radio button
+*& 6. Enter settings below
+*& 7. Save and activate
+*&---------------------------------------------------------------------*
+
+*-- Data Element Settings:
+Data Element: ZNOTIFY_TARGET_USERS
+Short Description: Target Audience Filter
+
+*-- Elementary Type tab:
+Domain: ZDOMAIN_TARGET_USERS
+
+*-- Field Label tab:
+Short: Target
+Medium: Target Users
+Long: Target Audience Filter
+Heading: Target
+
+*-- Further Characteristics tab:
+Search Help: (optional - see ZDOMAIN_TARGET_USERS for implementation ideas)
+Parameter ID: (leave blank)
+
+*-- Documentation (optional):
+Target Audience Filter controls WHO sees the notification.
+
+**Supported Patterns:**
+
+Public Access:
+- 'ALL' or blank = Visible to everyone (public notification)
+- 'USER' = Visible to all authenticated users
+
+Role-Based:
+- 'ROLE:SAP_ALL' = Users assigned to SAP_ALL role
+- 'ROLE:Z_*' = Users with roles starting with Z_
+- 'ROLE:*_ADMIN' = Users with roles ending in _ADMIN
+
+User-Specific:
+- 'USER:SMITHJ' = Only user SMITHJ sees it
+- 'USER:ADMIN' = Only user ADMIN sees it
+
+Custom Filters:
+- 'DEPT:FIN' = Users in Finance department (custom logic)
+- 'DEPT:HR' = Users in HR department (custom logic)
+- 'COMP:1000' = Users in company code 1000 (custom logic)
+
+Multiple Values:
+- 'ROLE:SAP_ALL,USER:ADMIN,DEPT:FIN' = Comma-separated OR logic
+- Any user matching ANY pattern will see the notification
+
+**Implementation:**
+- Current: Simple string matching (CS operator in ABAP)
+- Pattern matching done in zcl_notification_manager
+- Future: Can extend with complex authorization checks
+
+**Examples:**
+
+Scenario: Maintenance notification for all users
+  TARGET_USERS = 'ALL' or blank
+
+Scenario: Critical security update for admins only
+  TARGET_USERS = 'ROLE:SAP_ALL,ROLE:Z_SECURITY_ADMIN'
+
+Scenario: Personal notification for specific user
+  TARGET_USERS = 'USER:SMITHJ'
+
+Scenario: Department-specific announcement
+  TARGET_USERS = 'DEPT:FIN'

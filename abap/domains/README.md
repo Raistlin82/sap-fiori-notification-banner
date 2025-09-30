@@ -35,14 +35,16 @@ This directory contains custom Z domains and data elements for the notification 
 
 ```
 domains/
-├── zdomain_msg_type.se11      → Domain for MESSAGE_TYPE
-├── zdomain_severity.se11      → Domain for SEVERITY
-└── zdomain_display_mode.se11  → Domain for DISPLAY_MODE (v1.1.0)
+├── zdomain_msg_type.se11       → Domain for MESSAGE_TYPE
+├── zdomain_severity.se11       → Domain for SEVERITY
+├── zdomain_display_mode.se11   → Domain for DISPLAY_MODE (v1.1.0)
+└── zdomain_target_users.se11   → Domain for TARGET_USERS
 
 data_elements/
-├── znotify_msg_type.se11      → Data Element based on ZDOMAIN_MSG_TYPE
-├── znotify_severity.se11      → Data Element based on ZDOMAIN_SEVERITY
-└── znotify_disp_mode.se11     → Data Element based on ZDOMAIN_DISPLAY_MODE
+├── znotify_msg_type.se11       → Data Element based on ZDOMAIN_MSG_TYPE
+├── znotify_severity.se11       → Data Element based on ZDOMAIN_SEVERITY
+├── znotify_disp_mode.se11      → Data Element based on ZDOMAIN_DISPLAY_MODE
+└── znotify_target_users.se11   → Data Element based on ZDOMAIN_TARGET_USERS
 ```
 
 ## Creation Order (IMPORTANT!)
@@ -53,11 +55,13 @@ data_elements/
    - ZDOMAIN_MSG_TYPE
    - ZDOMAIN_SEVERITY
    - ZDOMAIN_DISPLAY_MODE
+   - ZDOMAIN_TARGET_USERS
 
 2. **Data Elements** (SE11 → Data Type)
    - ZNOTIFY_MSG_TYPE (references ZDOMAIN_MSG_TYPE)
    - ZNOTIFY_SEVERITY (references ZDOMAIN_SEVERITY)
    - ZNOTIFY_DISP_MODE (references ZDOMAIN_DISPLAY_MODE)
+   - ZNOTIFY_TARGET_USERS (references ZDOMAIN_TARGET_USERS)
 
 3. **Table** (SE11 → Database Table)
    - ZTNOTIFY_MSGS (uses the data elements above)
@@ -82,6 +86,19 @@ data_elements/
 - `TOAST` - Toast Notification (5s auto-dismiss)
 - `BOTH` - Banner + Toast simultaneously
 - `SILENT` - Silent (Log Only, no UI)
+
+### TARGET_USERS (ZDOMAIN_TARGET_USERS)
+**Pattern-based free text field** (CHAR 255) - no fixed values
+
+Supported patterns:
+- `ALL` or blank - Public to everyone
+- `USER` - All authenticated users
+- `ROLE:SAP_ALL` - Users with specific role
+- `USER:SMITHJ` - Specific user ID
+- `DEPT:FIN` - Custom department code
+- `ROLE:*,USER:ADMIN` - Multiple values (comma-separated)
+
+**Optional Enhancement**: Create custom search help (F4) to lookup users (USR02) or roles (AGR_DEFINE)
 
 ## Testing F4 Help
 

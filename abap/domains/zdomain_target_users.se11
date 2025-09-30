@@ -1,0 +1,69 @@
+*&---------------------------------------------------------------------*
+*& Domain: ZDOMAIN_TARGET_USERS
+*&---------------------------------------------------------------------*
+*& Target Audience Filter for Notifications
+*& S/4HANA PCE 2023 Compatible
+*&
+*& INSTRUCTIONS FOR SE11 DOMAIN CREATION:
+*& 1. Transaction: SE11
+*& 2. Select "Domain"
+*& 3. Enter domain name: ZDOMAIN_TARGET_USERS
+*& 4. Click "Create"
+*& 5. Enter settings below
+*& 6. Save and activate (NO fixed values - free text with pattern)
+*&---------------------------------------------------------------------*
+
+*-- Domain Settings:
+Domain Name: ZDOMAIN_TARGET_USERS
+Short Description: Target Audience Filter
+
+*-- Data Type:
+Data Type: CHAR
+Length: 255
+Output Length: 40
+Lowercase: No
+Conversion Routine: (blank)
+
+*-- Value Range:
+*   NO Fixed Values (free text field)
+*   Pattern-based validation done in ABAP code
+*   Optional: Create custom search help (see below)
+
+*-- Value Patterns (Examples):
+*   'ALL' or blank     = Public to all users
+*   'USER'             = All authenticated users
+*   'ROLE:SAP_ALL'     = Users with SAP_ALL role
+*   'USER:SMITHJ'      = Specific user SMITHJ
+*   'DEPT:FIN'         = Custom department code
+*   'ROLE:Z*,USER:ADMIN' = Multiple values (comma-separated)
+
+*-- Search Help (Optional Enhancement):
+*   You can create a custom search help to provide F4 assistance:
+*
+*   Option 1: Simple Value Help
+*     Create search help ZNOTIFY_TARGET_SH with predefined patterns:
+*     - ALL
+*     - USER
+*     - ROLE:*
+*     - USER:*
+*     - DEPT:*
+*
+*   Option 2: Composite Search Help
+*     Exit 1: Search users from USR02
+*       SELECT name_last, name_first FROM usr02
+*       Return: 'USER:' + bname
+*     Exit 2: Search roles from AGR_DEFINE
+*       SELECT agr_name, text FROM agr_texts
+*       Return: 'ROLE:' + agr_name
+*     Exit 3: Predefined patterns (ALL, USER, DEPT:*)
+*
+*   To implement:
+*     1. SE11 → Search Help → ZNOTIFY_TARGET_SH
+*     2. Assign to domain ZDOMAIN_TARGET_USERS
+*     3. Or assign to data element ZNOTIFY_TARGET_USERS
+
+*-- Notes:
+*   - Pattern matching done in ABAP via CS (contains string) operator
+*   - Multiple values separated by comma
+*   - Case-sensitive matching
+*   - Future: Can implement complex authorization logic with custom exits
