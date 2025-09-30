@@ -228,8 +228,8 @@ Heading: Display
 
 **Data Element**: ZNOTIFY_TARGET_USERS
 **Domain**: ZDOMAIN_TARGET_USERS (custom)
-**Type**: CHAR, Length: 255
-**Purpose**: Target audience filtering pattern
+**Type**: CHAR, Length: 10
+**Purpose**: Role-based target audience filtering
 **Creation Required**: YES - See DEPLOYMENT_GUIDE.md Step 2
 **Used In**: ZTNOTIFY_MSGS.TARGET_USERS
 
@@ -241,14 +241,26 @@ Long:    Target Audience Filter
 Heading: Target
 ```
 
-**No Fixed Values** - Free text field with pattern matching
+**Fixed Values** (from domain):
+- `ALL` - All Users (Public)
+- `AUTH` - All Authenticated Users
+- `ADMIN` - Administrators (SAP_ALL or Z_ADMIN role)
+- `DEVELOPER` - Developers (SAP_DEV or Z_DEVELOPER role)
+- `FINANCE` - Finance Users (Z_FINANCE role)
+- `SALES` - Sales Users (Z_SALES role)
+- `IT` - IT Department (Z_IT role)
+- `MANAGER` - Managers (Z_MANAGER role)
 
-**Supported Patterns**:
-- `ALL` - All users
-- `USER:username` - Specific user (e.g., USER:SMITHJ)
-- `ROLE:rolename` - Users with role (e.g., ROLE:SAP_ALL)
-- `DEPT:deptcode` - Department members (e.g., DEPT:FIN)
-- Comma-separated: `ROLE:SAP_ALL,DEPT:IT,USER:ADMIN` (OR logic)
+**F4 Help**: Automatic dropdown from ZDOMAIN_TARGET_USERS
+
+**Authorization Logic**: See `zcl_notification_manager=>check_target_audience` method
+
+**Benefits**:
+- ✅ Type-safe (no typos or invalid values)
+- ✅ F4 help in SM30 (automatic dropdown)
+- ✅ Database validation (invalid values rejected)
+- ✅ Role-based security (PFCG integration via AGR_USERS table)
+- ✅ Secure (no pattern injection vulnerabilities)
 
 ---
 
@@ -266,7 +278,7 @@ Complete mapping of all fields in ZTNOTIFY_MSGS table:
 | MESSAGE_TEXT     | DSTRING              | STRING  | 0      | 0        | SAP Std    | No      |
 | START_DATE       | DATS                 | DATS    | 8      | 0        | SAP Std    | No      |
 | END_DATE         | DATS                 | DATS    | 8      | 0        | SAP Std    | No      |
-| TARGET_USERS     | ZNOTIFY_TARGET_USERS | CHAR    | 255    | 0        | Custom     | No      |
+| TARGET_USERS     | ZNOTIFY_TARGET_USERS | CHAR    | 10     | 0        | Custom     | ✅ Yes  |
 | ACTIVE           | CHAR1                | CHAR    | 1      | 0        | SAP Std    | No      |
 | DISPLAY_MODE     | ZNOTIFY_DISP_MODE    | CHAR    | 10     | 0        | Custom     | ✅ Yes  |
 | CREATED_BY       | SYUNAME              | CHAR    | 12     | 0        | SAP Std    | No      |
@@ -278,7 +290,7 @@ Complete mapping of all fields in ZTNOTIFY_MSGS table:
 - **Total Fields**: 15
 - **SAP Standard Data Elements**: 11 (73%)
 - **Custom Data Elements**: 4 (27%)
-- **F4 Help Enabled**: 3 fields (MESSAGE_TYPE, SEVERITY, DISPLAY_MODE)
+- **F4 Help Enabled**: 4 fields (MESSAGE_TYPE, SEVERITY, DISPLAY_MODE, TARGET_USERS)
 
 ---
 
@@ -361,10 +373,10 @@ Complete mapping of all fields in ZTNOTIFY_MSGS table:
    Expected: ✅ Dropdown with 4 values (BANNER, TOAST, BOTH, SILENT)
 
 6. Position cursor on TARGET_USERS field → Press F4
-   Expected: ❌ No dropdown (free text field, no fixed values)
+   Expected: ✅ Dropdown with 8 values (ALL, AUTH, ADMIN, DEVELOPER, FINANCE, SALES, IT, MANAGER)
 ```
 
-**Result**: F4 help should work for MESSAGE_TYPE, SEVERITY, and DISPLAY_MODE.
+**Result**: F4 help should work for MESSAGE_TYPE, SEVERITY, DISPLAY_MODE, and TARGET_USERS.
 
 ---
 
@@ -396,9 +408,9 @@ Complete mapping of all fields in ZTNOTIFY_MSGS table:
    MESSAGE_TEXT: Long message text (free text, unlimited)
    START_DATE: 20250101 (date picker)
    END_DATE: 20251231 (date picker)
-   TARGET_USERS: ALL (free text)
+   TARGET_USERS: ALL (select from F4 - 8 values)
    ACTIVE: X (checkbox)
-   DISPLAY_MODE: BANNER (select from F4)
+   DISPLAY_MODE: BANNER (select from F4 - 4 values)
 
 3. Save entry
 4. Expected: ✅ Entry saved successfully
