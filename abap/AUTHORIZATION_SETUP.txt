@@ -1,0 +1,254 @@
+================================================================================
+  SAP AUTHORIZATION SETUP - NOTIFICATION BANNER
+================================================================================
+
+OVERVIEW
+--------
+This file contains authorization role templates that can be imported via PFCG
+transaction, reducing manual configuration and preventing errors.
+
+
+METHOD 1: IMPORT ROLE FROM FILE (RECOMMENDED)
+----------------------------------------------
+
+Step 1: Download Role Templates
+Files to download from /abap/roles/ directory:
+- Z_NOTIFICATION_ADMIN.SAP (Administrator role)
+- Z_NOTIFICATION_USER.SAP (End user role - view only)
+
+Step 2: Import Roles
+Transaction: PFCG
+
+1. Go to PFCG
+2. Menu: Role → Upload
+3. Select file: Z_NOTIFICATION_ADMIN.SAP
+4. Click "Upload"
+5. Assign to transport request
+6. Generate authorization profile
+7. Repeat for Z_NOTIFICATION_USER.SAP
+
+
+METHOD 2: MANUAL ROLE CREATION
+-------------------------------
+
+ROLE 1: Z_NOTIFICATION_ADMIN
+-----------------------------
+Transaction: PFCG
+
+1. PFCG → Create Role
+2. Role name: Z_NOTIFICATION_ADMIN
+3. Description: Notification Banner Administrator
+
+Authorization Objects:
+----------------------
+
+Object: S_TABU_DIS (Table Maintenance)
+  ACTVT: 01 (Create), 02 (Change), 03 (Display), 06 (Delete)
+  DICBERCLS: &NC&
+
+Object: S_TABU_NAM (Table by Name)
+  ACTVT: 01, 02, 03, 06
+  TABLE: ZTNOTIFY_MSGS
+
+Object: S_DEVELOP (Development Environment)
+  ACTVT: 01, 02, 03
+  DEVCLASS: * or ZNOTIFY (your package)
+  OBJTYPE: TABL, CLAS, DDLS
+
+Object: S_RFC (RFC Access)
+  ACTVT: 16 (Execute)
+  RFC_NAME: /IWFND/*
+  RFC_TYPE: FUNC
+
+Object: S_SERVICE (Service Access)
+  SRV_NAME: ZCL_NOTIFICATION_REST
+  SRV_TYPE: HTTP
+
+Object: Z_NOTIFY (Custom Authorization Object - see below)
+  ACTVT: 01, 02, 03, 06
+  NOTIF_TYPE: * (All types)
+
+4. Menu tab: Add transaction codes:
+   - SE11 (Data Dictionary)
+   - SE24 (Class Builder)
+   - SE80 (Object Navigator)
+   - SM30 (Table Maintenance - ZTNOTIFY_MSGS)
+   - SICF (HTTP Service)
+
+5. Generate profile
+6. Assign users
+
+
+ROLE 2: Z_NOTIFICATION_USER
+----------------------------
+Transaction: PFCG
+
+1. PFCG → Create Role
+2. Role name: Z_NOTIFICATION_USER
+3. Description: Notification Banner End User (Read Only)
+
+Authorization Objects:
+----------------------
+
+Object: S_SERVICE (Service Access)
+  SRV_NAME: ZCL_NOTIFICATION_REST
+  SRV_TYPE: HTTP
+  ACTVT: 03 (Display only)
+
+Object: Z_NOTIFY (Custom Authorization Object)
+  ACTVT: 03 (Display)
+  NOTIF_TYPE: * (All types)
+
+4. No menu items needed (REST API access only)
+5. Generate profile
+6. Assign to all Fiori users
+
+
+CUSTOM AUTHORIZATION OBJECT: Z_NOTIFY
+--------------------------------------
+Transaction: SU21
+
+1. Go to SU21
+2. Object Class: Create new or use existing (e.g., ZBC - Customer Development)
+3. Click "Create" → Authorization Object
+4. Object name: Z_NOTIFY
+5. Text: Notification Management
+
+Fields:
+-------
+Field 1:
+  Field name: ACTVT
+  Data element: ACTIV_AUTH
+  Text: Activity
+
+Field 2:
+  Field name: NOTIF_TYPE
+  Data element: CHAR10
+  Text: Notification Type
+  Check table: (optional) create domain with fixed values:
+    URGENT, INFO, TIP, SUCCESS, MAINTENANCE
+
+6. Save and generate
+
+
+METHOD 3: TRANSPORT FILE FOR BULK IMPORT
+-----------------------------------------
+
+File: Z_NOTIFICATION_ROLES_TRANSPORT.txt
+
+This is a transport-ready file containing all roles and authorization objects.
+
+Import Instructions:
+1. Place file in /usr/sap/trans/data/ on target system
+2. Use transaction STMS or SE10 to import
+3. Alternative: Use program RSTPFCG_IMPORT for role import
+
+
+ROLE ASSIGNMENT RECOMMENDATIONS
+--------------------------------
+
+Z_NOTIFICATION_ADMIN → Assign to:
+  - SAP Basis administrators
+  - Application administrators
+  - DevOps team
+  - Communication managers
+
+Z_NOTIFICATION_USER → Assign to:
+  - ALL Fiori users (via composite role or mass assignment)
+  - This enables them to see notifications in the banner
+
+
+COMPOSITE ROLE (OPTIONAL)
+--------------------------
+Transaction: PFCG
+
+Create composite role: Z_FIORI_NOTIFICATION_COMPOSITE
+
+Include:
+  - Z_NOTIFICATION_USER (mandatory for all)
+  - Z_NOTIFICATION_ADMIN (only for administrators)
+
+Benefits:
+  - Easier user administration
+  - Single assignment point
+  - Simplified role maintenance
+
+
+MASS USER ASSIGNMENT
+---------------------
+Transaction: SU10
+
+1. Go to SU10
+2. Enter user list or pattern (e.g., * for all)
+3. Select "Roles" tab
+4. Add role: Z_NOTIFICATION_USER
+5. Execute
+
+
+VERIFICATION
+------------
+
+Test Admin Access:
+1. Login with admin user
+2. Transaction: SM30
+3. Table: ZTNOTIFY_MSGS
+4. Should be able to: Display, Create, Change, Delete
+
+Test User Access:
+1. Login with regular user
+2. Open Fiori Launchpad
+3. Notification banner should load without errors
+4. Check browser console for authorization errors
+
+Test REST API:
+1. Browser or Postman
+2. GET: http://server:port/sap/bc/rest/zcl_notification_rest/
+3. Should return JSON with notifications (or empty array)
+4. Status: 200 OK (not 403 Forbidden)
+
+
+SECURITY RECOMMENDATIONS
+-------------------------
+
+1. Principle of Least Privilege:
+   - Only assign Z_NOTIFICATION_ADMIN to authorized personnel
+   - Regular users get Z_NOTIFICATION_USER only
+
+2. Segregation of Duties:
+   - Separate admin role from developer role
+   - Different people create vs approve notifications
+
+3. Audit Logging:
+   - Enable change documents for ZTNOTIFY_MSGS
+   - Transaction: SCU3 → Table Logging
+
+4. Transport Protection:
+   - Lock roles in production (PFCG → Change Lock)
+   - Require transport for role changes
+
+5. Review Schedule:
+   - Monthly review of users with Z_NOTIFICATION_ADMIN
+   - Quarterly audit of notification access logs
+
+
+TROUBLESHOOTING
+---------------
+
+Issue: "No authorization for table ZTNOTIFY_MSGS"
+→ Solution: Check S_TABU_NAM authorization, add table explicitly
+
+Issue: "HTTP 403 Forbidden on REST API"
+→ Solution: Verify S_SERVICE authorization, check SICF service settings
+
+Issue: "Role import failed"
+→ Solution: Check file encoding (UTF-8), verify transport number
+
+Issue: "Users can't see notifications"
+→ Solution: Verify Z_NOTIFICATION_USER assigned, check SU53 for missing auth
+
+
+CONTACT
+-------
+For authorization issues:
+- Security Team: security@company.com
+- SAP Basis: basis@company.com

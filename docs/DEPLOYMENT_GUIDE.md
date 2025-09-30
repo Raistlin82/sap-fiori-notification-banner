@@ -93,36 +93,62 @@ graph TB
 
 ## 🏗️ Backend Deployment (ABAP)
 
+### 📦 Quick Start: Automated Deployment Files
+
+**NEW**: All ABAP objects now include ready-to-use deployment files:
+
+- **`abap/TRANSPORT_REQUEST_GUIDE.txt`** - Complete transport setup guide
+- **`abap/AUTHORIZATION_SETUP.txt`** - Role configuration with import templates
+- **`abap/roles/Z_NOTIFICATION_ADMIN.txt`** - Administrator role template
+- **`abap/roles/Z_NOTIFICATION_USER.txt`** - End user role template
+- **`abap/ztnotify_msgs.se11`** - Corrected SE11 table definition
+
+**Benefits**: Reduce manual errors, faster deployment, consistent configurations
+
+---
+
 ### Step 1: Create Database Table
 
 **Transaction**: SE11
 
-```abap
-@EndUserText.label : 'Notification Messages Table'
-@AbapCatalog.enhancement.category : #NOT_EXTENSIBLE
-define table ztnotify_msgs {
-  key client            : mandt not null;
-  key message_id        : sysuuid_x16 not null;
-  message_type          : char10 not null;
-  severity              : char10 not null;
-  title                 : char255 not null;
-  message_text          : char1000 not null;
-  start_date            : dats not null;
-  end_date              : dats not null;
-  target_users          : char255;
-  active                : char1 not null;
-  created_by            : syuname;
-  created_at            : timestampl;
-  changed_by            : syuname;
-  changed_at            : timestampl;
-}
-```
+**⚠️ IMPORTANT**: Use the correct SE11 syntax from `abap/ztnotify_msgs.se11`
+
+**Field Definitions** (copy into SE11 table maintenance):
+
+| Field Name    | Key | Data Element | Data Type | Length | Description              |
+|---------------|-----|--------------|-----------|--------|--------------------------|
+| MANDT         | X   | MANDT        | CLNT      | 3      | Client                   |
+| MESSAGE_ID    | X   | SYSUUID_X16  | RAW       | 16     | Message GUID             |
+| MESSAGE_TYPE  |     | CHAR10       | CHAR      | 10     | Message Type             |
+| SEVERITY      |     | CHAR10       | CHAR      | 10     | Severity Level           |
+| TITLE         |     | CHAR255      | CHAR      | 255    | Notification Title       |
+| MESSAGE_TEXT  |     | CHAR1000     | CHAR      | 1000   | Notification Text        |
+| START_DATE    |     | DATS         | DATS      | 8      | Valid From Date          |
+| END_DATE      |     | DATS         | DATS      | 8      | Valid To Date            |
+| TARGET_USERS  |     | CHAR255      | CHAR      | 255    | Target User/Role         |
+| ACTIVE        |     | CHAR1        | CHAR      | 1      | Active Flag (X/' ')      |
+| CREATED_BY    |     | SYUNAME      | CHAR      | 12     | Created By User          |
+| CREATED_AT    |     | TIMESTAMPL   | DEC       | 21     | Created Timestamp        |
+| CHANGED_BY    |     | SYUNAME      | CHAR      | 12     | Changed By User          |
+| CHANGED_AT    |     | TIMESTAMPL   | DEC       | 21     | Changed Timestamp        |
 
 **Actions**:
 1. Go to SE11 → Database Table
 2. Enter table name: `ZTNOTIFY_MSGS`
-3. Copy the structure above
-4. **Save** → **Check** → **Activate**
+3. Click "Create"
+4. Copy field definitions from table above OR from `abap/ztnotify_msgs.se11`
+5. Set Delivery Class: **A** (Application table)
+6. Set Data Browser/Table View Maint.: **Display/Maintenance Allowed**
+7. **Save** → Assign to transport → **Check** → **Activate**
+
+**Technical Settings** (SE13):
+- Data Class: **APPL0** (Master data)
+- Size Category: **2** (0-10,000 records expected)
+- Buffering: **Not allowed** (real-time data)
+
+**Create Indexes**:
+- Index 1 (ZNOTIFY~001): MANDT + ACTIVE + START_DATE + END_DATE
+- Index 2 (ZNOTIFY~002): MANDT + MESSAGE_TYPE + SEVERITY
 
 ### Step 2: Create CDS View
 

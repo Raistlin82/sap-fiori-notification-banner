@@ -9,7 +9,17 @@ sap.ui.define([
     return UIComponent.extend("com.sap.notifications.banner.Component", {
 
         metadata: {
-            manifest: "json"
+            manifest: "json",
+            config: {
+                sample: {
+                    stretch: true,
+                    files: [
+                        "index.html",
+                        "localService/mockserver.js",
+                        "localService/mockdata/notifications.json"
+                    ]
+                }
+            }
         },
 
         /**
@@ -18,9 +28,46 @@ sap.ui.define([
          * @override
          */
         init: function () {
+            var that = this;
+
             // call the base component's init function
             UIComponent.prototype.init.apply(this, arguments);
 
+            // Check if mock server should be initialized (development mode)
+            var oUriParams = new URLSearchParams(window.location.search);
+            var bUseMockData = oUriParams.get("sap-ui-xx-mockserver") === "true" ||
+                              window.location.hostname === "localhost" ||
+                              window.location.hostname === "127.0.0.1";
+
+            if (bUseMockData) {
+                // Initialize mock server for local testing
+                this._initMockServer().then(function() {
+                    that._finishInitialization();
+                });
+            } else {
+                this._finishInitialization();
+            }
+        },
+
+        /**
+         * Initialize mock server
+         * @private
+         * @returns {Promise} Promise that resolves when mock server is initialized
+         */
+        _initMockServer: function() {
+            return new Promise(function(resolve) {
+                sap.ui.require(["com/sap/notifications/banner/localService/mockserver"], function(mockserver) {
+                    mockserver.init();
+                    resolve();
+                });
+            });
+        },
+
+        /**
+         * Finish component initialization
+         * @private
+         */
+        _finishInitialization: function() {
             // enable routing
             this.getRouter().initialize();
 

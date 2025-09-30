@@ -8,8 +8,12 @@
     "deploy": "npm run build && npm run deploy-to-abap",
     "deploy-to-abap": "ui5 deploy --config ui5-deploy.yaml",
     "start": "ui5 serve --config ui5.yaml --port 8080",
+    "start:mock": "ui5 serve --config ui5.yaml --port 8080 --open test/unit/unitTests.qunit.html?sap-ui-xx-mockserver=true",
     "lint": "eslint webapp/",
-    "test": "npm run lint",
+    "test": "npm run test:unit && npm run test:integration && npm run lint",
+    "test:unit": "echo 'Open http://localhost:8080/test/unit/unitTests.qunit.html for unit tests'",
+    "test:integration": "echo 'Open http://localhost:8080/test/integration/opaTests.qunit.html for integration tests'",
+    "test:watch": "npm run start & open http://localhost:8080/test/unit/unitTests.qunit.html",
     "clean": "rm -rf dist/",
     "watch": "ui5 serve --config ui5.yaml --port 8080 --open"
   },

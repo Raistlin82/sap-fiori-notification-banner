@@ -1,0 +1,79 @@
+*&---------------------------------------------------------------------*
+*& SAP ROLE: Z_NOTIFICATION_ADMIN
+*&---------------------------------------------------------------------*
+*& Description: Administrator role for Notification Banner Management
+*& Import Method: PFCG Transaction → Role → Upload
+*&---------------------------------------------------------------------*
+
+ROLE Z_NOTIFICATION_ADMIN
+
+  DESCRIPTION "Notification Banner - Administrator"
+
+  AUTHORIZATION_OBJECTS {
+
+    *-- Table Maintenance
+    S_TABU_DIS {
+      ACTVT: 01, 02, 03, 06
+      DICBERCLS: &NC&
+    }
+
+    S_TABU_NAM {
+      ACTVT: 01, 02, 03, 06
+      TABLE: ZTNOTIFY_MSGS
+    }
+
+    *-- Development Access
+    S_DEVELOP {
+      ACTVT: 01, 02, 03
+      DEVCLASS: *, ZNOTIFY
+      OBJTYPE: TABL, CLAS, DDLS, FUGR
+      OBJNAME: Z*
+      P_GROUP: *
+    }
+
+    *-- HTTP Service Access
+    S_SERVICE {
+      SRV_NAME: ZCL_NOTIFICATION_REST
+      SRV_TYPE: HTTP
+      ACTVT: 01, 02, 03, 06
+    }
+
+    *-- ICF Service
+    S_ICF {
+      ICF_FIELD: /sap/bc/rest/zcl_notification_rest*
+      ICF_VALUE: *
+    }
+
+    *-- RFC Access (for OData/REST)
+    S_RFC {
+      ACTVT: 16
+      RFC_NAME: /IWFND/*, SYST
+      RFC_TYPE: FUNC
+    }
+
+    *-- Custom Notification Authorization
+    Z_NOTIFY {
+      ACTVT: 01, 02, 03, 06
+      NOTIF_TYPE: *
+    }
+  }
+
+  TRANSACTIONS {
+    SE11    "Data Dictionary"
+    SE24    "Class Builder"
+    SE80    "Object Navigator"
+    SM30    "Table Maintenance: ZTNOTIFY_MSGS"
+    SICF    "HTTP Service Maintenance"
+    SE10    "Transport Organizer"
+    PFCG    "Role Maintenance"
+  }
+
+  MENU {
+    "Notification Management" {
+      "Maintain Notifications" → SM30 (View: ZTNOTIFY_MSGS)
+      "REST Service Config" → SICF
+      "View Logs" → SLG1
+    }
+  }
+
+END ROLE
