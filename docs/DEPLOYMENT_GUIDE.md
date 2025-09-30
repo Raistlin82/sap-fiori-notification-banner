@@ -1,14 +1,78 @@
 # 🚀 Complete Deployment Guide - SAP Fiori Global Notification Banner
 
 ## 📋 Table of Contents
-1. [Prerequisites](#prerequisites)
-2. [System Requirements](#system-requirements)
-3. [Backend Deployment (ABAP)](#backend-deployment-abap)
-4. [Frontend Deployment (UI5)](#frontend-deployment-ui5)
-5. [Configuration](#configuration)
-6. [Testing](#testing)
-7. [Troubleshooting](#troubleshooting)
-8. [Maintenance](#maintenance)
+1. [Pre-Deployment Verification](#pre-deployment-verification)
+2. [Prerequisites](#prerequisites)
+3. [System Requirements](#system-requirements)
+4. [Backend Deployment (ABAP)](#backend-deployment-abap)
+5. [Frontend Deployment (UI5)](#frontend-deployment-ui5)
+6. [Configuration](#configuration)
+7. [Testing](#testing)
+8. [Troubleshooting](#troubleshooting)
+9. [Maintenance](#maintenance)
+
+---
+
+## ✅ Pre-Deployment Verification
+
+Before starting the deployment process, verify that the project is ready for production.
+
+### Build Verification
+Run the following commands to ensure the build process works correctly:
+
+```bash
+# Build the application
+npm run build
+
+# Verify build output
+ls -lh dist/sap_fiori_notification_banner.zip
+# Expected: ~27KB file
+```
+
+**Expected Results:**
+- ✅ Build completes in ~20-30 seconds without errors
+- ✅ `dist/sap_fiori_notification_banner.zip` created (~27KB)
+- ✅ `dist/Component-preload.js` generated and minified
+
+### Code Quality Verification
+
+**ABAP Files:**
+- ✅ `abap/ztnotify_msgs.se11` - Table definition (correct CHAR types, no STRING)
+- ✅ `abap/ztnotify_messages.ddls` - CDS view syntax valid
+- ✅ `abap/zcl_notification_manager.clas.abap` - 5 static methods
+- ✅ `abap/zcl_notification_rest.clas.abap` - REST methods (GET, POST, PUT, DELETE)
+
+**Frontend Files:**
+- ✅ `webapp/Component.js` - FLP compatibility with safe checks
+- ✅ `webapp/controller/NotificationBanner.js` - Error handling implemented
+- ✅ `webapp/manifest.json` - Valid JSON with correct dataSources
+- ✅ `webapp/i18n/i18n.properties` - 33 translation keys present
+- ✅ `ui5.yaml` - Build configuration with zipper task
+
+### Production Readiness Features
+
+Verify these features are implemented:
+
+- ✅ **Error Handling**: Exponential backoff retry (3 attempts: 1s → 2s → 4s delays)
+- ✅ **Circuit Breaker**: Opens after 5 consecutive errors, resets after 60s
+- ✅ **FLP Compatibility**: Safe checks for `sap.ushell.Container` existence
+- ✅ **Standalone Mode**: Works in both FLP and standalone environments
+- ✅ **Timeout Handling**: 10s AJAX timeout configured
+- ✅ **User Context**: Safe user ID retrieval with ANONYMOUS fallback
+
+### GO/NO-GO Decision
+
+**✅ GO - Ready for Production** if:
+- All build verification steps pass
+- All ABAP files have correct syntax
+- Frontend files validated
+- Error handling features confirmed
+
+**❌ NO-GO - Fix Issues** if:
+- Build fails or produces errors
+- ABAP syntax errors exist
+- Missing Component-preload.js
+- manifest.json validation fails
 
 ---
 
@@ -307,33 +371,153 @@ npm run build
 # - App Store deployment
 ```
 
-**Option B: Automated Deployment**
+**Option B: UI5 Repository Upload via Transport (Recommended for Basis Team)**
 
-Configure `ui5-deploy.yaml`:
-```yaml
-specVersion: '2.6'
-metadata:
-  name: z.notification.fiori.deploy
-type: application
-framework:
-  name: UI5
-  version: "1.60.0"
-builder:
-  customTasks:
-    - name: deploy-to-abap
-      afterTask: generateBundle
-      configuration:
-        target:
-          url: "https://your-s4hana-system.com"
-          client: "100"
-          auth:
-            username: "${env.SAP_USER}"
-            password: "${env.SAP_PASSWORD}"
+This option uses the standard SAP UI5 ABAP Repository and allows proper transport management.
+
+**Step 1: Prepare the Build Artifact**
+```bash
+# From project root directory
+npm run build
+
+# Verify the zip file is created
+ls -lh dist/sap_fiori_notification_banner.zip
+# Should show ~27KB file
 ```
 
-Deploy:
-```bash
-npm run deploy
+**Step 2: Access UI5 Repository Load Transaction**
+1. Open SAP GUI and login to your development system
+2. Execute transaction: **/UI5/UI5_REPOSITORY_LOAD**
+3. Alternative path: SAP Easy Access Menu → Tools → ABAP Workbench → Development → UI5 Repository → Upload
+
+**Step 3: Fill Upload Parameters**
+
+On the "Upload UI5 Application" screen:
+
+| Field | Value | Notes |
+|-------|-------|-------|
+| **Name** | `Z_FIORI_NOTIFY_BANNER` | Must start with Z or Y (customer namespace) |
+| **Description** | `Global Notification Banner` | Visible in repository list |
+| **Version** | `1.0.0` | From manifest.json |
+| **Package** | `$TMP` (test) or `ZFIORI` (prod) | Use your custom package for production |
+| **Transport Request** | Select from F4 help | Choose transport created in backend phase |
+| **Archive File** | Browse to `dist/sap_fiori_notification_banner.zip` | Click folder icon to browse |
+| **External Code Page** | `UTF-8` | Default, usually pre-filled |
+| **Safe Mode** | ☐ Unchecked | Not needed for new upload |
+
+**Step 4: Execute Upload**
+1. Click the **"Upload"** button (📤 icon or F8)
+2. Wait for upload to complete (usually 5-10 seconds)
+3. Check the log output for success message:
+   ```
+   ✓ Archive extracted successfully
+   ✓ Application Z_FIORI_NOTIFY_BANNER created
+   ✓ Files imported: 12 files, 27 KB
+   ✓ Added to transport request <YOUR_TRANSPORT>
+   ```
+
+**Step 5: Verify Upload Success**
+
+**Check 1: Via /UI5/UI5_REPOSITORY_LOAD**
+1. Execute transaction: **/UI5/UI5_REPOSITORY_LOAD**
+2. Click "Display" button
+3. Search for `Z_FIORI_NOTIFY_BANNER`
+4. Should appear with status "Active" and correct version
+
+**Check 2: Via BSP Application SE80**
+1. Execute transaction: **SE80**
+2. Select "BSP Application" from dropdown
+3. Enter: `/UI5/Z_FIORI_NOTIFY_BANNER`
+4. Should display folder structure with all files:
+   ```
+   /UI5/Z_FIORI_NOTIFY_BANNER/
+   ├── Component-preload.js
+   ├── Component.js
+   ├── manifest.json
+   ├── index.html
+   ├── controller/
+   ├── model/
+   ├── view/
+   ├── css/
+   └── i18n/
+   ```
+
+**Check 3: Test Application URL**
+1. Open browser
+2. Navigate to: `https://<your-system>/sap/bc/ui5_ui5/sap/z_fiori_notify_banner/index.html`
+3. Should load the application (may show "No active notifications" if DB is empty)
+4. Check browser console for errors (F12)
+
+**Step 6: Verify Transport Assignment**
+1. Execute transaction: **SE10** (Transport Organizer)
+2. Find your transport request from backend deployment phase
+3. Expand the request tree
+4. Should see new entry:
+   ```
+   📦 IWSG (Gateway: Service Groups, Data Model, Service)
+      └── /UI5/Z_FIORI_NOTIFY_BANNER (UI5 Repository Application)
+   ```
+
+**Common Issues & Solutions:**
+
+| Issue | Cause | Solution |
+|-------|-------|----------|
+| "Name already exists" | App previously uploaded | Use "Safe Mode" checkbox or delete old version first |
+| "Package does not exist" | Invalid package name | Use SE80 to verify package exists, or use $TMP |
+| "No authorization" | Missing S_DEVELOP auth | Contact Basis team or use transaction SU53 to check |
+| "Archive is invalid" | Corrupted zip or wrong format | Re-run `npm run build` and verify zip integrity |
+| "Transport not modifiable" | Transport already released | Create new transport or use SE10 to reopen |
+| Files uploaded but app not working | Missing Component-preload.js | Check build output, ensure ui5.yaml has zipper task |
+
+**Step 7: Post-Upload Configuration** (if needed)
+
+If the application needs additional ICF nodes or cache settings:
+
+1. **ICF Service Check** (Transaction: SICF)
+   - Navigate to: `/default_host/sap/bc/ui5_ui5/sap/z_fiori_notify_banner`
+   - Should be auto-created and activated
+   - If not, right-click parent folder → Create → Service
+
+2. **Cache Buster** (Transaction: /UI5/APP_INDEX_CALCULATE)
+   - Application Name: `Z_FIORI_NOTIFY_BANNER`
+   - Execute to register for CDN caching
+
+3. **FLP Integration** (if using Fiori Launchpad)
+   - See Step 5 below for tile creation
+   - Or use transaction `/UI2/FLPD_CUST`
+
+**Alternative: Upload via ABAP Script (For CI/CD Automation)**
+
+For automated deployment or CI/CD pipelines, use this ABAP report:
+
+```abap
+REPORT z_upload_ui5_app.
+
+DATA: lv_archive TYPE xstring,
+      lv_name    TYPE string VALUE 'Z_FIORI_NOTIFY_BANNER',
+      lv_package TYPE devclass VALUE 'ZFIORI',
+      lv_transport TYPE trkorr VALUE '<YOUR_TRANSPORT>'.
+
+" Read zip file from application server or local file
+" CALL FUNCTION 'GUI_UPLOAD' ...
+
+" Upload to repository
+CALL METHOD cl_ui5_repository_service=>create_application
+  EXPORTING
+    iv_name          = lv_name
+    iv_description   = 'Global Notification Banner'
+    iv_version       = '1.0.0'
+    iv_package       = lv_package
+    iv_transport     = lv_transport
+    iv_archive       = lv_archive
+  EXCEPTIONS
+    OTHERS           = 1.
+
+IF sy-subrc = 0.
+  WRITE: / 'Upload successful'.
+ELSE.
+  WRITE: / 'Upload failed:', sy-subrc.
+ENDIF.
 ```
 
 ### Step 5: Register in Fiori Launchpad
