@@ -164,8 +164,11 @@ graph TB
 - **`abap/TRANSPORT_REQUEST_GUIDE.txt`** - Complete transport setup guide
 - **`abap/AUTHORIZATION_SETUP.txt`** - Role configuration with import templates
 - **`abap/roles/Z_NOTIFICATION_ADMIN.txt`** - Administrator role template
-- **`abap/roles/Z_NOTIFICATION_USER.txt`** - End user role template
 - **`abap/ztnotify_msgs.se11`** - Corrected SE11 table definition
+
+**IMPORTANT**: Only Z_NOTIFICATION_ADMIN role is needed. Regular users DO NOT need
+any special role - all authenticated SAP users automatically receive notifications
+via public REST API access.
 
 **Benefits**: Reduce manual errors, faster deployment, consistent configurations
 
@@ -284,9 +287,14 @@ Deploy the REST service class:
 - **Authentication**: `SAP Logon Ticket` + `Basic Authentication`
 - **CORS**: Enable for cross-origin requests
 
-### Step 5: Create Authorization Object
+### Step 5: Create Authorization Object (Optional)
 
 **Transaction**: SU21
+
+**IMPORTANT**: This step is OPTIONAL. The notification system works without custom
+authorization objects using only standard SAP authorizations.
+
+If you want fine-grained control over notification types:
 
 1. Go to SU21 (Authorization Objects)
 2. Create new object: `Z_NOTIFY`
@@ -295,19 +303,38 @@ Deploy the REST service class:
    - `02` (Change)
    - `03` (Display)
    - `06` (Delete)
+4. Add field: `NOTIF_TYPE` (notification type filter)
 
 ### Step 6: Create Authorization Role
 
 **Transaction**: PFCG
 
+**Create Administrator Role** (Required for notification management):
+
 1. Go to PFCG (Role Maintenance)
 2. Create role: `Z_NOTIFICATION_ADMIN`
-3. Add authorizations:
-   - `Z_NOTIFY`: All activities (01,02,03,06)
-   - `S_DEVELOP`: For development access
+3. Description: `Notification Banner Administrator`
+4. Add authorizations:
+   - `S_TABU_NAM`: Table ZTNOTIFY_MSGS (activities: 01,02,03,06)
+   - `S_SERVICE`: Service ZCL_NOTIFICATION_REST (HTTP)
+   - `S_DEVELOP`: For development access (optional)
    - `S_RFC`: For REST service calls
-4. Generate profile
-5. Assign to relevant users
+   - `Z_NOTIFY` (if created): All activities (01,02,03,06)
+5. Menu tab: Add transactions:
+   - SM30 (Table Maintenance - ZTNOTIFY_MSGS)
+   - SE11, SE24, SE80 (optional, for development)
+6. Generate profile
+7. Assign to administrators only
+
+**Regular User Access** (No role needed):
+
+- Regular users DO NOT need Z_NOTIFICATION_ADMIN role
+- All authenticated SAP users automatically see notifications
+- No special authorization required for viewing/closing notifications
+- REST API GET method is publicly accessible to all authenticated users
+- Only POST/PUT/DELETE operations require Z_NOTIFICATION_ADMIN
+
+**For detailed role configuration, see**: `abap/AUTHORIZATION_SETUP.txt`
 
 ---
 
@@ -358,18 +385,106 @@ ls -la dist/
 
 ### Step 4: Deploy to SAP System
 
-**Option A: Manual Deployment**
+Choose one of the following deployment options based on your environment and team structure.
 
-```bash
-# Create deployment package
-npm run build
+---
 
-# Package will be created in dist/ folder
-# Upload to SAP via:
-# - Transport Request
-# - Manual upload via SE80
-# - App Store deployment
-```
+**Option A: Manual BSP Application Upload (Transaction SE80)**
+
+This option is suitable for quick testing or when UI5 Repository is not available.
+
+**Step 1: Create BSP Application**
+
+1. Open SAP GUI and execute transaction **SE80**
+2. In the dropdown menu, select **"BSP Application"**
+3. Click the **"Create"** button (or press Ctrl+N)
+4. Fill in the application details:
+
+| Field | Value | Description |
+|-------|-------|-------------|
+| **Name** | `Z_FIORI_NOTIFY_BANNER` | Must start with Z or Y |
+| **Description** | `Global Notification Banner` | Brief description |
+| **Package** | `$TMP` (test) or `ZFIORI` (prod) | Your development package |
+| **Application Class** | `BSP APPLICATION` | Standard BSP type |
+
+5. Click **"Save"** (or press Ctrl+S)
+6. If prompted for transport, select your transport request or create new one
+
+**Step 2: Upload Application Files**
+
+1. In SE80, right-click on your BSP application `Z_FIORI_NOTIFY_BANNER`
+2. Select **"Import"** → **"MIME Objects"** → **"From ZIP Archive"**
+3. Browse to your project's `dist/` folder
+4. **If ZIP import is available:**
+   - Select `sap_fiori_notification_banner.zip`
+   - Click **"Upload"**
+   - Wait for extraction (5-10 seconds)
+
+5. **If manual file upload needed:**
+   - Extract the ZIP file locally first
+   - Create folder structure in BSP application:
+     ```
+     Z_FIORI_NOTIFY_BANNER/
+     ├── Component-preload.js
+     ├── Component.js
+     ├── manifest.json
+     ├── index.html
+     ├── controller/ (folder)
+     ├── model/ (folder)
+     ├── view/ (folder)
+     ├── css/ (folder)
+     └── i18n/ (folder)
+     ```
+   - For each folder: Right-click application → **Create** → **MIME Object** → **Folder**
+   - For each file: Right-click folder → **Create** → **MIME Object** → **File**
+   - Upload files one by one:
+     - Right-click file → **Edit**
+     - Click **"Import"** button
+     - Select local file
+     - Save and activate
+
+**Step 3: Activate BSP Application**
+
+1. In SE80, select the BSP application root
+2. Click **"Activate"** button (🔄 icon or Ctrl+F3)
+3. Select **"All objects in application"**
+4. Click **"Continue"**
+5. Wait for activation to complete
+6. Check activation log for errors
+
+**Step 4: Test BSP Application**
+
+1. In SE80, right-click BSP application
+2. Select **"Test"** → **"Launch in Browser"**
+3. Alternative: Open browser and navigate to:
+   ```
+   https://<your-system>/sap/bc/bsp/sap/z_fiori_notify_banner/index.html
+   ```
+4. **Expected result:**
+   - Page loads with title "Global Notification Banner"
+   - No JavaScript errors in browser console (F12)
+   - If no notifications exist, shows "No active notifications"
+
+**Step 5: Assign to Transport (if needed)**
+
+1. Transaction **SE10** (Transport Organizer)
+2. Find your transport request
+3. Add BSP application:
+   - Transaction **SE80**
+   - Right-click BSP application
+   - Select **"Assign to Transport"**
+   - Choose your transport request
+
+**Common Issues:**
+
+| Issue | Solution |
+|-------|----------|
+| MIME type not recognized | Right-click file → Properties → Set correct MIME type (e.g., application/json for manifest.json) |
+| 404 Not Found error | Check ICF service active: Transaction **SICF** → `/default_host/sap/bc/bsp/sap/z_fiori_notify_banner` |
+| Blank page displayed | Check Component-preload.js uploaded correctly, verify manifest.json syntax |
+| Files not activating | Check no objects locked by other users: Transaction **SM12** |
+
+---
 
 **Option B: UI5 Repository Upload via Transport (Recommended for Basis Team)**
 
@@ -520,28 +635,134 @@ ELSE.
 ENDIF.
 ```
 
-### Step 5: Register in Fiori Launchpad
+### Step 5: Register in Fiori Launchpad (Optional)
 
-**Transaction**: /UI2/FLP (Fiori Launchpad Designer)
+**Note**: This step is OPTIONAL. The notification banner works automatically in FLP without a dedicated tile. This step only creates a management tile for administrators to test notifications.
 
-1. **Create Catalog**:
-   - ID: `Z_NOTIFICATIONS`
-   - Title: `Notification Management`
+**Transaction**: **/UI2/FLPD_CUST** (Fiori Launchpad Designer)
 
-2. **Create Tile**:
-   - Title: `Global Notifications`
-   - Subtitle: `Manage system notifications`
-   - App ID: `com.sap.notifications.banner`
-   - Intent: `notifications-display`
+---
 
-3. **Create Group**:
-   - ID: `Z_ADMIN_TOOLS`
-   - Title: `Administrative Tools`
-   - Add notification tile
+**Step 1: Create App Descriptor**
 
-4. **Assign to Role**:
-   - Role: `Z_NOTIFICATION_ADMIN`
-   - Add catalog and group
+1. Execute transaction: **/UI2/FLPD_CUST**
+2. Click **"Transport"** tab (top menu)
+3. Select or create transport request for FLP objects
+4. Click **"Content"** tab
+
+**Step 2: Create Catalog**
+
+1. In FLP Designer, select **"Catalogs"** from left menu
+2. Click **"+"** button (Create new catalog)
+3. Fill in catalog details:
+
+| Field | Value |
+|-------|-------|
+| **ID** | `Z_NOTIFICATION_CATALOG` |
+| **Title** | `Notification Management` |
+| **Description** | `Administrative tools for system notifications` |
+| **Transport** | Select your transport request |
+
+4. Click **"Save"**
+
+**Step 3: Create Target Mapping**
+
+1. In the catalog, scroll to **"Target Mappings"** section
+2. Click **"+"** to add new target mapping
+3. Fill in mapping details:
+
+| Field | Value | Notes |
+|-------|-------|-------|
+| **Semantic Object** | `Notification` | Unique identifier |
+| **Action** | `manage` | Action name |
+| **Title** | `System Notifications` | Displayed on tile |
+| **Subtitle** | `Manage global notifications` | Optional subtitle |
+| **Icon** | `sap-icon://alert` | Bell/alert icon |
+| **Application Type** | `URL` | Direct URL launch |
+| **URL** | `/sap/bc/ui5_ui5/sap/z_fiori_notify_banner/index.html` | Path to your app |
+
+4. Click **"Save"**
+
+**Step 4: Create Tile**
+
+1. In the same catalog, scroll to **"Tiles"** section
+2. Click **"+"** to add new tile
+3. Configure tile:
+
+| Field | Value |
+|-------|-------|
+| **Tile Type** | `Static` |
+| **Title** | `Global Notifications` |
+| **Subtitle** | `View and manage alerts` |
+| **Icon** | `sap-icon://alert` |
+| **Target Mapping** | Select `Notification-manage` (created above) |
+| **Info** | `Admin Tool` (optional badge) |
+
+4. Click **"Save"**
+
+**Step 5: Create Group**
+
+1. Select **"Groups"** from left menu in FLP Designer
+2. Click **"+"** to create new group
+3. Fill in group details:
+
+| Field | Value |
+|-------|-------|
+| **ID** | `Z_ADMIN_TOOLS` |
+| **Title** | `Administrative Tools` |
+| **Description** | `System administration and monitoring` |
+
+4. Click **"Save"**
+5. In the group, click **"Assign Catalogs"**
+6. Search for `Z_NOTIFICATION_CATALOG`
+7. Select it and click **"OK"**
+
+**Step 6: Assign to Administrator Role**
+
+1. Execute transaction: **PFCG** (Role Maintenance)
+2. Open role `Z_NOTIFICATION_ADMIN`
+3. Go to **"Menu"** tab
+4. Click **"Insert Node"** → **"Fiori Tile Catalog"**
+5. Search for `Z_NOTIFICATION_CATALOG`
+6. Select and click **"Copy"**
+7. Save the role
+8. Click **"Generate"** to regenerate the profile
+
+**Step 7: Test FLP Integration**
+
+1. Open Fiori Launchpad in browser:
+   ```
+   https://<your-system>/sap/bc/ui5_ui5/ui2/ushell/shells/abap/FioriLaunchpad.html
+   ```
+2. Login with a user assigned to `Z_NOTIFICATION_ADMIN` role
+3. **Expected results:**
+   - See "Administrative Tools" group
+   - See "Global Notifications" tile with alert icon
+   - Click tile → opens notification management page
+   - Banner should appear at top of FLP automatically
+
+**Alternative: Quick Registration via /UI2/FLPD_CONF**
+
+For simpler environments:
+
+1. Transaction: **/UI2/FLPD_CONF**
+2. Select **"Create"** → **"App"**
+3. Fill in form:
+   - **App ID**: `z_notification_banner`
+   - **URL**: `/sap/bc/ui5_ui5/sap/z_fiori_notify_banner/index.html`
+   - **Semantic Object**: `Notification`
+   - **Action**: `display`
+4. Click **"Create Tile"**
+5. Assign to role directly
+
+**Common Issues:**
+
+| Issue | Solution |
+|-------|----------|
+| Tile not appearing | Clear FLP cache: `/UI2/FLPCM_CUST` → "Clear Cache" button |
+| 404 when clicking tile | Verify URL in target mapping matches actual BSP/UI5 repo path |
+| Permission errors | Ensure user has role `Z_NOTIFICATION_ADMIN` assigned in SU01 |
+| Tile visible but inactive | Check application deployed correctly, test direct URL first |
 
 ---
 
