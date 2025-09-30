@@ -24,7 +24,7 @@ MESSAGE_ID        X    SYSUUID_X16     RAW        16      0         Message GUID
 MESSAGE_TYPE           CHAR10          CHAR       10      0         Message Type
 SEVERITY               CHAR10          CHAR       10      0         Severity Level
 TITLE                  CHAR255         CHAR       255     0         Notification Title
-MESSAGE_TEXT           STRING          DSTRING    0       0         Notification Text (long)
+MESSAGE_TEXT           DSTRING         STRING     0       0         Notification Text (long)
 START_DATE             DATS            DATS       8       0         Valid From Date
 END_DATE               DATS            DATS       8       0         Valid To Date
 TARGET_USERS           CHAR255         CHAR       255     0         Target Audience Filter
@@ -54,10 +54,11 @@ CHANGED_AT             TIMESTAMPL      DEC        21      7         Changed Time
 
 *-- Field Details and Usage:
 *
-*   MESSAGE_TEXT (STRING/DSTRING):
-*     - Use STRING data element with DSTRING built-in type for long text
-*     - DSTRING = Dynamic String with no fixed length limit
-*     - Stored as LRAW (Long Binary) in database, converted to string at runtime
+*   MESSAGE_TEXT (Data Element: DSTRING, Type: STRING):
+*     - Data Element: DSTRING (predefined ABAP Dictionary type)
+*     - Built-in Type: STRING (dynamic length string)
+*     - No fixed length limit, stored efficiently in database
+*     - Automatically handled by ABAP runtime
 *     - Recommended: Keep under 2000 chars for UI display performance
 *
 *   TARGET_USERS (Audience Filtering):
