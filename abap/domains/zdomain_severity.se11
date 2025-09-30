@@ -1,0 +1,46 @@
+*&---------------------------------------------------------------------*
+*& Domain: ZDOMAIN_SEVERITY
+*&---------------------------------------------------------------------*
+*& Severity Level for Notifications
+*& S/4HANA PCE 2023 Compatible
+*&
+*& INSTRUCTIONS FOR SE11 DOMAIN CREATION:
+*& 1. Transaction: SE11
+*& 2. Select "Domain"
+*& 3. Enter domain name: ZDOMAIN_SEVERITY
+*& 4. Click "Create"
+*& 5. Enter settings below
+*& 6. Go to "Value Range" tab and add fixed values
+*& 7. Save and activate
+*&---------------------------------------------------------------------*
+
+*-- Domain Settings:
+Domain Name: ZDOMAIN_SEVERITY
+Short Description: Notification Severity Level
+
+*-- Data Type:
+Data Type: CHAR
+Length: 8
+Output Length: 8
+Lowercase: No
+Conversion Routine: (blank)
+
+*-- Value Range (Fixed Values):
+*   Go to "Value Range" tab → Click "Fixed Values" radio button
+
+Value Key        Short Description
+---------------------------------------------------------------------------
+HIGH             High Priority (Critical/Error)
+MEDIUM           Medium Priority (Warning)
+LOW              Low Priority (Info)
+
+*-- Notes:
+*   Fixed values provide automatic F4 help and validation
+*   Values map to UI5 MessageType:
+*     HIGH = Error (Red)
+*     MEDIUM = Warning (Orange)
+*     LOW = Information (Blue)
+*   Tile counter uses HIGH count for color-coding:
+*     ≥3 HIGH = Red tile
+*     1-2 HIGH = Orange tile
+*     0 HIGH = Green tile

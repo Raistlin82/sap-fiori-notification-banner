@@ -5,35 +5,47 @@
 *& S/4HANA PCE 2023 Compatible
 *&
 *& INSTRUCTIONS FOR SE11 TABLE CREATION:
-*& 1. Transaction: SE11
-*& 2. Select "Database Table"
-*& 3. Enter table name: ZTNOTIFY_MSGS
-*& 4. Click "Create"
-*& 5. Copy field definitions below into the table maintenance screen
-*& 6. Set Delivery Class: A (Application table)
-*& 7. Set Data Browser/Table View Maint.: Display/Maintenance Allowed
-*& 8. Save and activate
+*&
+*& STEP 1: Create Custom Domains (SE11 → Domain)
+*&   - ZDOMAIN_MSG_TYPE (see domains/zdomain_msg_type.se11)
+*&   - ZDOMAIN_SEVERITY (see domains/zdomain_severity.se11)
+*&   - ZDOMAIN_DISPLAY_MODE (see domains/zdomain_display_mode.se11)
+*&
+*& STEP 2: Create Custom Data Elements (SE11 → Data Type)
+*&   - ZNOTIFY_MSG_TYPE based on ZDOMAIN_MSG_TYPE
+*&   - ZNOTIFY_SEVERITY based on ZDOMAIN_SEVERITY
+*&   - ZNOTIFY_DISP_MODE based on ZDOMAIN_DISPLAY_MODE
+*&
+*& STEP 3: Create Database Table (SE11 → Database Table)
+*&   1. Transaction: SE11
+*&   2. Select "Database Table"
+*&   3. Enter table name: ZTNOTIFY_MSGS
+*&   4. Click "Create"
+*&   5. Copy field definitions below into the table maintenance screen
+*&   6. Set Delivery Class: A (Application table)
+*&   7. Set Data Browser/Table View Maint.: Display/Maintenance Allowed
+*&   8. Save and activate
 *&---------------------------------------------------------------------*
 
 *-- Field Definitions for SE11 (copy these into the table fields):
 
-Field Name        Key  Data Element    Data Type  Length  Decimals  Description
----------------------------------------------------------------------------
-MANDT             X    MANDT           CLNT       3       0         Client
-MESSAGE_ID        X    SYSUUID_X16     RAW        16      0         Message GUID
-MESSAGE_TYPE           CHAR10          CHAR       10      0         Message Type
-SEVERITY               CHAR10          CHAR       10      0         Severity Level
-TITLE                  CHAR255         CHAR       255     0         Notification Title
-MESSAGE_TEXT           DSTRING         STRING     0       0         Notification Text (long)
-START_DATE             DATS            DATS       8       0         Valid From Date
-END_DATE               DATS            DATS       8       0         Valid To Date
-TARGET_USERS           CHAR255         CHAR       255     0         Target Audience Filter
-ACTIVE                 CHAR1           CHAR       1       0         Active Flag (X/' ')
-DISPLAY_MODE           CHAR10          CHAR       10      0         Display Mode (v1.1.0)
-CREATED_BY             SYUNAME         CHAR       12      0         Created By User
-CREATED_AT             TIMESTAMPL      DEC        21      7         Created Timestamp
-CHANGED_BY             SYUNAME         CHAR       12      0         Changed By User
-CHANGED_AT             TIMESTAMPL      DEC        21      7         Changed Timestamp
+Field Name        Key  Data Element       Data Type  Length  Decimals  Description
+--------------------------------------------------------------------------------
+MANDT             X    MANDT              CLNT       3       0         Client
+MESSAGE_ID        X    SYSUUID_X16        RAW        16      0         Message GUID
+MESSAGE_TYPE           ZNOTIFY_MSG_TYPE   CHAR       12      0         Message Type (F4)
+SEVERITY               ZNOTIFY_SEVERITY   CHAR       8       0         Severity Level (F4)
+TITLE                  CHAR255            CHAR       255     0         Notification Title
+MESSAGE_TEXT           DSTRING            STRING     0       0         Notification Text (long)
+START_DATE             DATS               DATS       8       0         Valid From Date
+END_DATE               DATS               DATS       8       0         Valid To Date
+TARGET_USERS           CHAR255            CHAR       255     0         Target Audience Filter
+ACTIVE                 CHAR1              CHAR       1       0         Active Flag (X/' ')
+DISPLAY_MODE           ZNOTIFY_DISP_MODE  CHAR       10      0         Display Mode (F4) v1.1.0
+CREATED_BY             SYUNAME            CHAR       12      0         Created By User
+CREATED_AT             TIMESTAMPL         DEC        21      7         Created Timestamp
+CHANGED_BY             SYUNAME            CHAR       12      0         Changed By User
+CHANGED_AT             TIMESTAMPL         DEC        21      7         Changed Timestamp
 
 *-- Technical Settings (SE13):
 *   Data Class: APPL0 (Master data)
@@ -73,12 +85,30 @@ CHANGED_AT             TIMESTAMPL      DEC        21      7         Changed Time
 *     - Current implementation: Simple string match (CS operator in ABAP)
 *     - Future: Can be extended with complex authorization logic
 *
-*-- Value Help Recommendations:
-*   MESSAGE_TYPE: Use fixed values (URGENT, INFO, TIP, SUCCESS, MAINTENANCE)
-*   SEVERITY: Use fixed values (HIGH, MEDIUM, LOW)
-*   DISPLAY_MODE: Use fixed values (BANNER, TOAST, BOTH, SILENT) - Default: BANNER
-*   TARGET_USERS: F4 help to USR02 (users) or AGR_DEFINE (roles)
-*   ACTIVE: Use checkbox (X=' ')
+*-- Value Help (F4) Behavior:
+*   MESSAGE_TYPE (ZNOTIFY_MSG_TYPE):
+*     - Automatic F4 from ZDOMAIN_MSG_TYPE fixed values
+*     - Values: URGENT, INFO, TIP, SUCCESS, MAINT, WARNING
+*     - Input validation enforced at domain level
+*
+*   SEVERITY (ZNOTIFY_SEVERITY):
+*     - Automatic F4 from ZDOMAIN_SEVERITY fixed values
+*     - Values: HIGH, MEDIUM, LOW
+*     - Input validation enforced at domain level
+*
+*   DISPLAY_MODE (ZNOTIFY_DISP_MODE):
+*     - Automatic F4 from ZDOMAIN_DISPLAY_MODE fixed values
+*     - Values: BANNER, TOAST, BOTH, SILENT
+*     - Default: BANNER (for backward compatibility)
+*     - Input validation enforced at domain level
+*
+*   TARGET_USERS:
+*     - Optional: Create custom search help to USR02 (users) or AGR_DEFINE (roles)
+*     - Current: Free text field with pattern matching
+*
+*   ACTIVE:
+*     - Use checkbox (X=' ')
+*     - Standard ABAP boolean flag
 *
 *-- Version History:
 *   v1.0.0: Initial version

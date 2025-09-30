@@ -1,0 +1,58 @@
+*&---------------------------------------------------------------------*
+*& Data Element: ZNOTIFY_DISP_MODE
+*&---------------------------------------------------------------------*
+*& Display Mode for Notifications (v1.1.0)
+*& Based on domain ZDOMAIN_DISPLAY_MODE
+*& S/4HANA PCE 2023 Compatible
+*&
+*& INSTRUCTIONS FOR SE11 DATA ELEMENT CREATION:
+*& 1. Transaction: SE11
+*& 2. Select "Data Type"
+*& 3. Enter data element name: ZNOTIFY_DISP_MODE
+*& 4. Click "Create"
+*& 5. Select "Data Element" radio button
+*& 6. Enter settings below
+*& 7. Save and activate
+*&---------------------------------------------------------------------*
+
+*-- Data Element Settings:
+Data Element: ZNOTIFY_DISP_MODE
+Short Description: Notification Display Mode
+
+*-- Elementary Type tab:
+Domain: ZDOMAIN_DISPLAY_MODE
+
+*-- Field Label tab:
+Short: Display
+Medium: Display Mode
+Long: Notification Display Mode
+Heading: Display
+
+*-- Further Characteristics tab:
+Search Help: (leave blank - fixed values provide F4)
+Parameter ID: (leave blank)
+
+*-- Documentation (optional):
+Display Mode controls how the notification is shown to users:
+
+BANNER (Default):
+- Fixed banner at top of screen
+- Remains visible until user closes it
+- Best for: Critical messages requiring acknowledgment
+
+TOAST:
+- Bottom-right corner notification
+- Auto-dismisses after 5 seconds
+- Best for: Non-intrusive updates, confirmations
+
+BOTH:
+- Shows both banner and toast simultaneously
+- Maximum visibility for important messages
+- Best for: Critical announcements needing immediate attention
+
+SILENT:
+- No UI display, logged only
+- Accessible via /log REST endpoint
+- Best for: Audit trail, compliance, background monitoring
+
+Default: BANNER (for backward compatibility with v1.0.0)

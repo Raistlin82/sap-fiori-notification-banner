@@ -1,0 +1,44 @@
+*&---------------------------------------------------------------------*
+*& Data Element: ZNOTIFY_SEVERITY
+*&---------------------------------------------------------------------*
+*& Severity Level for Notifications
+*& Based on domain ZDOMAIN_SEVERITY
+*& S/4HANA PCE 2023 Compatible
+*&
+*& INSTRUCTIONS FOR SE11 DATA ELEMENT CREATION:
+*& 1. Transaction: SE11
+*& 2. Select "Data Type"
+*& 3. Enter data element name: ZNOTIFY_SEVERITY
+*& 4. Click "Create"
+*& 5. Select "Data Element" radio button
+*& 6. Enter settings below
+*& 7. Save and activate
+*&---------------------------------------------------------------------*
+
+*-- Data Element Settings:
+Data Element: ZNOTIFY_SEVERITY
+Short Description: Notification Severity Level
+
+*-- Elementary Type tab:
+Domain: ZDOMAIN_SEVERITY
+
+*-- Field Label tab:
+Short: Severity
+Medium: Severity Level
+Long: Notification Severity Level
+Heading: Severity
+
+*-- Further Characteristics tab:
+Search Help: (leave blank - fixed values provide F4)
+Parameter ID: (leave blank)
+
+*-- Documentation (optional):
+Severity Level determines the priority and color coding:
+- HIGH: Critical/Error messages (Red) - requires immediate action
+- MEDIUM: Warning messages (Orange) - should be reviewed
+- LOW: Informational messages (Blue) - general awareness
+
+Tile Counter Behavior:
+- ≥3 HIGH notifications: Red tile (Error state)
+- 1-2 HIGH notifications: Orange tile (Warning state)
+- 0 HIGH notifications: Green tile (Success state)

@@ -1,0 +1,43 @@
+*&---------------------------------------------------------------------*
+*& Domain: ZDOMAIN_MSG_TYPE
+*&---------------------------------------------------------------------*
+*& Message Type for Notifications
+*& S/4HANA PCE 2023 Compatible
+*&
+*& INSTRUCTIONS FOR SE11 DOMAIN CREATION:
+*& 1. Transaction: SE11
+*& 2. Select "Domain"
+*& 3. Enter domain name: ZDOMAIN_MSG_TYPE
+*& 4. Click "Create"
+*& 5. Enter settings below
+*& 6. Go to "Value Range" tab and add fixed values
+*& 7. Save and activate
+*&---------------------------------------------------------------------*
+
+*-- Domain Settings:
+Domain Name: ZDOMAIN_MSG_TYPE
+Short Description: Notification Message Type
+
+*-- Data Type:
+Data Type: CHAR
+Length: 12
+Output Length: 12
+Lowercase: No
+Conversion Routine: (blank)
+
+*-- Value Range (Fixed Values):
+*   Go to "Value Range" tab → Click "Fixed Values" radio button
+
+Value Key        Short Description
+---------------------------------------------------------------------------
+URGENT           Urgent System Message
+INFO             Informational Message
+TIP              Helpful Tip
+SUCCESS          Success Notification
+MAINT            Scheduled Maintenance
+WARNING          Warning Message
+
+*-- Notes:
+*   Fixed values provide automatic F4 help and validation
+*   Values are case-sensitive
+*   Adding new types requires domain modification and transport

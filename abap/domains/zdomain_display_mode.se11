@@ -1,0 +1,51 @@
+*&---------------------------------------------------------------------*
+*& Domain: ZDOMAIN_DISPLAY_MODE
+*&---------------------------------------------------------------------*
+*& Display Mode for Notifications (v1.1.0)
+*& S/4HANA PCE 2023 Compatible
+*&
+*& INSTRUCTIONS FOR SE11 DOMAIN CREATION:
+*& 1. Transaction: SE11
+*& 2. Select "Domain"
+*& 3. Enter domain name: ZDOMAIN_DISPLAY_MODE
+*& 4. Click "Create"
+*& 5. Enter settings below
+*& 6. Go to "Value Range" tab and add fixed values
+*& 7. Save and activate
+*&---------------------------------------------------------------------*
+
+*-- Domain Settings:
+Domain Name: ZDOMAIN_DISPLAY_MODE
+Short Description: Notification Display Mode
+
+*-- Data Type:
+Data Type: CHAR
+Length: 10
+Output Length: 10
+Lowercase: No
+Conversion Routine: (blank)
+
+*-- Value Range (Fixed Values):
+*   Go to "Value Range" tab → Click "Fixed Values" radio button
+
+Value Key        Short Description
+---------------------------------------------------------------------------
+BANNER           Fixed Top Banner
+TOAST            Toast Notification (5s)
+BOTH             Banner + Toast
+SILENT           Silent (Log Only)
+
+*-- Notes:
+*   Display Mode Controls:
+*     BANNER: Traditional fixed banner at top, user must close
+*     TOAST: Bottom-right toast, auto-dismiss after 5 seconds
+*     BOTH: Shows both banner and toast simultaneously
+*     SILENT: Logged only, no UI display (audit trail via /log endpoint)
+*
+*   Default: BANNER (for backward compatibility)
+*
+*   Use Cases:
+*     BANNER: Critical system messages requiring acknowledgment
+*     TOAST: Non-intrusive informational updates
+*     BOTH: Important messages that need visibility + persistence
+*     SILENT: Background notifications for audit/compliance

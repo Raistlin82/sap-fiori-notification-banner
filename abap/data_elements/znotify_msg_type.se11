@@ -1,0 +1,42 @@
+*&---------------------------------------------------------------------*
+*& Data Element: ZNOTIFY_MSG_TYPE
+*&---------------------------------------------------------------------*
+*& Message Type for Notifications
+*& Based on domain ZDOMAIN_MSG_TYPE
+*& S/4HANA PCE 2023 Compatible
+*&
+*& INSTRUCTIONS FOR SE11 DATA ELEMENT CREATION:
+*& 1. Transaction: SE11
+*& 2. Select "Data Type"
+*& 3. Enter data element name: ZNOTIFY_MSG_TYPE
+*& 4. Click "Create"
+*& 5. Select "Data Element" radio button
+*& 6. Enter settings below
+*& 7. Save and activate
+*&---------------------------------------------------------------------*
+
+*-- Data Element Settings:
+Data Element: ZNOTIFY_MSG_TYPE
+Short Description: Notification Message Type
+
+*-- Elementary Type tab:
+Domain: ZDOMAIN_MSG_TYPE
+
+*-- Field Label tab:
+Short: Msg Type
+Medium: Message Type
+Long: Notification Message Type
+Heading: MsgType
+
+*-- Further Characteristics tab:
+Search Help: (leave blank - fixed values provide F4)
+Parameter ID: (leave blank)
+
+*-- Documentation (optional):
+Message Type determines the icon and visual style of the notification:
+- URGENT: Red exclamation icon, requires immediate attention
+- INFO: Blue information icon, general system information
+- TIP: Light bulb icon, helpful suggestions
+- SUCCESS: Green checkmark icon, confirmation messages
+- MAINT: Wrench icon, scheduled system maintenance
+- WARNING: Yellow warning icon, cautionary messages
