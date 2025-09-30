@@ -19,51 +19,77 @@ Short Description: Target Audience Filter
 
 *-- Data Type:
 Data Type: CHAR
-Length: 255
-Output Length: 40
+Length: 10
+Output Length: 10
 Lowercase: No
 Conversion Routine: (blank)
 
-*-- Value Range:
-*   NO Fixed Values (free text field)
-*   Pattern-based validation done in ABAP code
-*   Optional: Create custom search help (see below)
-
-*-- Value Patterns (Examples):
-*   'ALL' or blank     = Public to all users
-*   'USER'             = All authenticated users
-*   'ROLE:SAP_ALL'     = Users with SAP_ALL role
-*   'USER:SMITHJ'      = Specific user SMITHJ
-*   'DEPT:FIN'         = Custom department code
-*   'ROLE:Z*,USER:ADMIN' = Multiple values (comma-separated)
-
-*-- Search Help (Optional Enhancement):
-*   You can create a custom search help to provide F4 assistance:
+*-- Value Range (Fixed Values):
+*   Use "Value Range" tab in SE11 to add these FIXED values:
 *
-*   Option 1: Simple Value Help
-*     Create search help ZNOTIFY_TARGET_SH with predefined patterns:
-*     - ALL
-*     - USER
-*     - ROLE:*
-*     - USER:*
-*     - DEPT:*
+*   Value Table (Fixed Values):
+*   Value    | Short Text Description
+*   ---------|-----------------------------------------------
+*   ALL      | All Users (Public)
+*   AUTH     | All Authenticated Users
+*   ADMIN    | Administrators (PFCG role SAP_ALL or Z_ADMIN)
+*   DEVELOPER| Developers (PFCG role SAP_DEV or Z_DEVELOPER)
+*   FINANCE  | Finance Users (PFCG role Z_FINANCE)
+*   SALES    | Sales Users (PFCG role Z_SALES)
+*   IT       | IT Department (PFCG role Z_IT)
+*   MANAGER  | Managers (PFCG role Z_MANAGER)
 *
-*   Option 2: Composite Search Help
-*     Exit 1: Search users from USR02
-*       SELECT name_last, name_first FROM usr02
-*       Return: 'USER:' + bname
-*     Exit 2: Search roles from AGR_DEFINE
-*       SELECT agr_name, text FROM agr_texts
-*       Return: 'ROLE:' + agr_name
-*     Exit 3: Predefined patterns (ALL, USER, DEPT:*)
-*
-*   To implement:
-*     1. SE11 → Search Help → ZNOTIFY_TARGET_SH
-*     2. Assign to domain ZDOMAIN_TARGET_USERS
-*     3. Or assign to data element ZNOTIFY_TARGET_USERS
+*-- Fixed Values Configuration in SE11:
+*   1. Go to "Value Range" tab
+*   2. Add each fixed value above
+*   3. Enter short description for each
+*   4. Save and activate
 
-*-- Notes:
-*   - Pattern matching done in ABAP via CS (contains string) operator
-*   - Multiple values separated by comma
-*   - Case-sensitive matching
-*   - Future: Can implement complex authorization logic with custom exits
+*-- ABAP Logic Mapping (in ZCL_NOTIFICATION_MANAGER):
+*   ALL       → No filtering, all users see notification
+*   AUTH      → Any authenticated user (SY-UNAME <> 'ANONYMOUS')
+*   ADMIN     → Check user has SAP_ALL or Z_ADMIN role
+*   DEVELOPER → Check user has SAP_DEV or Z_DEVELOPER role
+*   FINANCE   → Check user has Z_FINANCE role
+*   SALES     → Check user has Z_SALES role
+*   IT        → Check user has Z_IT role
+*   MANAGER   → Check user has Z_MANAGER role
+
+*-- Example ABAP Implementation:
+*   CASE ls_notification-target_users.
+*     WHEN 'ALL'.
+*       " No filtering - show to everyone
+*       lv_authorized = abap_true.
+*     WHEN 'AUTH'.
+*       " Show to authenticated users only
+*       IF sy-uname <> 'ANONYMOUS'.
+*         lv_authorized = abap_true.
+*       ENDIF.
+*     WHEN 'ADMIN'.
+*       " Check if user has administrator role
+*       AUTHORITY-CHECK OBJECT 'S_TCODE' ID 'TCD' FIELD 'PFCG'.
+*       IF sy-subrc = 0.
+*         lv_authorized = abap_true.
+*       ENDIF.
+*     WHEN 'DEVELOPER' OR 'FINANCE' OR 'SALES' OR 'IT' OR 'MANAGER'.
+*       " Check user has corresponding role
+*       SELECT SINGLE @abap_true FROM agr_users
+*         INTO @lv_authorized
+*         WHERE uname = @sy-uname
+*           AND agr_name LIKE 'Z_%'.  " Replace with specific role pattern
+*   ENDCASE.
+
+*-- Benefits of Fixed Values Approach:
+*   ✅ Type-safe - No free text errors
+*   ✅ F4 help - Automatic dropdown in SM30
+*   ✅ Validation - Database enforces valid values only
+*   ✅ Documentation - Self-documenting audience types
+*   ✅ Maintainable - Easy to add new audience types
+*   ✅ Secure - No pattern injection vulnerabilities
+
+*-- Extensibility:
+*   To add new audience types:
+*   1. SE11 → ZDOMAIN_TARGET_USERS → Value Range tab
+*   2. Add new fixed value (e.g., 'WAREHOUSE')
+*   3. Update ZCL_NOTIFICATION_MANAGER logic with new CASE
+*   4. Activate domain and class

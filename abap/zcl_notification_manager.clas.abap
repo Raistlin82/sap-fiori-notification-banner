@@ -58,7 +58,13 @@ CLASS zcl_notification_manager DEFINITION
   PRIVATE SECTION.
     CLASS-METHODS: generate_message_id
                      RETURNING
-                       VALUE(rv_message_id) TYPE string.
+                       VALUE(rv_message_id) TYPE string,
+
+                   check_target_audience
+                     IMPORTING
+                       iv_target_users TYPE string
+                     RETURNING
+                       VALUE(rv_authorized) TYPE abap_bool.
 
 ENDCLASS.
 
@@ -87,12 +93,17 @@ CLASS zcl_notification_manager IMPLEMENTATION.
            changed_by,
            changed_at
       FROM ztnotify_msgs
-      INTO CORRESPONDING FIELDS OF TABLE rt_notifications
+      INTO TABLE @DATA(lt_all_notifications)
       WHERE active = 'X'
         AND start_date <= sy-datum
-        AND end_date >= sy-datum
-        AND ( target_users = 'ALL'
-           OR target_users = 'USER' ).
+        AND end_date >= sy-datum.
+
+    " Filter by target audience (role-based authorization)
+    LOOP AT lt_all_notifications INTO DATA(ls_notif).
+      IF check_target_audience( ls_notif-target_users ) = abap_true.
+        APPEND ls_notif TO rt_notifications.
+      ENDIF.
+    ENDLOOP.
 
   ENDMETHOD.
 
@@ -242,6 +253,101 @@ CLASS zcl_notification_manager IMPLEMENTATION.
         ev_guid_32 = lv_guid.
 
     rv_message_id = |MSG_{ lv_guid }|.
+
+  ENDMETHOD.
+
+  METHOD check_target_audience.
+    "*&---------------------------------------------------------------------*
+    "*& Check if current user is authorized to see notification
+    "*& based on TARGET_USERS domain fixed value
+    "*&---------------------------------------------------------------------*
+    DATA: lv_has_role TYPE abap_bool.
+
+    rv_authorized = abap_false.
+
+    CASE iv_target_users.
+
+      WHEN 'ALL'.
+        " Public notification - visible to all users
+        rv_authorized = abap_true.
+
+      WHEN 'AUTH'.
+        " Any authenticated user (not anonymous)
+        IF sy-uname IS NOT INITIAL AND sy-uname <> 'ANONYMOUS'.
+          rv_authorized = abap_true.
+        ENDIF.
+
+      WHEN 'ADMIN'.
+        " Administrators (users with SAP_ALL or Z_ADMIN role)
+        SELECT SINGLE @abap_true
+          FROM agr_users
+          INTO @lv_has_role
+          WHERE uname = @sy-uname
+            AND ( agr_name = 'SAP_ALL' OR agr_name LIKE 'Z_ADMIN%' ).
+        IF sy-subrc = 0.
+          rv_authorized = abap_true.
+        ENDIF.
+
+      WHEN 'DEVELOPER'.
+        " Developers (users with SAP_DEV or Z_DEVELOPER role)
+        SELECT SINGLE @abap_true
+          FROM agr_users
+          INTO @lv_has_role
+          WHERE uname = @sy-uname
+            AND ( agr_name LIKE 'SAP_DEV%' OR agr_name LIKE 'Z_DEVELOPER%' ).
+        IF sy-subrc = 0.
+          rv_authorized = abap_true.
+        ENDIF.
+
+      WHEN 'FINANCE'.
+        " Finance users (users with Z_FINANCE role)
+        SELECT SINGLE @abap_true
+          FROM agr_users
+          INTO @lv_has_role
+          WHERE uname = @sy-uname
+            AND agr_name LIKE 'Z_FINANCE%'.
+        IF sy-subrc = 0.
+          rv_authorized = abap_true.
+        ENDIF.
+
+      WHEN 'SALES'.
+        " Sales users (users with Z_SALES role)
+        SELECT SINGLE @abap_true
+          FROM agr_users
+          INTO @lv_has_role
+          WHERE uname = @sy-uname
+            AND agr_name LIKE 'Z_SALES%'.
+        IF sy-subrc = 0.
+          rv_authorized = abap_true.
+        ENDIF.
+
+      WHEN 'IT'.
+        " IT department users (users with Z_IT role)
+        SELECT SINGLE @abap_true
+          FROM agr_users
+          INTO @lv_has_role
+          WHERE uname = @sy-uname
+            AND agr_name LIKE 'Z_IT%'.
+        IF sy-subrc = 0.
+          rv_authorized = abap_true.
+        ENDIF.
+
+      WHEN 'MANAGER'.
+        " Managers (users with Z_MANAGER role)
+        SELECT SINGLE @abap_true
+          FROM agr_users
+          INTO @lv_has_role
+          WHERE uname = @sy-uname
+            AND agr_name LIKE 'Z_MANAGER%'.
+        IF sy-subrc = 0.
+          rv_authorized = abap_true.
+        ENDIF.
+
+      WHEN OTHERS.
+        " Unknown target audience - deny access for security
+        rv_authorized = abap_false.
+
+    ENDCASE.
 
   ENDMETHOD.
 
