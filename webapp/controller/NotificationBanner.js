@@ -1,12 +1,13 @@
 sap.ui.define([
     "sap/ui/base/Object",
     "sap/m/MessageStrip",
+    "sap/m/MessageToast",
     "sap/m/Button",
     "sap/m/Text",
     "sap/ui/core/library",
     "sap/ui/model/json/JSONModel",
     "sap/base/Log"
-], function(BaseObject, MessageStrip, Button, Text, coreLibrary, JSONModel, Log) {
+], function(BaseObject, MessageStrip, MessageToast, Button, Text, coreLibrary, JSONModel, Log) {
     "use strict";
 
     var MessageType = coreLibrary.MessageType;
@@ -226,12 +227,114 @@ sap.ui.define([
 
             if (hasNewNotifications) {
                 this._notifications = notifications;
-                this._updateBanner();
+                this._displayNotifications();
             }
         },
 
         /**
-         * Update banner display
+         * Display notifications based on their display_mode
+         * @private
+         */
+        _displayNotifications: function() {
+            if (!this._isAttachedToShell) {
+                return;
+            }
+
+            // Remove existing banner first
+            this._removeBanner();
+
+            // Group notifications by display mode
+            var bannerNotifications = [];
+            var toastNotifications = [];
+            var bothNotifications = [];
+            var silentNotifications = [];
+
+            for (var i = 0; i < this._notifications.length; i++) {
+                var notification = this._notifications[i];
+                var displayMode = (notification.display_mode || "BANNER").toUpperCase();
+
+                switch(displayMode) {
+                    case "BANNER":
+                        bannerNotifications.push(notification);
+                        break;
+                    case "TOAST":
+                        toastNotifications.push(notification);
+                        break;
+                    case "BOTH":
+                        bothNotifications.push(notification);
+                        break;
+                    case "SILENT":
+                        silentNotifications.push(notification);
+                        break;
+                    default:
+                        bannerNotifications.push(notification); // Default to banner
+                }
+            }
+
+            // Display BANNER notifications
+            if (bannerNotifications.length > 0) {
+                this._notifications = bannerNotifications;
+                this._currentBannerIndex = 0;
+                this._showBanner();
+            }
+
+            // Display TOAST notifications
+            for (var j = 0; j < toastNotifications.length; j++) {
+                this._showToast(toastNotifications[j]);
+            }
+
+            // Display BOTH notifications (banner + toast)
+            if (bothNotifications.length > 0) {
+                // Add to banner display
+                this._notifications = this._notifications.concat(bothNotifications);
+                if (bannerNotifications.length === 0) {
+                    this._currentBannerIndex = 0;
+                    this._showBanner();
+                }
+                // Also show as toast
+                for (var k = 0; k < bothNotifications.length; k++) {
+                    this._showToast(bothNotifications[k]);
+                }
+            }
+
+            // Log SILENT notifications
+            for (var l = 0; l < silentNotifications.length; l++) {
+                this._logNotification(silentNotifications[l]);
+            }
+        },
+
+        /**
+         * Show notification as toast
+         * @private
+         * @param {object} notification - Notification object
+         */
+        _showToast: function(notification) {
+            var message = notification.title + ": " + notification.message_text;
+
+            MessageToast.show(message, {
+                duration: 5000, // 5 seconds
+                width: "25em",
+                my: "center bottom",
+                at: "center bottom",
+                of: window,
+                offset: "0 -50",
+                autoClose: true
+            });
+        },
+
+        /**
+         * Log silent notification (for audit purposes)
+         * @private
+         * @param {object} notification - Notification object
+         */
+        _logNotification: function(notification) {
+            Log.info("SILENT NOTIFICATION: [" + notification.severity + "] " +
+                    notification.title + ": " + notification.message_text,
+                    "notification_id: " + notification.message_id);
+        },
+
+        /**
+         * Update banner display (used for navigation between banner notifications)
          * @private
          */
         _updateBanner: function() {

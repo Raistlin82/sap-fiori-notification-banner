@@ -15,6 +15,8 @@ CLASS zcl_notification_rest DEFINITION
              handle_create_notification,
              handle_update_notification,
              handle_delete_notification,
+             handle_get_stats,
+             handle_get_log,
              serialize_notifications
                IMPORTING
                  it_notifications TYPE zcl_notification_manager=>tt_notifications
@@ -31,7 +33,19 @@ ENDCLASS.
 CLASS zcl_notification_rest IMPLEMENTATION.
 
   METHOD if_rest_resource~get.
-    handle_get_notifications( ).
+    DATA: lv_path TYPE string.
+
+    " Get request path to route to correct handler
+    lv_path = mo_request->get_uri_path( ).
+
+    CASE lv_path.
+      WHEN '/stats'.
+        handle_get_stats( ).
+      WHEN '/log'.
+        handle_get_log( ).
+      WHEN OTHERS.
+        handle_get_notifications( ).
+    ENDCASE.
   ENDMETHOD.
 
   METHOD if_rest_resource~post.
@@ -173,6 +187,125 @@ CLASS zcl_notification_rest IMPLEMENTATION.
         json = iv_json
       CHANGING
         data = rs_notification.
+
+  ENDMETHOD.
+
+  METHOD handle_get_stats.
+    " Provides statistics for the dynamic tile counter
+    " Response format: { total: N, high_count: N, medium_count: N, low_count: N }
+
+    DATA: lt_notifications TYPE TABLE OF ztnotify_msgs,
+          lv_json TYPE string,
+          lv_total TYPE i,
+          lv_high TYPE i,
+          lv_medium TYPE i,
+          lv_low TYPE i,
+          lv_today TYPE sy-datum.
+
+    lv_today = sy-datum.
+
+    " Count active notifications by severity
+    SELECT COUNT(*) FROM ztnotify_msgs
+      INTO @lv_high
+      WHERE active = 'X'
+        AND start_date <= @lv_today
+        AND end_date >= @lv_today
+        AND severity = 'HIGH'.
+
+    SELECT COUNT(*) FROM ztnotify_msgs
+      INTO @lv_medium
+      WHERE active = 'X'
+        AND start_date <= @lv_today
+        AND end_date >= @lv_today
+        AND severity = 'MEDIUM'.
+
+    SELECT COUNT(*) FROM ztnotify_msgs
+      INTO @lv_low
+      WHERE active = 'X'
+        AND start_date <= @lv_today
+        AND end_date >= @lv_today
+        AND severity = 'LOW'.
+
+    lv_total = lv_high + lv_medium + lv_low.
+
+    " Build JSON response
+    CONCATENATE '{'
+                  '"total":' lv_total ','
+                  '"high_count":' lv_high ','
+                  '"medium_count":' lv_medium ','
+                  '"low_count":' lv_low
+                '}'
+    INTO lv_json.
+
+    " Set response
+    mo_response->create_entity( )->set_string_data( lv_json ).
+    mo_response->set_status( cl_rest_status_code=>gc_success_ok ).
+    mo_response->set_header_field( name = 'Content-Type' value = 'application/json' ).
+
+  ENDMETHOD.
+
+  METHOD handle_get_log.
+    " Returns all notifications that were set to SILENT display mode
+    " Used for audit logging and reporting
+
+    DATA: lt_notifications TYPE zcl_notification_manager=>tt_notifications,
+          ls_notification TYPE zcl_notification_manager=>ty_notification,
+          lt_db_notifications TYPE TABLE OF ztnotify_msgs,
+          ls_db_notification TYPE ztnotify_msgs,
+          lv_json TYPE string,
+          lv_user_id TYPE sy-uname,
+          lv_today TYPE sy-datum.
+
+    lv_today = sy-datum.
+
+    " Get user ID from query parameter (optional filter)
+    lv_user_id = mo_request->get_uri_query_parameter( 'user_id' ).
+
+    " Select all notifications with SILENT display mode
+    SELECT * FROM ztnotify_msgs
+      INTO TABLE @lt_db_notifications
+      WHERE active = 'X'
+        AND start_date <= @lv_today
+        AND end_date >= @lv_today
+        AND display_mode = 'SILENT'
+      ORDER BY changed_at DESCENDING.
+
+    " Convert to notification structure
+    LOOP AT lt_db_notifications INTO ls_db_notification.
+      CLEAR ls_notification.
+      ls_notification-message_id = ls_db_notification-message_id.
+      ls_notification-message_type = ls_db_notification-message_type.
+      ls_notification-severity = ls_db_notification-severity.
+      ls_notification-title = ls_db_notification-title.
+      ls_notification-message_text = ls_db_notification-message_text.
+      ls_notification-start_date = ls_db_notification-start_date.
+      ls_notification-end_date = ls_db_notification-end_date.
+      ls_notification-target_users = ls_db_notification-target_users.
+      ls_notification-active = ls_db_notification-active.
+      ls_notification-display_mode = ls_db_notification-display_mode.
+      ls_notification-created_by = ls_db_notification-created_by.
+      ls_notification-created_at = ls_db_notification-created_at.
+      ls_notification-changed_by = ls_db_notification-changed_by.
+      ls_notification-changed_at = ls_db_notification-changed_at.
+
+      " Apply user filter if specified
+      IF lv_user_id IS NOT INITIAL.
+        IF ls_notification-target_users IS INITIAL OR
+           ls_notification-target_users CS lv_user_id.
+          APPEND ls_notification TO lt_notifications.
+        ENDIF.
+      ELSE.
+        APPEND ls_notification TO lt_notifications.
+      ENDIF.
+    ENDLOOP.
+
+    " Serialize to JSON
+    lv_json = serialize_notifications( lt_notifications ).
+
+    " Set response
+    mo_response->create_entity( )->set_string_data( lv_json ).
+    mo_response->set_status( cl_rest_status_code=>gc_success_ok ).
+    mo_response->set_header_field( name = 'Content-Type' value = 'application/json' ).
 
   ENDMETHOD.
 

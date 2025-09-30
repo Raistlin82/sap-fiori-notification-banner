@@ -15,6 +15,11 @@ CLASS zcl_notification_manager DEFINITION
              end_date     TYPE dats,
              target_users TYPE string,
              active       TYPE char1,
+             display_mode TYPE char10,
+             created_by   TYPE syuname,
+             created_at   TYPE timestampl,
+             changed_by   TYPE syuname,
+             changed_at   TYPE timestampl,
            END OF ty_notification.
 
     TYPES: tt_notifications TYPE TABLE OF ty_notification.
@@ -75,7 +80,12 @@ CLASS zcl_notification_manager IMPLEMENTATION.
            start_date,
            end_date,
            target_users,
-           active
+           active,
+           display_mode,
+           created_by,
+           created_at,
+           changed_by,
+           changed_at
       FROM ztnotify_msgs
       INTO CORRESPONDING FIELDS OF TABLE rt_notifications
       WHERE active = 'X'
@@ -108,6 +118,10 @@ CLASS zcl_notification_manager IMPLEMENTATION.
     ls_notification-end_date = is_notification-end_date.
     ls_notification-target_users = is_notification-target_users.
     ls_notification-active = 'X'.
+    ls_notification-display_mode = is_notification-display_mode.
+    IF ls_notification-display_mode IS INITIAL.
+      ls_notification-display_mode = 'BANNER'.  " Default to BANNER
+    ENDIF.
     ls_notification-created_by = sy-uname.
 
     GET TIME STAMP FIELD lv_timestamp.
@@ -155,6 +169,10 @@ CLASS zcl_notification_manager IMPLEMENTATION.
     ls_notification-message_text = is_notification-message_text.
     ls_notification-start_date = is_notification-start_date.
     ls_notification-end_date = is_notification-end_date.
+    ls_notification-display_mode = is_notification-display_mode.
+    IF ls_notification-display_mode IS INITIAL.
+      ls_notification-display_mode = 'BANNER'.  " Default to BANNER
+    ENDIF.
     ls_notification-target_users = is_notification-target_users.
     ls_notification-changed_by = sy-uname.
 

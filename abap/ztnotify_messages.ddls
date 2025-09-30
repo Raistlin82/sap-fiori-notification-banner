@@ -16,6 +16,7 @@ define view ZTNOTIFY_MESSAGES as select from ztnotify_msgs {
     end_date,
     target_users,
     active,
+    display_mode,
     created_by,
     created_at,
     changed_by,

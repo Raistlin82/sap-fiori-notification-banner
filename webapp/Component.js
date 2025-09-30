@@ -2,8 +2,9 @@ sap.ui.define([
     "sap/ui/core/UIComponent",
     "sap/ui/Device",
     "com/sap/notifications/banner/model/models",
-    "com/sap/notifications/banner/controller/NotificationBanner"
-], function (UIComponent, Device, models, NotificationBanner) {
+    "com/sap/notifications/banner/controller/NotificationBanner",
+    "com/sap/notifications/banner/controller/TileCounter"
+], function (UIComponent, Device, models, NotificationBanner, TileCounter) {
     "use strict";
 
     return UIComponent.extend("com.sap.notifications.banner.Component", {
@@ -85,6 +86,9 @@ sap.ui.define([
             // Create notification banner instance
             this._notificationBanner = new NotificationBanner();
 
+            // Create tile counter instance
+            this._tileCounter = new TileCounter();
+
             // Start polling for notifications every 30 seconds
             this._startNotificationPolling();
 
@@ -93,11 +97,13 @@ sap.ui.define([
                 // FLP mode - wait for shell to be ready
                 sap.ushell.Container.attachRendererCreatedEvent(function() {
                     that._notificationBanner.attachToShell();
+                    that._tileCounter.start();
                 });
             } else {
                 // Standalone mode - attach immediately
                 setTimeout(function() {
                     that._notificationBanner.attachToShell();
+                    // Tile counter only works in FLP mode
                 }, 1000);
             }
         },
@@ -128,12 +134,24 @@ sap.ui.define([
         },
 
         /**
+         * Get tile counter instance
+         * @public
+         * @returns {TileCounter} tile counter
+         */
+        getTileCounter: function() {
+            return this._tileCounter;
+        },
+
+        /**
          * Clean up component
          * @public
          */
         exit: function() {
             if (this._notificationBanner) {
                 this._notificationBanner.destroy();
+            }
+            if (this._tileCounter) {
+                this._tileCounter.destroy();
             }
         }
     });
