@@ -663,47 +663,178 @@ Expected: JSON response with active notifications
 
 **⚠️ IMPORTANT**: This step is OPTIONAL. The notification system works with public access (@AccessControl.authorizationCheck: #NOT_REQUIRED). Only create this if you need role-based admin restrictions.
 
-**Transaction**: SU21 (Authorization Objects)
+#### 7.1 Create Authorization Object Z_NOTIFY
 
-#### Create Authorization Object
+**Transaction**: SU21 (Maintain Authorization Objects)
 
+**Actions**:
+1. **Transaction SU21** → Authorization Objects
+2. Click **Create** button (or press F5)
+3. Enter object details:
+   ```
+   Object: Z_NOTIFY
+   Object Class: BC_A (Cross-Application Authorization Objects)
+   Text: Notification Banner Administration
+   ```
+4. **Add Fields**:
+
+   **Field 1: ACTVT** (Activity)
+   ```
+   Field Name: ACTVT
+   Authorization Field: ACTVT (already exists in system)
+   Text: Activity
+   ```
+
+   **Field 2: NOTIFY_TYPE** (Notification Type)
+   ```
+   Field Name: NOTIFY_TYPE
+   Data Element: CHAR10
+   Text: Notification Type
+   Checkbox Documentation: [Enter documentation about notification types]
+   ```
+
+5. **Save** → **Activate**
+
+**Authorization Values for ACTVT**:
+- `01` - Create notifications (POST)
+- `02` - Modify notifications (PUT)
+- `03` - Display notifications (GET)
+- `06` - Delete notifications (DELETE)
+
+**Authorization Values for NOTIFY_TYPE**:
+- `*` - All notification types
+- `URGENT` - Only urgent notifications
+- `INFO` - Only informational notifications
+- `MAINT` - Only maintenance notifications
+
+**✅ Verification**:
 ```
-Object: Z_NOTIFY
-Class: Custom application class
-Description: Notification Banner Administration
+SU21 → Display Z_NOTIFY → Check 2 fields exist (ACTVT, NOTIFY_TYPE)
 ```
 
-**Fields**:
-| Field Name | Field Label        | Data Element | Values      |
-|------------|-------------------|--------------|-------------|
-| ACTVT      | Activity          | ACTIV        | 01, 02, 03, 06 |
-| NOTIFY_TYPE| Notification Type | CHAR10       | ALL, URGENT |
+---
 
-**Authorization Values**:
-- `01` - Create notifications
-- `02` - Modify notifications
-- `03` - Display notifications
-- `06` - Delete notifications
-
-#### Create Authorization Role (PFCG)
+#### 7.2 Create Authorization Role
 
 **Transaction**: PFCG (Role Maintenance)
 
+**Create Role: Z_NOTIFICATION_ADMIN**
+
+**Actions**:
+
+1. **Transaction PFCG** → Enter role name: `Z_NOTIFICATION_ADMIN`
+2. Click **Create** (single role)
+3. **Description tab**:
+   ```
+   Description: Notification Banner Administrator
+   ```
+
+4. **Authorizations tab** → Click **Change Authorization Data**
+5. **Manually** → Add the following authorization objects:
+
+   **A) Z_NOTIFY (Custom Notification Authorization)**
+   ```
+   Authorization Object: Z_NOTIFY
+   ACTVT: 01, 02, 03, 06  (Create, Change, Display, Delete)
+   NOTIFY_TYPE: *         (All types)
+   ```
+
+   **B) S_SERVICE (ICF Service Authorization)**
+   ```
+   Authorization Object: S_SERVICE
+   ICF_VALUE: zcl_notification_rest
+   ICF_MANDT: * (All clients)
+   ```
+
+   **C) S_TABU_NAM (Table Maintenance Authorization)**
+   ```
+   Authorization Object: S_TABU_NAM
+   TABLE: ZTNOTIFY_MSGS
+   ACTVT: 01, 02, 03, 06  (Create, Change, Display, Delete)
+   ```
+
+   **D) S_TABU_DIS (Table Display Authorization)**
+   ```
+   Authorization Object: S_TABU_DIS
+   DICBERCLS: &NC& (Customer namespace tables)
+   ```
+
+   **E) S_DEVELOP (Development Authorization - for SE11/SE80)**
+   ```
+   Authorization Object: S_DEVELOP
+   OBJTYPE: PROG, CLAS, DDLS, TABL
+   OBJNAME: Z*
+   ACTVT: 01, 02, 03
+   ```
+
+6. **Generate** authorization profile:
+   - Click **Generate** button (or Ctrl+F3)
+   - System creates profile: `Z_NOTIFICATION_ADMIN`
+
+7. **User Assignment tab**:
+   - Add users who need admin access
+   - Click **User Comparison** → **Complete Comparison**
+
+8. **Save** the role
+
+**✅ Verification**:
 ```
-Role Name: Z_NOTIFICATION_ADMIN
-Description: Notification Banner Administrator
+PFCG → Display Z_NOTIFICATION_ADMIN → Authorizations tab
+Expected: 5 authorization objects (Z_NOTIFY, S_SERVICE, S_TABU_NAM, S_TABU_DIS, S_DEVELOP)
+```
+
+---
+
+#### 7.3 Create Read-Only Role (Optional)
+
+For users who only need to view notifications in SM30/SE16:
+
+**Transaction**: PFCG
+
+**Create Role: Z_NOTIFICATION_DISPLAY**
+
+```
+Role Name: Z_NOTIFICATION_DISPLAY
+Description: Notification Banner Display Only
 ```
 
 **Authorizations**:
-- Z_NOTIFY: ACTVT = 01, 02, 03, 06
-- S_SERVICE: ICF_VALUE = zcl_notification_rest
-
-**User Assignment**:
-- Assign role to administrator users via SU01
+- **Z_NOTIFY**: ACTVT = 03 (Display only), NOTIFY_TYPE = *
+- **S_TABU_NAM**: TABLE = ZTNOTIFY_MSGS, ACTVT = 03 (Display)
+- **S_TABU_DIS**: DICBERCLS = &NC&
 
 **✅ Verification**:
-- PFCG → Display Z_NOTIFICATION_ADMIN → Check authorization objects
-- SU01 → Check user has role assigned
+- User with this role can view notifications (SE16, SM30) but cannot create/modify
+
+---
+
+#### 7.4 Authorization Testing
+
+**Test Admin Access**:
+1. Assign Z_NOTIFICATION_ADMIN to test user (SU01)
+2. Login as test user
+3. **Test SM30**: SM30 → ZTNOTIFY_MSGS → Should allow Create/Change/Delete
+4. **Test REST API**: POST to `/sap/bc/rest/zcl_notification_rest/` → Should succeed
+5. **Test SE11**: SE11 → ZTNOTIFY_MSGS → Should allow display
+
+**Test Read-Only Access**:
+1. Assign Z_NOTIFICATION_DISPLAY to test user (SU01)
+2. Login as test user
+3. **Test SM30**: SM30 → ZTNOTIFY_MSGS → Should show data but greyed-out buttons
+4. **Test REST API**: POST → Should return 403 Forbidden
+5. **Test SE16**: SE16 → ZTNOTIFY_MSGS → Should allow display only
+
+**Test No Authorization**:
+1. Remove all notification roles from test user
+2. Login as test user
+3. **Test SM30**: SM30 → ZTNOTIFY_MSGS → Should return "No authorization"
+4. **Test REST API**: All methods → Should return 403 Forbidden
+
+**✅ Final Verification**:
+```
+SU53 → Display last authorization check
+Expected: Shows Z_NOTIFY check with values used
+```
 
 ---
 
