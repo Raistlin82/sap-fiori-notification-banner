@@ -125,15 +125,154 @@
 
 3. Test in BSP: /sap/bc/bsp/sap/z_fiori_notify_banner/index.html
 
-**Option B: UI5 Repository Upload (Recommended)**
-1. Use `dist/sap_fiori_notification_banner.zip`
-2. Transaction: **/UI5/UI5_REPOSITORY_LOAD**
-3. Upload settings:
-   - Name: Z_FIORI_NOTIFY_BANNER
-   - Version: 1.0.0
-   - Description: Global Notification Banner
-   - Package: Assign to your package
-   - Transport: Add to transport request
+**Option B: UI5 Repository Upload via Transport (Recommended for Basis Team)**
+
+This option uses the standard SAP UI5 ABAP Repository and allows proper transport management.
+
+**Step 1: Prepare the Build Artifact**
+```bash
+# From project root directory
+npm run build
+
+# Verify the zip file is created
+ls -lh dist/sap_fiori_notification_banner.zip
+# Should show ~27KB file
+```
+
+**Step 2: Access UI5 Repository Load Transaction**
+1. Open SAP GUI and login to your development system
+2. Execute transaction: **/UI5/UI5_REPOSITORY_LOAD**
+3. Alternative path: SAP Easy Access Menu → Tools → ABAP Workbench → Development → UI5 Repository → Upload
+
+**Step 3: Fill Upload Parameters**
+
+On the "Upload UI5 Application" screen:
+
+| Field | Value | Notes |
+|-------|-------|-------|
+| **Name** | `Z_FIORI_NOTIFY_BANNER` | Must start with Z or Y (customer namespace) |
+| **Description** | `Global Notification Banner` | Visible in repository list |
+| **Version** | `1.0.0` | From manifest.json |
+| **Package** | `$TMP` (test) or `ZFIORI` (prod) | Use your custom package for production |
+| **Transport Request** | Select from F4 help | Choose transport created in Phase 1 |
+| **Archive File** | Browse to `dist/sap_fiori_notification_banner.zip` | Click folder icon to browse |
+| **External Code Page** | `UTF-8` | Default, usually pre-filled |
+| **Safe Mode** | ☐ Unchecked | Not needed for new upload |
+
+**Step 4: Execute Upload**
+1. Click the **"Upload"** button (📤 icon or F8)
+2. Wait for upload to complete (usually 5-10 seconds)
+3. Check the log output for success message:
+   ```
+   ✓ Archive extracted successfully
+   ✓ Application Z_FIORI_NOTIFY_BANNER created
+   ✓ Files imported: 12 files, 27 KB
+   ✓ Added to transport request <YOUR_TRANSPORT>
+   ```
+
+**Step 5: Verify Upload Success**
+
+**Check 1: Via /UI5/UI5_REPOSITORY_LOAD**
+1. Execute transaction: **/UI5/UI5_REPOSITORY_LOAD**
+2. Click "Display" button
+3. Search for `Z_FIORI_NOTIFY_BANNER`
+4. Should appear with status "Active" and correct version
+
+**Check 2: Via BSP Application SE80**
+1. Execute transaction: **SE80**
+2. Select "BSP Application" from dropdown
+3. Enter: `/UI5/Z_FIORI_NOTIFY_BANNER`
+4. Should display folder structure with all files:
+   ```
+   /UI5/Z_FIORI_NOTIFY_BANNER/
+   ├── Component-preload.js
+   ├── Component.js
+   ├── manifest.json
+   ├── index.html
+   ├── controller/
+   ├── model/
+   ├── view/
+   ├── css/
+   └── i18n/
+   ```
+
+**Check 3: Test Application URL**
+1. Open browser
+2. Navigate to: `https://<your-system>/sap/bc/ui5_ui5/sap/z_fiori_notify_banner/index.html`
+3. Should load the application (may show "No active notifications" if DB is empty)
+4. Check browser console for errors (F12)
+
+**Step 6: Verify Transport Assignment**
+1. Execute transaction: **SE10** (Transport Organizer)
+2. Find your transport request from Phase 1
+3. Expand the request tree
+4. Should see new entry:
+   ```
+   📦 IWSG (Gateway: Service Groups, Data Model, Service)
+      └── /UI5/Z_FIORI_NOTIFY_BANNER (UI5 Repository Application)
+   ```
+
+**Common Issues & Solutions:**
+
+| Issue | Cause | Solution |
+|-------|-------|----------|
+| "Name already exists" | App previously uploaded | Use "Safe Mode" checkbox or delete old version first |
+| "Package does not exist" | Invalid package name | Use SE80 to verify package exists, or use $TMP |
+| "No authorization" | Missing S_DEVELOP auth | Contact Basis team or use transaction SU53 to check |
+| "Archive is invalid" | Corrupted zip or wrong format | Re-run `npm run build` and verify zip integrity |
+| "Transport not modifiable" | Transport already released | Create new transport or use SE10 to reopen |
+| Files uploaded but app not working | Missing Component-preload.js | Check build output, ensure ui5.yaml has zipper task |
+
+**Step 7: Post-Upload Configuration** (if needed)
+
+If the application needs additional ICF nodes or cache settings:
+
+1. **ICF Service Check** (Transaction: SICF)
+   - Navigate to: `/default_host/sap/bc/ui5_ui5/sap/z_fiori_notify_banner`
+   - Should be auto-created and activated
+   - If not, right-click parent folder → Create → Service
+
+2. **Cache Buster** (Transaction: /UI5/APP_INDEX_CALCULATE)
+   - Application Name: `Z_FIORI_NOTIFY_BANNER`
+   - Execute to register for CDN caching
+
+3. **FLP Integration** (if using Fiori Launchpad)
+   - See Phase 7 Option C for tile creation
+   - Or use transaction `/UI2/FLPD_CUST`
+
+**Alternative: Upload via CL_UI5_HTTP_HANDLER (For Scripting)**
+
+For automated deployment or CI/CD pipelines, use this ABAP report:
+
+```abap
+REPORT z_upload_ui5_app.
+
+DATA: lv_archive TYPE xstring,
+      lv_name    TYPE string VALUE 'Z_FIORI_NOTIFY_BANNER',
+      lv_package TYPE devclass VALUE 'ZFIORI',
+      lv_transport TYPE trkorr VALUE '<YOUR_TRANSPORT>'.
+
+" Read zip file from application server or local file
+" CALL FUNCTION 'GUI_UPLOAD' ...
+
+" Upload to repository
+CALL METHOD cl_ui5_repository_service=>create_application
+  EXPORTING
+    iv_name          = lv_name
+    iv_description   = 'Global Notification Banner'
+    iv_version       = '1.0.0'
+    iv_package       = lv_package
+    iv_transport     = lv_transport
+    iv_archive       = lv_archive
+  EXCEPTIONS
+    OTHERS           = 1.
+
+IF sy-subrc = 0.
+  WRITE: / 'Upload successful'.
+ELSE.
+  WRITE: / 'Upload failed:', sy-subrc.
+ENDIF.
+```
 
 **Option C: Fiori Launchpad Designer**
 1. Transaction: **/UI2/FLPD_CUST**
