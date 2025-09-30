@@ -53,17 +53,32 @@ You will immediately see:
 - 🔍 **Search**: Field to filter notifications
 - ➕ **Buttons**: Create new, Refresh
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│  Notification Administration                    [➕ Create] [🔄 Refresh] │
-├─────────────────────────────────────────────────────────────┤
-│  Active: 5    High Priority: 2    Total: 12                │
-├─────────────────────────────────────────────────────────────┤
-│  Priority │ Title          │ Type │ Start    │ End      │ Status   │ Actions │
-│  ─────────┼────────────────┼──────┼──────────┼──────────┼──────────┼─────────│
-│  🔴 HIGH  │ System Down    │ URGENT│ 01/01/24 │ 01/02/24 │ Active   │ 👁️✏️🗑️  │
-│  🟡 MEDIUM│ Maintenance    │ INFO │ 01/01/24 │ 31/12/24 │ Active   │ 👁️✏️🗑️  │
-└─────────────────────────────────────────────────────────────┘
+```mermaid
+graph TD
+    subgraph Dashboard["📊 Notification Administration Dashboard"]
+        Header["<b>Header Actions</b><br/>➕ Create | 🔄 Refresh"]
+        Stats["<b>Statistics Bar</b><br/>Active: 5 | High Priority: 2 | Total: 12"]
+        Table["<b>Notifications Table</b>"]
+
+        Header --> Stats
+        Stats --> Table
+
+        subgraph TableContent["Table Columns"]
+            Col1["Priority<br/>🔴 HIGH<br/>🟡 MEDIUM"]
+            Col2["Title<br/>System Down<br/>Maintenance"]
+            Col3["Type<br/>URGENT<br/>INFO"]
+            Col4["Dates<br/>Start → End"]
+            Col5["Status<br/>Active"]
+            Col6["Actions<br/>👁️ ✏️ 🗑️"]
+        end
+
+        Table --> TableContent
+    end
+
+    style Dashboard fill:#f9f9f9,stroke:#333,stroke-width:2px
+    style Header fill:#e3f2fd,stroke:#1976d2
+    style Stats fill:#fff3e0,stroke:#f57c00
+    style Table fill:#f1f8e9,stroke:#689f38
 ```
 
 ---
@@ -233,16 +248,29 @@ Actions:
 1. Click the **"Close Early" (✖️)** button
 2. A confirmation dialog appears:
 
-```
-┌────────────────────────────────────────────┐
-│  Close Notification Early                  │
-├────────────────────────────────────────────┤
-│  Are you sure you want to close this      │
-│  notification early? This will set the    │
-│  end date to today and deactivate it.     │
-│                                            │
-│              [Cancel]  [OK]                │
-└────────────────────────────────────────────┘
+```mermaid
+graph TD
+    subgraph Dialog["⚠️ Confirmation Dialog"]
+        Title["<b>Close Notification Early</b>"]
+        Message["Are you sure you want to close this<br/>notification early? This will set the<br/>end date to today and deactivate it."]
+        Actions["<br/><br/>"]
+
+        Title --> Message
+        Message --> Actions
+
+        subgraph Buttons["User Actions"]
+            Cancel["[Cancel]<br/>Abort Operation"]
+            OK["[OK]<br/>Confirm Close"]
+        end
+
+        Actions --> Buttons
+    end
+
+    style Dialog fill:#fff3e0,stroke:#f57c00,stroke-width:2px
+    style Title fill:#ffecb3,stroke:#f57c00
+    style Message fill:#fffde7
+    style Cancel fill:#ffcdd2,stroke:#d32f2f
+    style OK fill:#c8e6c9,stroke:#388e3c
 ```
 
 #### Step 3: Confirm
@@ -470,12 +498,24 @@ before 7:45 PM."
 ### Dashboard Header
 The dashboard always shows:
 
-```
-┌─────────────────────────────────────────┐
-│  Active: 5  │  High Priority: 2  │  Total: 12  │
-└─────────────────────────────────────────┘
+```mermaid
+graph LR
+    subgraph Stats["📊 Statistics Dashboard"]
+        Active["<b>Active</b><br/>5<br/><small>Currently visible</small>"]
+        HighPrio["<b>High Priority</b><br/>2<br/><small>Critical alerts</small>"]
+        Total["<b>Total</b><br/>12<br/><small>All notifications</small>"]
+
+        Active -.-> HighPrio
+        HighPrio -.-> Total
+    end
+
+    style Stats fill:#f5f5f5,stroke:#666,stroke-width:2px
+    style Active fill:#c8e6c9,stroke:#388e3c,stroke-width:2px
+    style HighPrio fill:#ffccbc,stroke:#d84315,stroke-width:2px
+    style Total fill:#bbdefb,stroke:#1976d2,stroke-width:2px
 ```
 
+**Metrics Explained:**
 - **Active**: Notifications currently visible to users
 - **High Priority**: Number of critical notifications
 - **Total**: All notifications in the system (including inactive/expired)

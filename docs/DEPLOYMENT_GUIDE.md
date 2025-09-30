@@ -12,6 +12,52 @@
 
 ---
 
+## 📊 Deployment Overview
+
+```mermaid
+graph TB
+    Start([🚀 Start Deployment]) --> Prerequisites{Prerequisites<br/>Met?}
+    Prerequisites -->|No| SetupEnv[Setup Environment<br/>Install Node.js, UI5 Tools<br/>Get SAP Access]
+    SetupEnv --> Prerequisites
+    Prerequisites -->|Yes| Backend[🗄️ Backend Deployment]
+
+    Backend --> DB[Step 1: Create Database<br/>Transaction: SE11<br/>Table: ZTNOTIFY_MSGS]
+    DB --> CDS[Step 2: Create CDS View<br/>Transaction: SE11/SE80<br/>View: ZT_NOTIFY_MESSAGES]
+    CDS --> Classes[Step 3: Create ABAP Classes<br/>Transaction: SE80<br/>ZCL_NOTIFICATION_MANAGER<br/>ZCL_NOTIFICATION_REST]
+    Classes --> REST[Step 4: Configure REST<br/>Transaction: SICF<br/>Service: zcl_notification_rest]
+    REST --> Auth[Step 5: Authorization<br/>Transaction: SU21, PFCG<br/>Object: Z_NOTIFY]
+
+    Auth --> Frontend[💻 Frontend Deployment]
+    Frontend --> Install[Step 1: Install Dependencies<br/>npm install]
+    Install --> Configure[Step 2: Configure<br/>ui5.yaml, manifest.json]
+    Configure --> Build[Step 3: Build<br/>npm run build]
+    Build --> Deploy[Step 4: Deploy to SAP<br/>UI5 deploy or manual]
+    Deploy --> FLP[Step 5: Fiori Launchpad<br/>Transaction: /UI2/FLPD_CUST]
+
+    FLP --> Testing[🧪 Testing Phase]
+    Testing --> BackendTest[Backend Tests<br/>REST API, Database]
+    Testing --> FrontendTest[Frontend Tests<br/>Local, Integration]
+
+    BackendTest --> Verification{All Tests<br/>Pass?}
+    FrontendTest --> Verification
+    Verification -->|No| Debug[🔧 Troubleshooting]
+    Debug --> Testing
+    Verification -->|Yes| Production[✅ Production Ready]
+
+    Production --> Monitor[📊 Monitoring & Maintenance]
+
+    style Start fill:#c8e6c9,stroke:#388e3c,stroke-width:2px
+    style Backend fill:#bbdefb,stroke:#1976d2,stroke-width:2px
+    style Frontend fill:#ffccbc,stroke:#d84315,stroke-width:2px
+    style Testing fill:#fff9c4,stroke:#f57c00,stroke-width:2px
+    style Production fill:#c8e6c9,stroke:#388e3c,stroke-width:3px
+    style Verification fill:#ffecb3,stroke:#f57c00,stroke-width:2px
+```
+
+**Estimated Total Time**: 4-6 hours for experienced SAP developers
+
+---
+
 ## 🔧 Prerequisites
 
 ### System Access Required

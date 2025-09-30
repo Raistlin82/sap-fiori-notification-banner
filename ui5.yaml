@@ -6,8 +6,8 @@ metadata:
    S/4HANA PCE 2023 Compatible
 type: application
 framework:
-  name: UI5
-  version: "1.60.0"
+  name: SAPUI5
+  version: "1.120.0"
   libraries:
     - name: sap.ui.core
     - name: sap.m
@@ -28,7 +28,7 @@ builder:
       configuration:
         archiveName: sap_fiori_notification_banner
         additionalFiles:
-          - "deployment/manifest.json"
+          - "webapp/manifest.json"
           - "deployment/xs-app.json"
 server:
   customMiddleware:

@@ -54,26 +54,51 @@ For complete deployment instructions, see [📖 Deployment Guide](docs/DEPLOYMEN
 
 ## 🏗️ Architecture
 
+```mermaid
+graph TB
+    subgraph FLP["🚀 SAP Fiori Launchpad"]
+        Banner["🔔 Global Notification Banner<br/><b>This Component</b>"]
+    end
+
+    subgraph Apps["Fiori Applications Layer"]
+        App1["📱 Fiori App 1"]
+        App2["📱 Fiori App 2"]
+        App3["📱 Fiori App 3"]
+    end
+
+    subgraph Frontend["💻 Frontend (UI5/JavaScript)"]
+        NBanner["NotificationBanner.js<br/><i>Core banner logic</i>"]
+        Comp["Component.js<br/><i>Global initialization</i>"]
+        CSS["CSS themes<br/><i>Responsive styling</i>"]
+    end
+
+    subgraph Backend["🗄️ Backend (ABAP)"]
+        DB["ZTNOTIFY_MSGS<br/><i>Database table</i>"]
+        CDS["ZT_NOTIFY_MESSAGES<br/><i>CDS view</i>"]
+        Manager["ZCL_NOTIFICATION_MANAGER<br/><i>Business logic</i>"]
+        REST["ZCL_NOTIFICATION_REST<br/><i>REST service</i>"]
+    end
+
+    FLP --> Banner
+    Banner --> Apps
+    Banner --> Frontend
+    Frontend --> Backend
+
+    NBanner -.-> Comp
+    Comp -.-> CSS
+
+    REST --> Manager
+    Manager --> CDS
+    CDS --> DB
+
+    style FLP fill:#e3f2fd,stroke:#1976d2,stroke-width:2px
+    style Banner fill:#fff3e0,stroke:#f57c00,stroke-width:3px
+    style Apps fill:#f1f8e9,stroke:#689f38
+    style Frontend fill:#fce4ec,stroke:#c2185b
+    style Backend fill:#e8f5e9,stroke:#388e3c
 ```
-┌─────────────────────────────────────────────────────────┐
-│                    Fiori Launchpad                      │
-├─────────────────────────────────────────────────────────┤
-│  🔔 Global Notification Banner (This Component)        │
-├─────────────────────────────────────────────────────────┤
-│  📱 Fiori App 1  │  📱 Fiori App 2  │  📱 Fiori App 3  │
-└─────────────────────────────────────────────────────────┘
-│
-├── Frontend (UI5/JavaScript)
-│   ├── NotificationBanner.js     ← Core banner logic
-│   ├── Component.js              ← Global initialization
-│   └── CSS themes               ← Responsive styling
-│
-└── Backend (ABAP)
-    ├── ZTNOTIFY_MSGS            ← Database table
-    ├── ZT_NOTIFY_MESSAGES       ← CDS view
-    ├── ZCL_NOTIFICATION_MANAGER ← Business logic
-    └── ZCL_NOTIFICATION_REST    ← REST service
-```
+
+**For complete architectural diagrams, see [Architecture Guide](docs/ARCHITECTURE.md)**
 
 ## 📁 Project Structure
 

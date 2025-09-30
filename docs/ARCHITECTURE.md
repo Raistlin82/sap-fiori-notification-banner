@@ -79,7 +79,7 @@ sequenceDiagram
     Comp->>FLP: Attach to shell event
     Comp->>Banner: Start polling (30s)
 
-    loop Ogni 30 secondi
+    loop Every 30 seconds
         Banner->>REST: GET /sap/bc/rest/zcl_notification_rest
         Note right of REST: Headers: Auth + CSRF token<br/>Query: user_id=current_user
         activate REST
@@ -165,7 +165,7 @@ flowchart TD
 
 ---
 
-## 💾 Modello Dati E-R
+## 💾 Data Model E-R
 
 ```mermaid
 erDiagram
@@ -208,7 +208,7 @@ WHERE ACTIVE = 'X'
   AND END_DATE >= $session.system_date
 ```
 
-### Indici Database Raccomandati
+### Recommended Database Indexes
 
 ```sql
 -- Performance optimization
@@ -471,7 +471,7 @@ Database:
 
 ### Audit Trail
 
-Ogni operazione viene loggata con:
+Every operation is logged with:
 - User ID
 - Operation type (CREATE/UPDATE/DELETE)
 - Timestamp
@@ -551,12 +551,12 @@ flowchart LR
 
 ---
 
-## 👥 Stakeholder e Responsabilità
+## 👥 Stakeholders and Responsibilities
 
-| Ruolo | Responsabilità | Contatto |
-|-------|----------------|----------|
-| **Architect** | Architettura, design sistema | Gabriele Rendina & Ileana Scaglia |
-| **Technical Lead** | Codice backend, integrazioni | Gabriele Rendina |
+| Role | Responsibilities | Contact |
+|------|------------------|---------|
+| **Architect** | Architecture, system design | Gabriele Rendina & Ileana Scaglia |
+| **Technical Lead** | Backend code, integrations | Gabriele Rendina |
 | **Frontend Lead** | UI5, UX, responsive design | Ileana Scaglia |
 | **SAP Basis** | Infrastructure, authorizations | Basis Team |
 | **Security Team** | Security review, penetration test | Security Team |
@@ -573,11 +573,11 @@ flowchart LR
 
 ---
 
-## 🆕 Novità Architetturali v1.1.0
+## 🆕 Architectural Enhancements v1.1.0
 
-### Funzionalità Early Close Notification
+### Early Close Notification Feature
 
-**Data Release**: 30 Settembre 2024
+**Release Date**: September 30, 2024
 
 #### Componenti Modificati
 
@@ -635,7 +635,7 @@ sequenceDiagram
 | Database Operations | UPDATE | UPDATE | Invariato |
 | User Actions | 3 azioni | 4 azioni | +1 azione |
 
-#### Vantaggi Architetturali
+#### Architectural Advantages
 
 1. **🔄 Riuso Codice**: Utilizza infrastruttura REST esistente
 2. **🔒 Sicurezza**: Stesse autorizzazioni Z_NOTIFY
@@ -652,5 +652,5 @@ sequenceDiagram
 
 ---
 
-**Architettura v1.1.0 - Progettata da Gabriele Rendina e Ileana Scaglia**
-*Ultimo aggiornamento: 30 Settembre 2024*
+**Architecture v1.1.0 - Designed by Gabriele Rendina and Ileana Scaglia**
+*Last updated: September 30, 2024*

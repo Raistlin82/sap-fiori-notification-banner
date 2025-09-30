@@ -243,14 +243,14 @@ sap.ui.define([
          */
         _getMessageType: function(severity) {
             switch (severity.toUpperCase()) {
-                case "HIGH":
-                    return MessageType.Error;
-                case "MEDIUM":
-                    return MessageType.Warning;
-                case "LOW":
-                    return MessageType.Information;
-                default:
-                    return MessageType.Information;
+            case "HIGH":
+                return MessageType.Error;
+            case "MEDIUM":
+                return MessageType.Warning;
+            case "LOW":
+                return MessageType.Information;
+            default:
+                return MessageType.Information;
             }
         },
 
