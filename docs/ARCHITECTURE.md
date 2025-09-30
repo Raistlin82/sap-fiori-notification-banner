@@ -573,5 +573,84 @@ flowchart LR
 
 ---
 
-**Architettura v1.0.0 - Progettata da Gabriele Rendina e Ileana Scaglia**
-*Ultimo aggiornamento: 29 Settembre 2024*
+## 🆕 Novità Architetturali v1.1.0
+
+### Funzionalità Early Close Notification
+
+**Data Release**: 30 Settembre 2024
+
+#### Componenti Modificati
+
+##### Frontend (Admin Interface)
+```javascript
+// admin/notification_admin.view.xml
+<Button icon="sap-icon://decline"
+        type="Transparent"
+        press="onCloseEarly"
+        tooltip="Close Early"
+        visible="{path: 'active', formatter: '.formatCloseEarlyVisible'}"/>
+```
+
+**Nuovi metodi nel controller:**
+- `onCloseEarly()` - Handler per il click del bottone
+- `_closeNotificationEarly()` - Logica di chiusura con aggiornamento end_date
+- `formatCloseEarlyVisible()` - Formatter per mostrare bottone solo su notifiche attive
+
+##### Backend (ABAP)
+- ✅ **Nessuna modifica necessaria** - Utilizza metodi esistenti
+- `update_notification()` gestisce l'aggiornamento di end_date e active
+- REST API PUT endpoint rimane invariato
+
+#### Flusso di Esecuzione
+
+```mermaid
+sequenceDiagram
+    actor Admin
+    participant View as Admin View
+    participant Ctrl as Controller
+    participant API as REST API
+    participant DB as Database
+
+    Admin->>View: Click "Close Early" button
+    View->>Ctrl: onCloseEarly()
+    Ctrl->>Admin: Show confirmation dialog
+    Admin->>Ctrl: Confirm OK
+    Ctrl->>Ctrl: _closeNotificationEarly()
+    Note over Ctrl: Set end_date = today<br/>Set active = ' '
+    Ctrl->>API: PUT /zcl_notification_rest/
+    API->>DB: UPDATE ztnotify_msgs
+    DB-->>API: Success
+    API-->>Ctrl: 200 OK
+    Ctrl->>View: Refresh table
+    Ctrl->>Admin: Show success toast
+```
+
+#### Impatto sulle Performance
+
+| Metrica | Prima v1.0.0 | Dopo v1.1.0 | Delta |
+|---------|--------------|-------------|-------|
+| Admin View Size | 111 righe | 115 righe | +4 righe |
+| Controller Methods | 18 metodi | 20 metodi | +2 metodi |
+| REST API Calls | 4 tipi | 4 tipi | Invariato |
+| Database Operations | UPDATE | UPDATE | Invariato |
+| User Actions | 3 azioni | 4 azioni | +1 azione |
+
+#### Vantaggi Architetturali
+
+1. **🔄 Riuso Codice**: Utilizza infrastruttura REST esistente
+2. **🔒 Sicurezza**: Stesse autorizzazioni Z_NOTIFY
+3. **📊 Tracciabilità**: Mantiene audit trail con CHANGED_BY/CHANGED_AT
+4. **⚡ Performance**: Nessun overhead aggiuntivo
+5. **🧪 Testabilità**: Metodi separati facilmente testabili
+
+#### Compatibilità
+
+- ✅ **Backward Compatible**: Non rompe funzionalità esistenti
+- ✅ **Database Schema**: Nessuna modifica alla tabella
+- ✅ **API Endpoints**: Nessun nuovo endpoint richiesto
+- ✅ **Authorization**: Utilizza oggetto Z_NOTIFY esistente
+
+---
+
+**Architettura v1.1.0 - Progettata da Gabriele Rendina e Ileana Scaglia**
+*Ultimo aggiornamento: 30 Settembre 2024*

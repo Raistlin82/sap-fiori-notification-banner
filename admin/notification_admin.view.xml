@@ -90,6 +90,11 @@
                             text="{path: 'active', formatter: '.formatActiveStatus'}"
                             state="{path: 'active', formatter: '.formatActiveState'}"/>
                         <HBox>
+                            <Button icon="sap-icon://decline"
+                                    type="Transparent"
+                                    press="onCloseEarly"
+                                    tooltip="Close Early"
+                                    visible="{path: 'active', formatter: '.formatCloseEarlyVisible'}"/>
                             <Button icon="{path: 'active', formatter: '.formatToggleIcon'}"
                                     type="Transparent"
                                     press="onToggleNotification"

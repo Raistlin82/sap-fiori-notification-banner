@@ -3,7 +3,7 @@
 [![SAP](https://img.shields.io/badge/SAP-S%2F4HANA-blue)](https://www.sap.com/)
 [![UI5](https://img.shields.io/badge/UI5-1.60%2B-green)](https://ui5.sap.com/)
 [![License](https://img.shields.io/badge/License-Proprietary-red)]()
-[![Version](https://img.shields.io/badge/Version-1.0.0-brightgreen)]()
+[![Version](https://img.shields.io/badge/Version-1.1.0-brightgreen)]()
 
 A comprehensive global notification banner system for SAP Fiori applications on S/4HANA. Display urgent system messages, maintenance notifications, and alerts across all Fiori apps with a unified, responsive, and accessible banner component.
 
@@ -18,6 +18,7 @@ A comprehensive global notification banner system for SAP Fiori applications on 
 - **🔄 Real-time Updates** - Automatic polling for new notifications
 - **🎯 Priority Levels** - High, Medium, Low priority with distinct styling
 - **📊 Admin Interface** - Complete CRUD operations for notification management
+- **🆕 Early Close** - Close active notifications before expiration (v1.1.0)
 - **🔒 Security** - Role-based access control and CSRF protection
 - **🌍 Internationalization** - Multi-language support ready
 
@@ -281,19 +282,26 @@ Developed with ❤️ by the SAP Development Team
 
 ## 🗺️ Roadmap
 
-### v1.1.0 (Q2 2024)
+### ✅ v1.1.0 (September 2024) - RELEASED
+- [x] **Early Close Notifications** - Close active notifications before scheduled end date
+- [x] Admin interface enhancement with "Close Early" button
+- [x] Automatic end_date update to current date
+- [x] Confirmation dialog for safety
+- [x] Complete documentation update
+
+### v1.2.0 (Q1 2025)
 - [ ] Enhanced analytics dashboard
 - [ ] Push notification support
 - [ ] Advanced user targeting
 - [ ] Integration with SAP BTP
 
-### v1.2.0 (Q3 2024)
+### v1.3.0 (Q2 2025)
 - [ ] Voice announcement support
 - [ ] Rich text notifications
 - [ ] Scheduled notifications
 - [ ] Mobile app integration
 
-### v2.0.0 (Q4 2024)
+### v2.0.0 (Q4 2025)
 - [ ] Machine learning insights
 - [ ] Advanced personalization
 - [ ] Integration with Teams/Slack

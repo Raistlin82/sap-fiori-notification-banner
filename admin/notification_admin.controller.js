@@ -149,6 +149,27 @@ sap.ui.define([
         },
 
         /**
+         * Handle close early notification
+         */
+        onCloseEarly: function(oEvent) {
+            var that = this;
+            var oContext = oEvent.getSource().getBindingContext();
+            var oNotification = oContext.getObject();
+
+            MessageBox.confirm(
+                "Are you sure you want to close this notification early? This will set the end date to today and deactivate it.",
+                {
+                    title: "Close Notification Early",
+                    onAction: function(sAction) {
+                        if (sAction === MessageBox.Action.OK) {
+                            that._closeNotificationEarly(oNotification);
+                        }
+                    }
+                }
+            );
+        },
+
+        /**
          * Handle toggle notification status
          */
         onToggleNotification: function(oEvent) {
@@ -370,6 +391,41 @@ sap.ui.define([
         },
 
         /**
+         * Close notification early by setting end_date to today and deactivating
+         * @private
+         */
+        _closeNotificationEarly: function(oNotification) {
+            var that = this;
+
+            // Create a copy of the notification
+            var oUpdatedNotification = JSON.parse(JSON.stringify(oNotification));
+
+            // Set end_date to today
+            var today = new Date();
+            var sToday = today.getFullYear() +
+                         ('0' + (today.getMonth() + 1)).slice(-2) +
+                         ('0' + today.getDate()).slice(-2);
+
+            oUpdatedNotification.end_date = sToday;
+            oUpdatedNotification.active = ' '; // Deactivate
+
+            jQuery.ajax({
+                url: "/sap/bc/rest/zcl_notification_rest/?message_id=" + oUpdatedNotification.message_id,
+                type: "PUT",
+                contentType: "application/json",
+                data: JSON.stringify(oUpdatedNotification),
+                success: function(data) {
+                    MessageToast.show("Notification closed early successfully");
+                    that._loadNotifications();
+                },
+                error: function(xhr, status, error) {
+                    Log.error("Failed to close notification early: " + error);
+                    MessageToast.show("Error closing notification early");
+                }
+            });
+        },
+
+        /**
          * Format severity state for ObjectStatus
          */
         formatSeverityState: function(sSeverity) {
@@ -411,6 +467,14 @@ sap.ui.define([
          */
         formatToggleTooltip: function(sActive) {
             return sActive === 'X' ? "Deactivate" : "Activate";
+        },
+
+        /**
+         * Format close early button visibility
+         */
+        formatCloseEarlyVisible: function(sActive) {
+            // Show "Close Early" button only for active notifications
+            return sActive === 'X';
         }
     });
 });

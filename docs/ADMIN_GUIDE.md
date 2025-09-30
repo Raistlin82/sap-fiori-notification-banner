@@ -9,12 +9,13 @@
 2. [Accesso all'Interfaccia Admin](#accesso-allinterfaccia-admin)
 3. [Creare una Notifica](#creare-una-notifica)
 4. [Modificare una Notifica](#modificare-una-notifica)
-5. [Eliminare una Notifica](#eliminare-una-notifica)
-6. [Gestione Notifiche Multiple](#gestione-notifiche-multiple)
-7. [Best Practices](#best-practices)
-8. [Monitoraggio e Statistiche](#monitoraggio-e-statistiche)
-9. [Risoluzione Problemi](#risoluzione-problemi)
-10. [API Reference](#api-reference)
+5. [🆕 Chiudere Anticipatamente una Notifica](#chiudere-anticipatamente-una-notifica)
+6. [Eliminare una Notifica](#eliminare-una-notifica)
+7. [Gestione Notifiche Multiple](#gestione-notifiche-multiple)
+8. [Best Practices](#best-practices)
+9. [Monitoraggio e Statistiche](#monitoraggio-e-statistiche)
+10. [Risoluzione Problemi](#risoluzione-problemi)
+11. [API Reference](#api-reference)
 
 ---
 
@@ -189,6 +190,133 @@ Durata: Tutto l'anno
 1. Clicca **"Save"**
 2. Le modifiche sono immediate
 3. Gli utenti vedono la versione aggiornata al prossimo refresh (max 30s)
+
+---
+
+## 🆕 Chiudere Anticipatamente una Notifica
+
+### Novità Versione 1.1.0
+
+A partire dalla **versione 1.1.0**, è disponibile una funzionalità dedicata per chiudere anticipatamente le notifiche ancora attive, senza doverle eliminare o modificare manualmente.
+
+### 🎯 Quando Usare la Chiusura Anticipata
+
+Usa questa funzione quando:
+- ✅ Un problema urgente è stato risolto prima del previsto
+- ✅ Una manutenzione è stata completata in anticipo
+- ✅ Una comunicazione non è più rilevante
+- ✅ Vuoi terminare immediatamente una notifica attiva
+
+### 📍 Come Riconoscere il Bottone
+
+Nella colonna **Actions** della tabella, vedrai:
+- 🔴 **Icona "Decline" (✖️)** - Visibile SOLO per notifiche **attive**
+- Il bottone è nascosto per notifiche già inattive o scadute
+
+```
+Actions:
+[✖️] Close Early  [👁️] Toggle  [✏️] Edit  [🗑️] Delete
+ ↑
+ Nuovo bottone v1.1.0
+```
+
+### 🚀 Procedura di Chiusura Anticipata
+
+#### Passo 1: Individuare la Notifica
+1. Nella tabella admin, trova la notifica da chiudere
+2. Verifica che sia **Active** (status verde)
+3. Controlla la colonna **Actions**
+
+#### Passo 2: Avviare la Chiusura
+1. Clicca il bottone **"Close Early" (✖️)**
+2. Appare un dialog di conferma:
+
+```
+┌────────────────────────────────────────────┐
+│  Close Notification Early                  │
+├────────────────────────────────────────────┤
+│  Are you sure you want to close this      │
+│  notification early? This will set the    │
+│  end date to today and deactivate it.     │
+│                                            │
+│              [Cancel]  [OK]                │
+└────────────────────────────────────────────┘
+```
+
+#### Passo 3: Confermare
+1. Clicca **"OK"** per confermare la chiusura
+2. Oppure **"Cancel"** per annullare l'operazione
+
+### 🔧 Cosa Succede Tecnicamente
+
+Quando confermi la chiusura anticipata:
+
+1. **End Date** viene aggiornata alla **data odierna**
+   ```
+   Prima:  End Date = 31/12/2024
+   Dopo:   End Date = 30/09/2024 (oggi)
+   ```
+
+2. **Status Active** viene disattivato
+   ```
+   Prima:  Active = 'X'
+   Dopo:   Active = ' ' (vuoto)
+   ```
+
+3. **Salvataggio** nel database tramite REST API PUT
+
+4. **Refresh automatico** della tabella admin
+
+5. **Feedback immediato** con messaggio di successo/errore
+
+### ✅ Vantaggi della Chiusura Anticipata
+
+| Vantaggio | Descrizione |
+|-----------|-------------|
+| **🎯 Un Click** | Operazione immediata senza aprire dialog di modifica |
+| **📊 Tracciabilità** | End date aggiornata mantiene storico accurato |
+| **🔒 Sicurezza** | Richiede conferma esplicita prima dell'azione |
+| **⚡ Velocità** | Più rapida rispetto a modifica manuale |
+| **🔄 Reversibile** | Puoi riattivare e modificare se necessario |
+
+### 🆚 Differenza tra Chiusura Anticipata e Altre Azioni
+
+| Azione | End Date | Active | Reversibile | Tracciato |
+|--------|----------|--------|-------------|-----------|
+| **Close Early** | ✅ Aggiornata a oggi | ✅ Disattivata | ✅ Sì | ✅ Sì |
+| **Toggle (Disattiva)** | ❌ Invariata | ✅ Disattivata | ✅ Sì | ⚠️ Parziale |
+| **Edit End Date** | ✅ Manuale | ❌ Invariata | ✅ Sì | ✅ Sì |
+| **Delete** | ❌ Rimossa | ❌ Rimossa | ❌ No | ❌ No |
+
+### 💡 Best Practice
+
+#### ✅ Usa "Close Early" quando:
+- Vuoi terminare una notifica in modo pulito
+- Hai bisogno di tracciabilità storica
+- La notifica era urgente ma ora risolta
+
+#### ❌ Non usare "Close Early" se:
+- Vuoi solo nascondere temporaneamente → Usa **Toggle**
+- Vuoi eliminare completamente → Usa **Delete**
+- Vuoi modificare altri campi → Usa **Edit**
+
+### 🔍 Verificare la Chiusura
+
+Dopo aver chiuso anticipatamente una notifica:
+
+1. **Nella tabella admin**:
+   - Status cambia da "Active" (verde) a "Inactive" (rosso)
+   - End Date mostra la data odierna
+   - Bottone "Close Early" sparisce
+
+2. **Per gli utenti finali**:
+   - La notifica sparisce entro 30 secondi
+   - Non appare più su nessuna app Fiori
+
+3. **Nel database**:
+   - Record rimane nel sistema
+   - CHANGED_BY = tuo username
+   - CHANGED_AT = timestamp dell'operazione
 
 ---
 
