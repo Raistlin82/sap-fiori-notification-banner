@@ -1,12 +1,24 @@
 # 🚀 Complete Deployment Guide - SAP Fiori Global Notification Banner
 
+**Version**: 1.1.0
+**Last Updated**: January 30, 2025
+
+---
+
 ## 📋 Table of Contents
 1. [Pre-Deployment Verification](#pre-deployment-verification)
 2. [Prerequisites](#prerequisites)
 3. [System Requirements](#system-requirements)
 4. [Backend Deployment (ABAP)](#backend-deployment-abap)
+   - [Step 1: Create Custom Domains](#step-1-create-custom-domains)
+   - [Step 2: Create Data Elements](#step-2-create-data-elements)
+   - [Step 3: Create Database Table](#step-3-create-database-table)
+   - [Step 4: Create CDS View](#step-4-create-cds-view)
+   - [Step 5: Create ABAP Classes](#step-5-create-abap-classes)
+   - [Step 6: Configure REST Service](#step-6-configure-rest-service)
+   - [Step 7: Create Authorization Object (Optional)](#step-7-create-authorization-object-optional)
 5. [Frontend Deployment (UI5)](#frontend-deployment-ui5)
-6. [Configuration](#configuration)
+6. [Fiori Launchpad Configuration](#fiori-launchpad-configuration)
 7. [Testing](#testing)
 8. [Troubleshooting](#troubleshooting)
 9. [Maintenance](#maintenance)
@@ -37,22 +49,27 @@ ls -lh dist/sap_fiori_notification_banner.zip
 ### Code Quality Verification
 
 **ABAP Files:**
-- ✅ `abap/ztnotify_msgs.se11` - Table definition (correct CHAR types, no STRING)
+- ✅ `abap/domains/` - 4 custom domains with fixed values
+- ✅ `abap/data_elements/` - 4 data elements for type safety
+- ✅ `abap/ztnotify_msgs.se11` - Table definition with custom data elements
 - ✅ `abap/ztnotify_messages.ddls` - CDS view syntax valid
-- ✅ `abap/zcl_notification_manager.clas.abap` - 5 static methods
-- ✅ `abap/zcl_notification_rest.clas.abap` - REST methods (GET, POST, PUT, DELETE)
+- ✅ `abap/zcl_notification_manager.clas.abap` - Business logic class
+- ✅ `abap/zcl_notification_rest.clas.abap` - REST service class
 
 **Frontend Files:**
 - ✅ `webapp/Component.js` - FLP compatibility with safe checks
-- ✅ `webapp/controller/NotificationBanner.js` - Error handling implemented
+- ✅ `webapp/controller/NotificationBanner.js` - Banner and toast display logic
+- ✅ `webapp/controller/TileCounter.js` - Dynamic tile counter
 - ✅ `webapp/manifest.json` - Valid JSON with correct dataSources
-- ✅ `webapp/i18n/i18n.properties` - 33 translation keys present
+- ✅ `webapp/i18n/i18n.properties` - 90+ translation keys
 - ✅ `ui5.yaml` - Build configuration with zipper task
 
 ### Production Readiness Features
 
 Verify these features are implemented:
 
+- ✅ **Display Modes**: BANNER, TOAST, BOTH, SILENT support
+- ✅ **Tile Counter**: Real-time statistics with color coding
 - ✅ **Error Handling**: Exponential backoff retry (3 attempts: 1s → 2s → 4s delays)
 - ✅ **Circuit Breaker**: Opens after 5 consecutive errors, resets after 60s
 - ✅ **FLP Compatibility**: Safe checks for `sap.ushell.Container` existence
@@ -85,25 +102,29 @@ graph TB
     SetupEnv --> Prerequisites
     Prerequisites -->|Yes| Backend[🗄️ Backend Deployment]
 
-    Backend --> DB[Step 1: Create Database<br/>Transaction: SE11<br/>Table: ZTNOTIFY_MSGS]
-    DB --> CDS[Step 2: Create CDS View<br/>Transaction: SE11/SE80<br/>View: ZT_NOTIFY_MESSAGES]
-    CDS --> Classes[Step 3: Create ABAP Classes<br/>Transaction: SE80<br/>ZCL_NOTIFICATION_MANAGER<br/>ZCL_NOTIFICATION_REST]
-    Classes --> REST[Step 4: Configure REST<br/>Transaction: SICF<br/>Service: zcl_notification_rest]
-    REST --> Auth[Step 5: Authorization<br/>Transaction: SU21, PFCG<br/>Object: Z_NOTIFY]
+    Backend --> Domains[Step 1: Custom Domains<br/>SE11: Create 4 Domains]
+    Domains --> DataElements[Step 2: Data Elements<br/>SE11: Create 4 Data Elements]
+    DataElements --> DB[Step 3: Database Table<br/>SE11: ZTNOTIFY_MSGS]
+    DB --> CDS[Step 4: CDS View<br/>SE80: ZTNOTIFY_MESSAGES]
+    CDS --> Classes[Step 5: ABAP Classes<br/>SE80: Manager + REST]
+    Classes --> REST[Step 6: REST Service<br/>SICF: Configure endpoint]
+    REST --> Auth[Step 7: Authorization<br/>SU21/PFCG: Optional]
 
     Auth --> Frontend[💻 Frontend Deployment]
-    Frontend --> Install[Step 1: Install Dependencies<br/>npm install]
-    Install --> Configure[Step 2: Configure<br/>ui5.yaml, manifest.json]
-    Configure --> Build[Step 3: Build<br/>npm run build]
-    Build --> Deploy[Step 4: Deploy to SAP<br/>UI5 deploy or manual]
-    Deploy --> FLP[Step 5: Fiori Launchpad<br/>Transaction: /UI2/FLPD_CUST]
+    Frontend --> Install[Install Dependencies<br/>npm install]
+    Install --> Configure[Configure<br/>ui5.yaml, manifest.json]
+    Configure --> Build[Build<br/>npm run build]
+    Build --> Deploy[Deploy to SAP<br/>BSP Application]
+    Deploy --> FLP[FLP Configuration<br/>/UI2/FLPD_CUST]
 
     FLP --> Testing[🧪 Testing Phase]
-    Testing --> BackendTest[Backend Tests<br/>REST API, Database]
-    Testing --> FrontendTest[Frontend Tests<br/>Local, Integration]
+    Testing --> DisplayModes[Test Display Modes<br/>BANNER/TOAST/BOTH/SILENT]
+    Testing --> TileCounter[Test Tile Counter<br/>Statistics/Color Coding]
+    Testing --> BackendTest[Backend Tests<br/>REST API/Database]
 
-    BackendTest --> Verification{All Tests<br/>Pass?}
-    FrontendTest --> Verification
+    DisplayModes --> Verification{All Tests<br/>Pass?}
+    TileCounter --> Verification
+    BackendTest --> Verification
     Verification -->|No| Debug[🔧 Troubleshooting]
     Debug --> Testing
     Verification -->|Yes| Production[✅ Production Ready]
@@ -157,78 +178,296 @@ graph TB
 
 ## 🏗️ Backend Deployment (ABAP)
 
-### 📦 Quick Start: Automated Deployment Files
+### Step 1: Create Custom Domains
 
-**NEW**: All ABAP objects now include ready-to-use deployment files:
+Custom domains provide automatic F4 help and database-level validation for notification fields.
 
-- **`abap/TRANSPORT_REQUEST_GUIDE.txt`** - Complete transport setup guide
-- **`abap/AUTHORIZATION_SETUP.txt`** - Role configuration with import templates
-- **`abap/roles/Z_NOTIFICATION_ADMIN.txt`** - Administrator role template
-- **`abap/ztnotify_msgs.se11`** - Corrected SE11 table definition
+**Transaction**: SE11 → Domain
 
-**IMPORTANT**: Only Z_NOTIFICATION_ADMIN role is needed. Regular users DO NOT need
-any special role - all authenticated SAP users automatically receive notifications
-via public REST API access.
+#### Domain 1: ZDOMAIN_MSG_TYPE
 
-**Benefits**: Reduce manual errors, faster deployment, consistent configurations
+```
+Domain Name: ZDOMAIN_MSG_TYPE
+Short Description: Message Type Domain
+Data Type: CHAR
+Length: 12
+Output Length: 12
+```
+
+**Value Range** (Fixed Values tab):
+```
+Value       Short Description
+----------- ------------------------------------
+URGENT      Urgent System Message
+INFO        Informational Message
+TIP         Helpful Tip
+SUCCESS     Success Notification
+MAINT       Scheduled Maintenance
+WARNING     Warning Message
+```
+
+**Actions**:
+1. SE11 → Enter "ZDOMAIN_MSG_TYPE" → Create
+2. Enter data type: CHAR, Length: 12
+3. Go to "Value Range" tab
+4. Add 6 fixed values as shown above
+5. **Save** → **Activate**
+
+#### Domain 2: ZDOMAIN_SEVERITY
+
+```
+Domain Name: ZDOMAIN_SEVERITY
+Short Description: Severity Level Domain
+Data Type: CHAR
+Length: 8
+Output Length: 8
+```
+
+**Value Range** (Fixed Values tab):
+```
+Value       Short Description
+----------- ------------------------------------
+HIGH        High Priority (Critical/Error)
+MEDIUM      Medium Priority (Warning)
+LOW         Low Priority (Info)
+```
+
+**Actions**:
+1. SE11 → Enter "ZDOMAIN_SEVERITY" → Create
+2. Enter data type: CHAR, Length: 8
+3. Go to "Value Range" tab
+4. Add 3 fixed values as shown above
+5. **Save** → **Activate**
+
+#### Domain 3: ZDOMAIN_DISPLAY_MODE
+
+```
+Domain Name: ZDOMAIN_DISPLAY_MODE
+Short Description: Display Mode Domain
+Data Type: CHAR
+Length: 10
+Output Length: 10
+```
+
+**Value Range** (Fixed Values tab):
+```
+Value       Short Description
+----------- ------------------------------------
+BANNER      Fixed Top Banner
+TOAST       Toast Notification (5s)
+BOTH        Banner + Toast
+SILENT      Silent (Log Only)
+```
+
+**Actions**:
+1. SE11 → Enter "ZDOMAIN_DISPLAY_MODE" → Create
+2. Enter data type: CHAR, Length: 10
+3. Go to "Value Range" tab
+4. Add 4 fixed values as shown above
+5. **Save** → **Activate**
+
+#### Domain 4: ZDOMAIN_TARGET_USERS
+
+```
+Domain Name: ZDOMAIN_TARGET_USERS
+Short Description: Target Audience Domain
+Data Type: CHAR
+Length: 255
+Output Length: 255
+```
+
+**Value Range**: None (free text with pattern matching)
+
+**Actions**:
+1. SE11 → Enter "ZDOMAIN_TARGET_USERS" → Create
+2. Enter data type: CHAR, Length: 255
+3. No fixed values needed (pattern-based field)
+4. **Save** → **Activate**
+
+**✅ Verification**: All 4 domains should show "Active" status in SE11.
 
 ---
 
-### Step 1: Create Database Table
+### Step 2: Create Data Elements
 
-**Transaction**: SE11
+Data elements connect domains to table fields and provide field labels for UI display.
 
-**⚠️ IMPORTANT**: Use the correct SE11 syntax from `abap/ztnotify_msgs.se11`
+**Transaction**: SE11 → Data Type
 
-**Field Definitions** (copy into SE11 table maintenance):
+#### Data Element 1: ZNOTIFY_MSG_TYPE
 
-| Field Name    | Key | Data Element | Data Type | Length | Description              |
-|---------------|-----|--------------|-----------|--------|--------------------------|
-| MANDT         | X   | MANDT        | CLNT      | 3      | Client                   |
-| MESSAGE_ID    | X   | SYSUUID_X16  | RAW       | 16     | Message GUID             |
-| MESSAGE_TYPE  |     | CHAR10       | CHAR      | 10     | Message Type             |
-| SEVERITY      |     | CHAR10       | CHAR      | 10     | Severity Level           |
-| TITLE         |     | CHAR255      | CHAR      | 255    | Notification Title       |
-| MESSAGE_TEXT  |     | CHAR1000     | CHAR      | 1000   | Notification Text        |
-| START_DATE    |     | DATS         | DATS      | 8      | Valid From Date          |
-| END_DATE      |     | DATS         | DATS      | 8      | Valid To Date            |
-| TARGET_USERS  |     | CHAR255      | CHAR      | 255    | Target User/Role         |
-| ACTIVE        |     | CHAR1        | CHAR      | 1      | Active Flag (X/' ')      |
-| CREATED_BY    |     | SYUNAME      | CHAR      | 12     | Created By User          |
-| CREATED_AT    |     | TIMESTAMPL   | DEC       | 21     | Created Timestamp        |
-| CHANGED_BY    |     | SYUNAME      | CHAR      | 12     | Changed By User          |
-| CHANGED_AT    |     | TIMESTAMPL   | DEC       | 21     | Changed Timestamp        |
+```
+Data Element: ZNOTIFY_MSG_TYPE
+Short Description: Notification Message Type
+Domain: ZDOMAIN_MSG_TYPE
+```
+
+**Field Labels** (Field Label tab):
+```
+Short:  Msg Type
+Medium: Message Type
+Long:   Notification Message Type
+Heading: Msg Type
+```
 
 **Actions**:
-1. Go to SE11 → Database Table
-2. Enter table name: `ZTNOTIFY_MSGS`
-3. Click "Create"
-4. Copy field definitions from table above OR from `abap/ztnotify_msgs.se11`
-5. Set Delivery Class: **A** (Application table)
-6. Set Data Browser/Table View Maint.: **Display/Maintenance Allowed**
-7. **Save** → Assign to transport → **Check** → **Activate**
+1. SE11 → Data Type → Enter "ZNOTIFY_MSG_TYPE" → Create
+2. Select "Data Element" → Continue
+3. Enter short description
+4. Domain: ZDOMAIN_MSG_TYPE
+5. Go to "Field Label" tab → Enter labels
+6. **Save** → **Activate**
 
-**Technical Settings** (SE13):
-- Data Class: **APPL0** (Master data)
-- Size Category: **2** (0-10,000 records expected)
-- Buffering: **Not allowed** (real-time data)
+#### Data Element 2: ZNOTIFY_SEVERITY
 
-**Create Indexes**:
-- Index 1 (ZNOTIFY~001): MANDT + ACTIVE + START_DATE + END_DATE
-- Index 2 (ZNOTIFY~002): MANDT + MESSAGE_TYPE + SEVERITY
+```
+Data Element: ZNOTIFY_SEVERITY
+Short Description: Notification Severity Level
+Domain: ZDOMAIN_SEVERITY
+```
 
-### Step 2: Create CDS View
+**Field Labels**:
+```
+Short:  Severity
+Medium: Severity Level
+Long:   Notification Severity Level
+Heading: Severity
+```
 
-**File**: `abap/ztnotify_messages.ddls`
+**Actions**:
+1. SE11 → Data Type → Enter "ZNOTIFY_SEVERITY" → Create
+2. Select "Data Element" → Continue
+3. Enter short description
+4. Domain: ZDOMAIN_SEVERITY
+5. Go to "Field Label" tab → Enter labels
+6. **Save** → **Activate**
 
-```abap
-@AbapCatalog.sqlViewName: 'ZNOTIFYMESSAGES'
+#### Data Element 3: ZNOTIFY_DISP_MODE
+
+```
+Data Element: ZNOTIFY_DISP_MODE
+Short Description: Notification Display Mode
+Domain: ZDOMAIN_DISPLAY_MODE
+```
+
+**Field Labels**:
+```
+Short:  Display
+Medium: Display Mode
+Long:   Notification Display Mode
+Heading: Display
+```
+
+**Actions**:
+1. SE11 → Data Type → Enter "ZNOTIFY_DISP_MODE" → Create
+2. Select "Data Element" → Continue
+3. Enter short description
+4. Domain: ZDOMAIN_DISPLAY_MODE
+5. Go to "Field Label" tab → Enter labels
+6. **Save** → **Activate**
+
+#### Data Element 4: ZNOTIFY_TARGET_USERS
+
+```
+Data Element: ZNOTIFY_TARGET_USERS
+Short Description: Target Audience Filter
+Domain: ZDOMAIN_TARGET_USERS
+```
+
+**Field Labels**:
+```
+Short:  Target
+Medium: Target Users
+Long:   Target Audience Filter
+Heading: Target
+```
+
+**Actions**:
+1. SE11 → Data Type → Enter "ZNOTIFY_TARGET_USERS" → Create
+2. Select "Data Element" → Continue
+3. Enter short description
+4. Domain: ZDOMAIN_TARGET_USERS
+5. Go to "Field Label" tab → Enter labels
+6. **Save** → **Activate**
+
+**✅ Verification**: All 4 data elements should show "Active" status in SE11.
+
+---
+
+### Step 3: Create Database Table
+
+**Transaction**: SE11 → Database Table
+
+**File Reference**: `abap/ztnotify_msgs.se11`
+
+Create table `ZTNOTIFY_MSGS` with the following structure:
+
+```
+Table Name: ZTNOTIFY_MSGS
+Short Description: Global Notification Messages
+Delivery Class: A (Application Table)
+```
+
+**Fields** (using custom data elements):
+
+| Field Name      | Key | Data Element           | Type      | Length | Description                  |
+|-----------------|-----|------------------------|-----------|--------|------------------------------|
+| CLIENT          | ✅  | MANDT                  | CLNT      | 3      | Client                       |
+| MESSAGE_ID      | ✅  | CHAR32                 | CHAR      | 32     | Message ID (UUID)            |
+| MESSAGE_TYPE    |     | ZNOTIFY_MSG_TYPE       | CHAR      | 12     | Message Type (F4 help)       |
+| SEVERITY        |     | ZNOTIFY_SEVERITY       | CHAR      | 8      | Severity Level (F4 help)     |
+| TITLE           |     | CHAR255                | CHAR      | 255    | Notification Title           |
+| MESSAGE_TEXT    |     | DSTRING                | STRING    | 0      | Message Text (dynamic)       |
+| START_DATE      |     | DATS                   | DATS      | 8      | Valid From Date              |
+| END_DATE        |     | DATS                   | DATS      | 8      | Valid To Date                |
+| TARGET_USERS    |     | ZNOTIFY_TARGET_USERS   | CHAR      | 255    | Target Audience              |
+| ACTIVE          |     | CHAR1                  | CHAR      | 1      | Active Flag (X/blank)        |
+| DISPLAY_MODE    |     | ZNOTIFY_DISP_MODE      | CHAR      | 10     | Display Mode (F4 help)       |
+| CREATED_BY      |     | SYUNAME                | CHAR      | 12     | Created By User              |
+| CREATED_AT      |     | TIMESTAMPL             | DEC       | 21     | Created Timestamp            |
+| CHANGED_BY      |     | SYUNAME                | CHAR      | 12     | Changed By User              |
+| CHANGED_AT      |     | TIMESTAMPL             | DEC       | 21     | Changed Timestamp            |
+
+**Actions**:
+1. SE11 → Database Table → Enter "ZTNOTIFY_MSGS" → Create
+2. Short Description: "Global Notification Messages"
+3. Delivery Class: A (Application Table)
+4. **Add all fields as shown above** (use custom data elements, not generic CHAR types)
+5. Technical Settings:
+   - Data Class: APPL0 (Master Data)
+   - Size Category: 1 (0-15,999 rows expected)
+6. **Save** → **Check** → **Activate**
+
+**🎯 Key Points**:
+- MESSAGE_TYPE uses ZNOTIFY_MSG_TYPE → Automatic F4 help with 6 values
+- SEVERITY uses ZNOTIFY_SEVERITY → Automatic F4 help with 3 values
+- DISPLAY_MODE uses ZNOTIFY_DISP_MODE → Automatic F4 help with 4 values
+- TARGET_USERS uses ZNOTIFY_TARGET_USERS → Free text with pattern matching
+- MESSAGE_TEXT uses DSTRING (dynamic string, no length limit)
+
+**✅ Verification**:
+- SE11 → Display ZTNOTIFY_MSGS → Check all fields exist
+- SM30 → ZTNOTIFY_MSGS → Test F4 help on MESSAGE_TYPE (should show 6 values)
+
+---
+
+### Step 4: Create CDS View
+
+**Transaction**: SE80 → Repository Browser → DDLS (CDS View)
+
+**File Reference**: `abap/ztnotify_messages.ddls`
+
+```sql
+@AbapCatalog.sqlViewName: 'ZNOTIFY_MSG'
 @AbapCatalog.compiler.compareFilter: true
-@AccessControl.authorizationCheck: #CHECK
-@EndUserText.label: 'Notification Messages View'
-define view ZT_NOTIFY_MESSAGES as select from ztnotify_msgs {
-    client,
-    message_id,
+@AbapCatalog.preserveKey: true
+@AccessControl.authorizationCheck: #NOT_REQUIRED
+@EndUserText.label: 'Global Notification Messages'
+@OData.publish: true
+
+define view ZTNOTIFY_MESSAGES as select from ztnotify_msgs {
+    key client,
+    key message_id,
     message_type,
     severity,
     title,
@@ -237,859 +476,399 @@ define view ZT_NOTIFY_MESSAGES as select from ztnotify_msgs {
     end_date,
     target_users,
     active,
+    display_mode,
     created_by,
     created_at,
     changed_by,
     changed_at
-} where active = 'X'
+}
+where active = 'X'
   and start_date <= $session.system_date
   and end_date >= $session.system_date
 ```
 
+**Key Features**:
+- **@AccessControl.authorizationCheck: #NOT_REQUIRED** → Public access for all users
+- **@OData.publish: true** → Automatic OData service generation
+- **WHERE clause** → Only active notifications within date range
+- **All fields** → Includes display_mode and audit fields
+
 **Actions**:
-1. Go to SE80 → Repository Browser
+1. SE80 → Repository Browser
 2. Create new DDLS object: `ZTNOTIFY_MESSAGES`
-3. Copy the CDS view code
+3. Copy the CDS view code above
 4. **Save** → **Check** → **Activate**
 
-### Step 3: Create ABAP Classes
-
-**File**: `abap/zcl_notification_manager.clas.abap`
-
-Deploy the notification manager class:
-1. Go to SE80
-2. Create class `ZCL_NOTIFICATION_MANAGER`
-3. Copy content from the existing file
-4. **Save** → **Check** → **Activate**
-
-**File**: `abap/zcl_notification_rest.clas.abap`
-
-Deploy the REST service class:
-1. Go to SE80
-2. Create class `ZCL_NOTIFICATION_REST`
-3. Copy content from the existing file
-4. **Save** → **Check** → **Activate**
-
-### Step 4: Configure REST Service
-
-**Transaction**: SICF
-
-1. Go to SICF (HTTP Service Hierarchy)
-2. Navigate to: `/default_host/sap/bc/rest/`
-3. Right-click → **New Sub-Element**
-4. Configure:
-   - **Service Name**: `zcl_notification_rest`
-   - **Description**: `Global Notification REST Service`
-   - **Handler List**: Add `ZCL_NOTIFICATION_REST`
-
-**Important Configuration**:
-- **Security**: Set to `Standard`
-- **Authentication**: `SAP Logon Ticket` + `Basic Authentication`
-- **CORS**: Enable for cross-origin requests
-
-### Step 5: Create Authorization Object (Optional)
-
-**Transaction**: SU21
-
-**IMPORTANT**: This step is OPTIONAL. The notification system works without custom
-authorization objects using only standard SAP authorizations.
-
-If you want fine-grained control over notification types:
-
-1. Go to SU21 (Authorization Objects)
-2. Create new object: `Z_NOTIFY`
-3. Add activities:
-   - `01` (Create)
-   - `02` (Change)
-   - `03` (Display)
-   - `06` (Delete)
-4. Add field: `NOTIF_TYPE` (notification type filter)
-
-### Step 6: Create Authorization Role
-
-**Transaction**: PFCG
-
-**Create Administrator Role** (Required for notification management):
-
-1. Go to PFCG (Role Maintenance)
-2. Create role: `Z_NOTIFICATION_ADMIN`
-3. Description: `Notification Banner Administrator`
-4. Add authorizations:
-   - `S_TABU_NAM`: Table ZTNOTIFY_MSGS (activities: 01,02,03,06)
-   - `S_SERVICE`: Service ZCL_NOTIFICATION_REST (HTTP)
-   - `S_DEVELOP`: For development access (optional)
-   - `S_RFC`: For REST service calls
-   - `Z_NOTIFY` (if created): All activities (01,02,03,06)
-5. Menu tab: Add transactions:
-   - SM30 (Table Maintenance - ZTNOTIFY_MSGS)
-   - SE11, SE24, SE80 (optional, for development)
-6. Generate profile
-7. Assign to administrators only
-
-**Regular User Access** (No role needed):
-
-- Regular users DO NOT need Z_NOTIFICATION_ADMIN role
-- All authenticated SAP users automatically see notifications
-- No special authorization required for viewing/closing notifications
-- REST API GET method is publicly accessible to all authenticated users
-- Only POST/PUT/DELETE operations require Z_NOTIFICATION_ADMIN
-
-**For detailed role configuration, see**: `abap/AUTHORIZATION_SETUP.txt`
+**✅ Verification**:
+- SE11 → Display ZNOTIFY_MSG (SQL view name)
+- SE80 → ZTNOTIFY_MESSAGES → Check "Active" status
 
 ---
 
-## 🎨 Frontend Deployment (UI5)
+### Step 5: Create ABAP Classes
 
-### Step 1: Install Dependencies
+#### Class 1: ZCL_NOTIFICATION_MANAGER
 
-Navigate to project root:
+**Transaction**: SE80 → Class Builder
 
-```bash
-# Install Node.js dependencies
-npm install
+**File Reference**: `abap/zcl_notification_manager.clas.abap`
 
-# Verify installation
-npm audit
+This class contains the core business logic for notification management.
 
-# Fix any vulnerabilities
-npm audit fix
+**Class Structure**:
+```
+Class Name: ZCL_NOTIFICATION_MANAGER
+Description: Notification Manager - Business Logic
+Instantiation: Public
 ```
 
-### Step 2: Configure Environment
+**Static Methods**:
+- `get_notifications` - Retrieve active notifications for a user
+- `create_notification` - Create a new notification
+- `update_notification` - Update an existing notification
+- `delete_notification` - Delete a notification
+- `get_statistics` - Get notification counts by severity (for tile counter)
 
-**File**: `ui5.yaml` (already moved to root)
-
-Verify configuration:
-```yaml
-specVersion: '2.6'
-metadata:
-  name: z.notification.fiori
-type: application
-framework:
-  name: UI5
-  version: "1.60.0"
-```
-
-### Step 3: Build Application
-
-```bash
-# Clean previous builds
-npm run clean
-
-# Build for production
-npm run build
-
-# Verify build output
-ls -la dist/
-```
-
-### Step 4: Deploy to SAP System
-
-Choose one of the following deployment options based on your environment and team structure.
-
----
-
-**Option A: Manual BSP Application Upload (Transaction SE80)**
-
-This option is suitable for quick testing or when UI5 Repository is not available.
-
-**Step 1: Create BSP Application**
-
-1. Open SAP GUI and execute transaction **SE80**
-2. In the dropdown menu, select **"BSP Application"**
-3. Click the **"Create"** button (or press Ctrl+N)
-4. Fill in the application details:
-
-| Field | Value | Description |
-|-------|-------|-------------|
-| **Name** | `Z_FIORI_NOTIFY_BANNER` | Must start with Z or Y |
-| **Description** | `Global Notification Banner` | Brief description |
-| **Package** | `$TMP` (test) or `ZFIORI` (prod) | Your development package |
-| **Application Class** | `BSP APPLICATION` | Standard BSP type |
-
-5. Click **"Save"** (or press Ctrl+S)
-6. If prompted for transport, select your transport request or create new one
-
-**Step 2: Upload Application Files**
-
-1. In SE80, right-click on your BSP application `Z_FIORI_NOTIFY_BANNER`
-2. Select **"Import"** → **"MIME Objects"** → **"From ZIP Archive"**
-3. Browse to your project's `dist/` folder
-4. **If ZIP import is available:**
-   - Select `sap_fiori_notification_banner.zip`
-   - Click **"Upload"**
-   - Wait for extraction (5-10 seconds)
-
-5. **If manual file upload needed:**
-   - Extract the ZIP file locally first
-   - Create folder structure in BSP application:
-     ```
-     Z_FIORI_NOTIFY_BANNER/
-     ├── Component-preload.js
-     ├── Component.js
-     ├── manifest.json
-     ├── index.html
-     ├── controller/ (folder)
-     ├── model/ (folder)
-     ├── view/ (folder)
-     ├── css/ (folder)
-     └── i18n/ (folder)
-     ```
-   - For each folder: Right-click application → **Create** → **MIME Object** → **Folder**
-   - For each file: Right-click folder → **Create** → **MIME Object** → **File**
-   - Upload files one by one:
-     - Right-click file → **Edit**
-     - Click **"Import"** button
-     - Select local file
-     - Save and activate
-
-**Step 3: Activate BSP Application**
-
-1. In SE80, select the BSP application root
-2. Click **"Activate"** button (🔄 icon or Ctrl+F3)
-3. Select **"All objects in application"**
-4. Click **"Continue"**
-5. Wait for activation to complete
-6. Check activation log for errors
-
-**Step 4: Test BSP Application**
-
-1. In SE80, right-click BSP application
-2. Select **"Test"** → **"Launch in Browser"**
-3. Alternative: Open browser and navigate to:
-   ```
-   https://<your-system>/sap/bc/bsp/sap/z_fiori_notify_banner/index.html
-   ```
-4. **Expected result:**
-   - Page loads with title "Global Notification Banner"
-   - No JavaScript errors in browser console (F12)
-   - If no notifications exist, shows "No active notifications"
-
-**Step 5: Assign to Transport (if needed)**
-
-1. Transaction **SE10** (Transport Organizer)
-2. Find your transport request
-3. Add BSP application:
-   - Transaction **SE80**
-   - Right-click BSP application
-   - Select **"Assign to Transport"**
-   - Choose your transport request
-
-**Common Issues:**
-
-| Issue | Solution |
-|-------|----------|
-| MIME type not recognized | Right-click file → Properties → Set correct MIME type (e.g., application/json for manifest.json) |
-| 404 Not Found error | Check ICF service active: Transaction **SICF** → `/default_host/sap/bc/bsp/sap/z_fiori_notify_banner` |
-| Blank page displayed | Check Component-preload.js uploaded correctly, verify manifest.json syntax |
-| Files not activating | Check no objects locked by other users: Transaction **SM12** |
-
----
-
-**Option B: UI5 Repository Upload via Transport (Recommended for Basis Team)**
-
-This option uses the standard SAP UI5 ABAP Repository and allows proper transport management.
-
-**Step 1: Prepare the Build Artifact**
-```bash
-# From project root directory
-npm run build
-
-# Verify the zip file is created
-ls -lh dist/sap_fiori_notification_banner.zip
-# Should show ~27KB file
-```
-
-**Step 2: Access UI5 Repository Load Transaction**
-1. Open SAP GUI and login to your development system
-2. Execute transaction: **/UI5/UI5_REPOSITORY_LOAD**
-3. Alternative path: SAP Easy Access Menu → Tools → ABAP Workbench → Development → UI5 Repository → Upload
-
-**Step 3: Fill Upload Parameters**
-
-On the "Upload UI5 Application" screen:
-
-| Field | Value | Notes |
-|-------|-------|-------|
-| **Name** | `Z_FIORI_NOTIFY_BANNER` | Must start with Z or Y (customer namespace) |
-| **Description** | `Global Notification Banner` | Visible in repository list |
-| **Version** | `1.0.0` | From manifest.json |
-| **Package** | `$TMP` (test) or `ZFIORI` (prod) | Use your custom package for production |
-| **Transport Request** | Select from F4 help | Choose transport created in backend phase |
-| **Archive File** | Browse to `dist/sap_fiori_notification_banner.zip` | Click folder icon to browse |
-| **External Code Page** | `UTF-8` | Default, usually pre-filled |
-| **Safe Mode** | ☐ Unchecked | Not needed for new upload |
-
-**Step 4: Execute Upload**
-1. Click the **"Upload"** button (📤 icon or F8)
-2. Wait for upload to complete (usually 5-10 seconds)
-3. Check the log output for success message:
-   ```
-   ✓ Archive extracted successfully
-   ✓ Application Z_FIORI_NOTIFY_BANNER created
-   ✓ Files imported: 12 files, 27 KB
-   ✓ Added to transport request <YOUR_TRANSPORT>
-   ```
-
-**Step 5: Verify Upload Success**
-
-**Check 1: Via /UI5/UI5_REPOSITORY_LOAD**
-1. Execute transaction: **/UI5/UI5_REPOSITORY_LOAD**
-2. Click "Display" button
-3. Search for `Z_FIORI_NOTIFY_BANNER`
-4. Should appear with status "Active" and correct version
-
-**Check 2: Via BSP Application SE80**
-1. Execute transaction: **SE80**
-2. Select "BSP Application" from dropdown
-3. Enter: `/UI5/Z_FIORI_NOTIFY_BANNER`
-4. Should display folder structure with all files:
-   ```
-   /UI5/Z_FIORI_NOTIFY_BANNER/
-   ├── Component-preload.js
-   ├── Component.js
-   ├── manifest.json
-   ├── index.html
-   ├── controller/
-   ├── model/
-   ├── view/
-   ├── css/
-   └── i18n/
-   ```
-
-**Check 3: Test Application URL**
-1. Open browser
-2. Navigate to: `https://<your-system>/sap/bc/ui5_ui5/sap/z_fiori_notify_banner/index.html`
-3. Should load the application (may show "No active notifications" if DB is empty)
-4. Check browser console for errors (F12)
-
-**Step 6: Verify Transport Assignment**
-1. Execute transaction: **SE10** (Transport Organizer)
-2. Find your transport request from backend deployment phase
-3. Expand the request tree
-4. Should see new entry:
-   ```
-   📦 IWSG (Gateway: Service Groups, Data Model, Service)
-      └── /UI5/Z_FIORI_NOTIFY_BANNER (UI5 Repository Application)
-   ```
-
-**Common Issues & Solutions:**
-
-| Issue | Cause | Solution |
-|-------|-------|----------|
-| "Name already exists" | App previously uploaded | Use "Safe Mode" checkbox or delete old version first |
-| "Package does not exist" | Invalid package name | Use SE80 to verify package exists, or use $TMP |
-| "No authorization" | Missing S_DEVELOP auth | Contact Basis team or use transaction SU53 to check |
-| "Archive is invalid" | Corrupted zip or wrong format | Re-run `npm run build` and verify zip integrity |
-| "Transport not modifiable" | Transport already released | Create new transport or use SE10 to reopen |
-| Files uploaded but app not working | Missing Component-preload.js | Check build output, ensure ui5.yaml has zipper task |
-
-**Step 7: Post-Upload Configuration** (if needed)
-
-If the application needs additional ICF nodes or cache settings:
-
-1. **ICF Service Check** (Transaction: SICF)
-   - Navigate to: `/default_host/sap/bc/ui5_ui5/sap/z_fiori_notify_banner`
-   - Should be auto-created and activated
-   - If not, right-click parent folder → Create → Service
-
-2. **Cache Buster** (Transaction: /UI5/APP_INDEX_CALCULATE)
-   - Application Name: `Z_FIORI_NOTIFY_BANNER`
-   - Execute to register for CDN caching
-
-3. **FLP Integration** (if using Fiori Launchpad)
-   - See Step 5 below for tile creation
-   - Or use transaction `/UI2/FLPD_CUST`
-
-**Alternative: Upload via ABAP Script (For CI/CD Automation)**
-
-For automated deployment or CI/CD pipelines, use this ABAP report:
-
+**Key Type Definition**:
 ```abap
-REPORT z_upload_ui5_app.
-
-DATA: lv_archive TYPE xstring,
-      lv_name    TYPE string VALUE 'Z_FIORI_NOTIFY_BANNER',
-      lv_package TYPE devclass VALUE 'ZFIORI',
-      lv_transport TYPE trkorr VALUE '<YOUR_TRANSPORT>'.
-
-" Read zip file from application server or local file
-" CALL FUNCTION 'GUI_UPLOAD' ...
-
-" Upload to repository
-CALL METHOD cl_ui5_repository_service=>create_application
-  EXPORTING
-    iv_name          = lv_name
-    iv_description   = 'Global Notification Banner'
-    iv_version       = '1.0.0'
-    iv_package       = lv_package
-    iv_transport     = lv_transport
-    iv_archive       = lv_archive
-  EXCEPTIONS
-    OTHERS           = 1.
-
-IF sy-subrc = 0.
-  WRITE: / 'Upload successful'.
-ELSE.
-  WRITE: / 'Upload failed:', sy-subrc.
-ENDIF.
+TYPES: BEGIN OF ty_notification,
+         message_id   TYPE string,
+         message_type TYPE string,
+         severity     TYPE string,
+         title        TYPE string,
+         message_text TYPE string,
+         start_date   TYPE dats,
+         end_date     TYPE dats,
+         target_users TYPE string,
+         active       TYPE char1,
+         display_mode TYPE char10,
+         created_by   TYPE syuname,
+         created_at   TYPE timestampl,
+         changed_by   TYPE syuname,
+         changed_at   TYPE timestampl,
+       END OF ty_notification.
 ```
 
-### Step 5: Register in Fiori Launchpad (Optional)
+**Actions**:
+1. SE80 → Class Builder → Create class `ZCL_NOTIFICATION_MANAGER`
+2. Copy content from `abap/zcl_notification_manager.clas.abap`
+3. Implement all 5 static methods
+4. **Save** → **Check** → **Activate**
 
-**Note**: This step is OPTIONAL. The notification banner works automatically in FLP without a dedicated tile. This step only creates a management tile for administrators to test notifications.
+**🎯 Key Features**:
+- Target audience filtering (ALL, USER, ROLE:*, USER:*, DEPT:*)
+- Display mode support (BANNER, TOAST, BOTH, SILENT)
+- Audit trail (automatically sets created_by, created_at, changed_by, changed_at)
+- Statistics calculation for tile counter
 
-**Transaction**: **/UI2/FLPD_CUST** (Fiori Launchpad Designer)
+#### Class 2: ZCL_NOTIFICATION_REST
+
+**Transaction**: SE80 → Class Builder
+
+**File Reference**: `abap/zcl_notification_rest.clas.abap`
+
+This class provides the REST API interface.
+
+**Class Structure**:
+```
+Class Name: ZCL_NOTIFICATION_REST
+Description: Notification REST Service
+Interfaces: IF_REST_RESOURCE
+```
+
+**REST Methods**:
+- `GET /` - Get all active notifications for current user
+- `GET /stats` - Get statistics (total, high_count, medium_count, low_count)
+- `GET /log` - Get silent notifications (display_mode = SILENT)
+- `POST /` - Create new notification
+- `PUT /` - Update existing notification
+- `DELETE /?message_id=xxx` - Delete notification
+
+**Actions**:
+1. SE80 → Class Builder → Create class `ZCL_NOTIFICATION_REST`
+2. Add interface: `IF_REST_RESOURCE`
+3. Copy content from `abap/zcl_notification_rest.clas.abap`
+4. Implement GET, POST, PUT, DELETE methods
+5. **Save** → **Check** → **Activate**
+
+**🎯 Key Features**:
+- JSON serialization/deserialization
+- Error handling with HTTP status codes
+- CSRF token support
+- CORS headers for cross-origin requests
+
+**✅ Verification**:
+- SE80 → Display both classes → Check "Active" status
+- SE24 → ZCL_NOTIFICATION_MANAGER → Test method `get_statistics`
 
 ---
 
-**Step 1: Create App Descriptor**
+### Step 6: Configure REST Service
 
-1. Execute transaction: **/UI2/FLPD_CUST**
-2. Click **"Transport"** tab (top menu)
-3. Select or create transport request for FLP objects
-4. Click **"Content"** tab
+**Transaction**: SICF (HTTP Service Hierarchy)
 
-**Step 2: Create Catalog**
+Configure the REST endpoint to make the notification service accessible via HTTP.
 
-1. In FLP Designer, select **"Catalogs"** from left menu
-2. Click **"+"** button (Create new catalog)
-3. Fill in catalog details:
+**Actions**:
 
-| Field | Value |
-|-------|-------|
-| **ID** | `Z_NOTIFICATION_CATALOG` |
-| **Title** | `Notification Management` |
-| **Description** | `Administrative tools for system notifications` |
-| **Transport** | Select your transport request |
-
-4. Click **"Save"**
-
-**Step 3: Create Target Mapping**
-
-1. In the catalog, scroll to **"Target Mappings"** section
-2. Click **"+"** to add new target mapping
-3. Fill in mapping details:
-
-| Field | Value | Notes |
-|-------|-------|-------|
-| **Semantic Object** | `Notification` | Unique identifier |
-| **Action** | `manage` | Action name |
-| **Title** | `System Notifications` | Displayed on tile |
-| **Subtitle** | `Manage global notifications` | Optional subtitle |
-| **Icon** | `sap-icon://alert` | Bell/alert icon |
-| **Application Type** | `URL` | Direct URL launch |
-| **URL** | `/sap/bc/ui5_ui5/sap/z_fiori_notify_banner/index.html` | Path to your app |
-
-4. Click **"Save"**
-
-**Step 4: Create Tile**
-
-1. In the same catalog, scroll to **"Tiles"** section
-2. Click **"+"** to add new tile
-3. Configure tile:
-
-| Field | Value |
-|-------|-------|
-| **Tile Type** | `Static` |
-| **Title** | `Global Notifications` |
-| **Subtitle** | `View and manage alerts` |
-| **Icon** | `sap-icon://alert` |
-| **Target Mapping** | Select `Notification-manage` (created above) |
-| **Info** | `Admin Tool` (optional badge) |
-
-4. Click **"Save"**
-
-**Step 5: Create Group**
-
-1. Select **"Groups"** from left menu in FLP Designer
-2. Click **"+"** to create new group
-3. Fill in group details:
-
-| Field | Value |
-|-------|-------|
-| **ID** | `Z_ADMIN_TOOLS` |
-| **Title** | `Administrative Tools` |
-| **Description** | `System administration and monitoring` |
-
-4. Click **"Save"**
-5. In the group, click **"Assign Catalogs"**
-6. Search for `Z_NOTIFICATION_CATALOG`
-7. Select it and click **"OK"**
-
-**Step 6: Assign to Administrator Role**
-
-1. Execute transaction: **PFCG** (Role Maintenance)
-2. Open role `Z_NOTIFICATION_ADMIN`
-3. Go to **"Menu"** tab
-4. Click **"Insert Node"** → **"Fiori Tile Catalog"**
-5. Search for `Z_NOTIFICATION_CATALOG`
-6. Select and click **"Copy"**
-7. Save the role
-8. Click **"Generate"** to regenerate the profile
-
-**Step 7: Test FLP Integration**
-
-1. Open Fiori Launchpad in browser:
+1. **Navigate to REST services**:
    ```
-   https://<your-system>/sap/bc/ui5_ui5/ui2/ushell/shells/abap/FioriLaunchpad.html
+   Transaction: SICF
+   Path: /default_host/sap/bc/rest/
    ```
-2. Login with a user assigned to `Z_NOTIFICATION_ADMIN` role
-3. **Expected results:**
-   - See "Administrative Tools" group
-   - See "Global Notifications" tile with alert icon
-   - Click tile → opens notification management page
-   - Banner should appear at top of FLP automatically
 
-**Alternative: Quick Registration via /UI2/FLPD_CONF**
+2. **Create new sub-element**:
+   - Right-click on `/rest/` → **New Sub-Element**
+   - Service Name: `zcl_notification_rest`
+   - Description: `Global Notification REST Service`
 
-For simpler environments:
+3. **Configure Handler**:
+   - Go to "Handler List" tab
+   - Add handler: `ZCL_NOTIFICATION_REST`
 
-1. Transaction: **/UI2/FLPD_CONF**
-2. Select **"Create"** → **"App"**
-3. Fill in form:
-   - **App ID**: `z_notification_banner`
-   - **URL**: `/sap/bc/ui5_ui5/sap/z_fiori_notify_banner/index.html`
-   - **Semantic Object**: `Notification`
-   - **Action**: `display`
-4. Click **"Create Tile"**
-5. Assign to role directly
+4. **Security Settings**:
+   - Logon Data → Service Specific Settings:
+     - ✅ Standard (SAP Standard)
+     - ✅ Alternative Logon → Basic Authentication
+     - ✅ SAP Logon Ticket
 
-**Common Issues:**
+5. **Enable CORS** (for Fiori apps):
+   - Go to "Service Data" tab
+   - Add CORS settings:
+     ```
+     ~cors_headers:
+       Access-Control-Allow-Origin: *
+       Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS
+       Access-Control-Allow-Headers: *
+     ```
 
-| Issue | Solution |
-|-------|----------|
-| Tile not appearing | Clear FLP cache: `/UI2/FLPCM_CUST` → "Clear Cache" button |
-| 404 when clicking tile | Verify URL in target mapping matches actual BSP/UI5 repo path |
-| Permission errors | Ensure user has role `Z_NOTIFICATION_ADMIN` assigned in SU01 |
-| Tile visible but inactive | Check application deployed correctly, test direct URL first |
+6. **Activate Service**:
+   - Right-click on `zcl_notification_rest` → **Activate Service**
+
+**Test the Endpoint**:
+```
+URL: https://your-s4hana-system.com/sap/bc/rest/zcl_notification_rest/
+Method: GET
+Expected: JSON response with active notifications
+```
+
+**✅ Verification**:
+- SICF → Check `zcl_notification_rest` is active (green traffic light)
+- Test GET request using browser or Postman
+- Response should return `{"notifications": []}`  if no data exists
 
 ---
 
-## ⚙️ Configuration
+### Step 7: Create Authorization Object (Optional)
 
-### System Integration
+**⚠️ IMPORTANT**: This step is OPTIONAL. The notification system works with public access (@AccessControl.authorizationCheck: #NOT_REQUIRED). Only create this if you need role-based admin restrictions.
 
-#### Step 1: Shell Integration
+**Transaction**: SU21 (Authorization Objects)
 
-Ensure the notification banner integrates with all Fiori apps by customizing the Fiori Launchpad theme.
+#### Create Authorization Object
 
-**Option A: Via Fiori Theme Designer (Recommended)**
-
-1. **Access Theme Designer**
-   - Transaction: **`/UI2/FLPD_CUST`** (Fiori Launchpad Designer Customizing)
-   - Or direct URL: `https://your-system.com/sap/bc/ui5_ui5/ui2/ushell/shells/abap/FioriLaunchpad.html`
-   - Navigate to: **Settings → Theme Manager**
-
-2. **Create Custom Theme**
-   - Click **"Create New Theme"**
-   - Base Theme: Select **"SAP Quartz"** or **"SAP Horizon"**
-   - Theme ID: `Z_NOTIFICATION_THEME`
-   - Description: `Custom theme with notification banner`
-
-3. **Add Custom CSS**
-   - In Theme Designer, navigate to **"Quick Theming"** tab
-   - Click **"Custom CSS"** section
-   - Add the following CSS:
-
-```css
-/* Notification Banner Shell Integration */
-@import url("./webapp/css/style.css");
-
-/* Ensure shell header compatibility */
-.sapUshellShellHeader ~ #globalNotificationBanner {
-    top: 2.75rem !important;
-    z-index: 1000;
-}
-
-/* Mobile adjustments */
-@media (max-width: 600px) {
-    .sapUshellShellHeader ~ #globalNotificationBanner {
-        top: 3rem !important;
-    }
-}
+```
+Object: Z_NOTIFY
+Class: Custom application class
+Description: Notification Banner Administration
 ```
 
-4. **Save and Publish Theme**
-   - Click **"Save"**
-   - Click **"Publish"**
-   - Note: Publishing may take 5-10 minutes
+**Fields**:
+| Field Name | Field Label        | Data Element | Values      |
+|------------|-------------------|--------------|-------------|
+| ACTVT      | Activity          | ACTIV        | 01, 02, 03, 06 |
+| NOTIFY_TYPE| Notification Type | CHAR10       | ALL, URGENT |
 
-5. **Assign Theme to Users**
-   - Go to transaction **`/UI2/FLPD_CONF`** (FLP Configuration)
-   - Navigate to **User Settings**
-   - Set `Z_NOTIFICATION_THEME` as default theme
-   - Or per-user: Transaction **`SU01`** → User → Parameters → ID: `FLP_THEME`, Value: `Z_NOTIFICATION_THEME`
+**Authorization Values**:
+- `01` - Create notifications
+- `02` - Modify notifications
+- `03` - Display notifications
+- `06` - Delete notifications
 
-**Option B: Via Transport (For Basis Team)**
+#### Create Authorization Role (PFCG)
 
-1. **Create Transport Request**
-   - Transaction: **`SE09`** (Transport Organizer)
-   - Create new request
-   - Type: **Customizing Request**
+**Transaction**: PFCG (Role Maintenance)
 
-2. **Export Theme Files**
-   - Package theme CSS in transport
-   - Path: `/UI5/THEME_DESIGNER/Z_NOTIFICATION_THEME`
-
-3. **Transport to Target Systems**
-   - Transaction: **`STMS`** (Transport Management System)
-   - Import to QA → Production
-
-#### Step 2: Component Integration
-
-For automatic loading across all apps, register the component globally using Fiori Launchpad Designer.
-
-**Detailed Procedure**:
-
-1. **Access Fiori Launchpad Designer**
-   - Transaction: **`/UI2/FLPD_CUST`**
-   - Or URL: `https://your-system.com/sap/bc/ui5_ui5/sap/arsrvc_upb_admn/main.html`
-   - Log in with user having authorization `SAP_FLP_ADMIN`
-
-2. **Navigate to Configuration**
-   - Click on **"Configuration"** tab (left sidebar)
-   - Select **"Common Data Model"** → **"Global Settings"**
-
-3. **Add Plugin Configuration**
-   - Section: **"Shell Plugins"**
-   - Click **"+"** to add new plugin
-   - Enter configuration:
-
-   | Field | Value |
-   |-------|-------|
-   | **Plugin ID** | `NotificationBanner` |
-   | **Component Name** | `com.sap.notifications.banner` |
-   | **Component Path** | `/sap/bc/ui5_ui5/sap/z_notification` |
-   | **Enabled** | ✅ Yes |
-   | **Auto Start** | ✅ Yes |
-
-4. **Add Plugin Configuration JSON**
-   - In the **"Configuration"** text area, add:
-
-```json
-{
-  "component": "com.sap.notifications.banner",
-  "config": {
-    "autoStart": true,
-    "pollingInterval": 30000,
-    "enabled": true,
-    "displayOnStartup": true
-  }
-}
+```
+Role Name: Z_NOTIFICATION_ADMIN
+Description: Notification Banner Administrator
 ```
 
-5. **Save Configuration**
-   - Click **"Save"**
-   - Click **"Publish"** to make changes active
+**Authorizations**:
+- Z_NOTIFY: ACTVT = 01, 02, 03, 06
+- S_SERVICE: ICF_VALUE = zcl_notification_rest
 
-**Alternative Method: Via Transaction `/IWFND/MAINT_SERVICE`**
+**User Assignment**:
+- Assign role to administrator users via SU01
 
-1. **Register Service in Service Catalog**
-   - Transaction: **`/IWFND/MAINT_SERVICE`** (Maintain Services)
-   - Click **"Add Service"**
-   - System Alias: `LOCAL`
-   - External Service Name: `Z_NOTIFICATION_SRV`
+**✅ Verification**:
+- PFCG → Display Z_NOTIFICATION_ADMIN → Check authorization objects
+- SU01 → Check user has role assigned
 
-2. **Add Service to Catalog**
-   - Transaction: **`/IWFND/GW_CLIENT`** (Gateway Client)
-   - Test service URL: `/sap/opu/odata/sap/Z_NOTIFICATION_SRV/`
-   - Verify HTTP 200 response
+---
 
-3. **Configure in Fiori Launchpad**
-   - Go back to **`/UI2/FLPD_CUST`**
-   - Navigate to **Catalogs** → **Create New Catalog**
-   - Catalog ID: `Z_NOTIFICATION_CATALOG`
-   - Title: `Notification Management`
+## 💻 Frontend Deployment (UI5)
 
-4. **Add Tile to Catalog**
-   - Click **"+"** in Tiles section
-   - Tile type: **"App Launcher - Dynamic"**
-   - Configuration:
+### Option A: Manual Deployment to BSP Application
 
-```json
-{
-  "semanticObject": "Notification",
-  "action": "display",
-  "title": "System Notifications",
-  "subtitle": "View active notifications",
-  "icon": "sap-icon://alert",
-  "info": "Global Banner"
-}
-```
+#### Step 1: Build the Application
 
-5. **Assign to User Groups**
-   - Transaction: **`PFCG`** (Role Maintenance)
-   - Edit role `Z_NOTIFICATION_ADMIN`
-   - Tab: **"Menu"**
-   - Add catalog: `Z_NOTIFICATION_CATALOG`
-   - Save and generate profile
-
-### Environment-Specific Settings
-
-Configure different settings for Development, QA, and Production environments using SAP System Profile Parameters.
-
-#### Development Environment Configuration
-
-**Step-by-Step Procedure**:
-
-1. **Access System Profile**
-   - Transaction: **`RZ10`** (Edit Profiles)
-   - Profile: Select **"Default Profile"** or instance-specific profile
-   - Click **"Extended Maintenance"**
-
-2. **Add Development Parameters**
-   - Click **"Create Parameter"**
-   - Add the following parameters:
-
-| Parameter Name | Value | Description |
-|---------------|--------|-------------|
-| `znotif/polling_interval` | `10000` | Poll every 10 seconds (dev) |
-| `znotif/debug_mode` | `TRUE` | Enable debug logging |
-| `znotif/cache_enabled` | `FALSE` | Disable caching for dev |
-| `znotif/log_level` | `DEBUG` | Detailed logging |
-
-3. **Save and Activate Profile**
-   - Click **"Save"**
-   - Click **"Copy"** to activate
-   - Restart required: Yes (use **`SM50`** to check)
-
-4. **Verify in Code**
-   - Edit `webapp/Component.js`:
-
-```javascript
-// Read system parameters
-var sPollingInterval = jQuery.sap.getUriParameters().get("pollingInterval") || "30000";
-var bDebugMode = jQuery.sap.getUriParameters().get("debugMode") === "true";
-
-// Environment detection
-var sHostname = window.location.hostname;
-var isDevelopment = sHostname === 'localhost' || sHostname.includes('dev');
-
-// Apply development settings
-if (isDevelopment) {
-    this.pollingInterval = 10000; // 10 seconds
-    jQuery.sap.log.setLevel(jQuery.sap.log.Level.DEBUG);
-    console.log("🔧 Development Mode Active - Polling: 10s");
-} else {
-    this.pollingInterval = parseInt(sPollingInterval);
-    jQuery.sap.log.setLevel(jQuery.sap.log.Level.ERROR);
-}
-```
-
-#### Quality Assurance (QA) Configuration
-
-1. **Transaction `RZ10`** - QA System
-   - Parameters for QA:
-
-| Parameter | Value | Description |
-|-----------|-------|-------------|
-| `znotif/polling_interval` | `20000` | 20 seconds (moderate) |
-| `znotif/debug_mode` | `TRUE` | Keep debugging for testing |
-| `znotif/cache_enabled` | `TRUE` | Enable caching |
-| `znotif/log_level` | `INFO` | Moderate logging |
-
-2. **Performance Monitoring**
-   - Transaction: **`ST03N`** (Workload Analysis)
-   - Monitor notification service performance
-   - Check response times under load
-
-#### Production Environment Configuration
-
-**Critical Production Setup**:
-
-1. **Access Profile Parameters**
-   - Transaction: **`RZ10`** - Production System
-   - ⚠️ **IMPORTANT**: Always test in QA first!
-   - Create backup before changes: **`RZ10` → Profile → Download**
-
-2. **Production Parameters**
-
-| Parameter | Value | Description |
-|-----------|-------|-------------|
-| `znotif/polling_interval` | `30000` | 30 seconds (optimal) |
-| `znotif/debug_mode` | `FALSE` | Disable debug mode |
-| `znotif/cache_enabled` | `TRUE` | Enable full caching |
-| `znotif/log_level` | `ERROR` | Error logging only |
-| `znotif/max_notifications` | `10` | Limit active notifications |
-| `znotif/enable_compression` | `TRUE` | GZIP compression |
-
-3. **Performance Optimization**
-   - Transaction: **`SMICM`** (ICM Monitor)
-   - Navigate to **"Services"** tab
-   - Verify HTTP service settings:
-     - Keep-Alive: **Enabled**
-     - Max Connections: **500**
-     - Timeout: **300 seconds**
-
-4. **Caching Configuration**
-   - Transaction: **`SICF`** (HTTP Service Maintenance)
-   - Navigate to: `/sap/bc/rest/zcl_notification_rest/`
-   - Double-click service → **"Configuration"** tab
-   - Enable caching:
-     - Cache Control: **public, max-age=30**
-     - ETag: **Enabled**
-
-5. **Monitoring Setup**
-   - Transaction: **`SLG1`** (Application Log)
-   - Object: `Z_NOTIFICATION`
-   - Subobject: `BANNER`
-   - Set retention: **30 days**
-
-6. **Alert Configuration**
-   - Transaction: **`SOST`** (Send Object Status)
-   - Configure email alerts for errors
-   - Recipients: Technical team email list
-
-#### Testing Environment Settings
-
-After configuration, test each environment:
-
-**Development Testing**:
 ```bash
-# Test URL with debug parameters
-https://dev-system.com/fiori?debugMode=true&pollingInterval=5000
+cd sap-fiori-notification-banner
+npm install
+npm run build
 ```
 
-**QA Testing**:
-- Transaction: **`ST22`** - Check for dumps
-- Transaction: **`SM21`** - Check system log
-- Transaction: **`ST03N`** - Verify performance
+**Expected Output**:
+```
+ℹ info graph Initializing module collection...
+ℹ info build Building...
+ℹ info minify Minifying resources...
+✔ Build succeeded
+✔ Created dist/sap_fiori_notification_banner.zip
+```
 
-**Production Validation**:
-- Transaction: **`SM50`** - Monitor work processes
-- Transaction: **`SM51`** - Check all servers
-- Transaction: **`SMICM`** - Monitor HTTP traffic
-- Transaction: **`SLG1`** - Review application logs
+#### Step 2: Upload to BSP Application
 
-#### Environment Variable Management
+**Transaction**: SE80 → Repository Browser
 
-Create a centralized configuration table:
+1. **Create BSP Application**:
+   ```
+   Object Type: BSP Application
+   Application: ZNOTIFY_BANNER
+   Description: Global Notification Banner
+   ```
 
-1. **Transaction `SE11`** - Create Config Table
-   - Table: `ZTNOTIFY_CONFIG`
-   - Fields:
-     - `ENVIRONMENT` (DEV/QA/PRD)
-     - `PARAMETER` (parameter name)
-     - `VALUE` (parameter value)
+2. **Import Resources**:
+   - Right-click on ZNOTIFY_BANNER → Import → File System
+   - Select all files from `dist/` folder
+   - Import the following:
+     ```
+     Component-preload.js
+     manifest.json
+     index.html
+     i18n/i18n.properties
+     css/style.css
+     controller/NotificationBanner.js
+     controller/TileCounter.js
+     view/View1.view.xml
+     ```
 
-2. **Maintain Values**
-   - Transaction: **`SM30`** (Table Maintenance)
-   - View: `V_ZTNOTIFY_CONFIG`
-   - Maintain environment-specific values
+3. **Activate All Resources**:
+   - Select all imported files
+   - Right-click → Activate
 
-3. **Read in Code**:
+**✅ Verification**:
+- SE80 → Display ZNOTIFY_BANNER → Check all files are active
+- Test URL: `https://your-system.com/sap/bc/bsp/sap/znotify_banner/index.html`
 
+---
+
+### Option B: Automated Deployment with Fiori Tools
+
+#### Prerequisites
+
+```bash
+npm install -g @sap/ux-ui5-tooling
+npm install -g @ui5/cli
+```
+
+#### Deploy Command
+
+```bash
+npx fiori deploy
+```
+
+**Deployment Configuration** (when prompted):
+```
+Target System: [Your S/4HANA system]
+BSP Application Name: ZNOTIFY_BANNER
+Package: $TMP (or your custom package)
+Transport Request: [Your TR number]
+```
+
+**Expected Output**:
+```
+✔ Deployment successful
+✔ BSP application ZNOTIFY_BANNER created
+✔ All resources uploaded and activated
+```
+
+**✅ Verification**:
+- SE80 → Display ZNOTIFY_BANNER
+- Test application URL
+
+---
+
+## 🚀 Fiori Launchpad Configuration
+
+### Step 1: Create Tile for Notification Management
+
+**Transaction**: /UI2/FLPD_CUST (Fiori Launchpad Designer)
+
+#### 1.1 Create Semantic Object
+
+```
+Semantic Object: NotificationBanner
+Description: Global Notification Banner
+```
+
+#### 1.2 Create Tile
+
+```
+Tile ID: ZNOTIFY_BANNER_TILE
+Title: Notifications
+Subtitle: Active System Messages
+Icon: sap-icon://message-information
+Type: Dynamic
+```
+
+**Dynamic Tile Configuration**:
 ```javascript
-// Read from backend config table
-jQuery.ajax({
-    url: "/sap/bc/rest/zcl_notification_rest/config",
-    success: function(config) {
-        this.pollingInterval = config.polling_interval;
-        this.debugMode = config.debug_mode;
-    }
-});
+{
+  "service_url": "/sap/bc/rest/zcl_notification_rest/stats",
+  "service_refresh_interval": 60,
+  "title": "Notifications",
+  "number_unit": "Active",
+  "info": "{{highCount}}H|{{mediumCount}}M|{{lowCount}}L",
+  "info_state": "{{tileColor}}"
+}
 ```
+
+**Tile Color Logic** (based on HIGH count):
+- RED: high_count >= 3
+- ORANGE: high_count 1-2
+- GREEN: high_count = 0
+
+#### 1.3 Create Target Mapping
+
+```
+Semantic Object: NotificationBanner
+Action: display
+URL: /sap/bc/ui5_ui5/sap/znotify_banner/index.html
+```
+
+#### 1.4 Assign to Catalog
+
+```
+Catalog ID: ZNOTIFY_CATALOG
+Title: System Notifications
+Description: Global notification management
+```
+
+#### 1.5 Assign to Group
+
+```
+Group ID: SYSTEM_ADMIN
+Title: System Administration
+Priority: High
+```
+
+**✅ Verification**:
+- Open Fiori Launchpad
+- Check tile appears in System Administration group
+- Click tile → Should open notification management app
+- Tile should update every 60 seconds with real-time statistics
 
 ---
 
@@ -1097,340 +876,557 @@ jQuery.ajax({
 
 ### Backend Testing
 
-#### REST API Testing
+#### Test 1: Database Table
 
-```bash
-# Test GET endpoint
-curl -X GET "https://your-system.com/sap/bc/rest/zcl_notification_rest/" \
-  -H "Authorization: Basic <base64-credentials>" \
-  -H "X-CSRF-Token: Fetch"
-
-# Test POST endpoint
-curl -X POST "https://your-system.com/sap/bc/rest/zcl_notification_rest/" \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Basic <base64-credentials>" \
-  -H "X-CSRF-Token: <csrf-token>" \
-  -d '{
-    "message_type": "INFO",
-    "severity": "HIGH",
-    "title": "Test Notification",
-    "message_text": "This is a test notification",
-    "start_date": "20240101",
-    "end_date": "20241231",
-    "target_users": "ALL",
-    "active": "X"
-  }'
-```
-
-#### Database Testing
+**Transaction**: SE16 (Data Browser)
 
 ```sql
--- Verify table structure
-SELECT * FROM ztnotify_msgs WHERE rownum <= 5;
+-- View table structure
+Table: ZTNOTIFY_MSGS
 
--- Test active notifications view
-SELECT * FROM zt_notify_messages;
-
--- Check authorization
-SELECT * FROM usr02 WHERE bname = 'YOUR_USER';
+-- Test F4 help
+1. SM30 → ZTNOTIFY_MSGS → Create new entry
+2. Click on MESSAGE_TYPE field → Press F4
+3. Expected: Dropdown with 6 values (URGENT, INFO, TIP, SUCCESS, MAINT, WARNING)
+4. Click on SEVERITY field → Press F4
+5. Expected: Dropdown with 3 values (HIGH, MEDIUM, LOW)
+6. Click on DISPLAY_MODE field → Press F4
+7. Expected: Dropdown with 4 values (BANNER, TOAST, BOTH, SILENT)
 ```
 
-### Frontend Testing
+#### Test 2: CDS View
 
-#### Local Testing
+**Transaction**: SE11 (ABAP Dictionary)
 
-```bash
-# Start development server
-npm run start
+```sql
+-- Display CDS view
+View: ZTNOTIFY_MESSAGES (DDLS)
+SQL View: ZNOTIFY_MSG
 
-# Access at: http://localhost:8080
-# Test all functionality:
-# - Banner appearance
-# - Navigation between notifications
-# - Close functionality
-# - Responsive design
+-- Test data retrieval
+SE16 → ZNOTIFY_MSG
+Expected: Only active notifications where:
+  - active = 'X'
+  - start_date <= today
+  - end_date >= today
 ```
 
-#### Integration Testing
+#### Test 3: REST API
 
-1. **Component Loading**: Verify component initializes without errors
-2. **API Communication**: Check network calls to backend
-3. **Banner Display**: Confirm notifications appear correctly
-4. **User Interactions**: Test all button clicks and navigation
-5. **Responsive Design**: Test on mobile, tablet, desktop
-6. **Cross-App Compatibility**: Test banner appears on different Fiori apps
-
-#### Performance Testing
+**GET /sap/bc/rest/zcl_notification_rest/**
 
 ```javascript
-// Add to Component.js for performance monitoring
-var startTime = Date.now();
-this._notificationBanner.loadNotifications().then(function() {
-  var loadTime = Date.now() - startTime;
-  console.log('Notification load time:', loadTime, 'ms');
+jQuery.ajax({
+    url: "/sap/bc/rest/zcl_notification_rest/",
+    type: "GET",
+    success: function(data) {
+        console.log("Notifications:", data);
+        // Expected: {"notifications": [...]}
+    }
+});
+```
+
+**GET /sap/bc/rest/zcl_notification_rest/stats**
+
+```javascript
+jQuery.ajax({
+    url: "/sap/bc/rest/zcl_notification_rest/stats",
+    type: "GET",
+    success: function(data) {
+        console.log("Statistics:", data);
+        // Expected: {"total": 10, "high_count": 3, "medium_count": 5, "low_count": 2}
+    }
+});
+```
+
+**POST /sap/bc/rest/zcl_notification_rest/**
+
+```javascript
+jQuery.ajax({
+    url: "/sap/bc/rest/zcl_notification_rest/",
+    type: "POST",
+    contentType: "application/json",
+    data: JSON.stringify({
+        message_type: "MAINT",
+        severity: "MEDIUM",
+        title: "Scheduled Maintenance",
+        message_text: "System will be unavailable Sunday 2-4 AM",
+        start_date: "20250401",
+        end_date: "20250430",
+        target_users: "ALL",
+        active: "X",
+        display_mode: "TOAST"
+    }),
+    success: function(data) {
+        console.log("Created:", data);
+    }
 });
 ```
 
 ---
 
+### Frontend Testing
+
+#### Test 1: Display Modes
+
+Create test notifications with different display modes:
+
+**Test Case 1: BANNER Mode**
+```
+Transaction: SM30 → ZTNOTIFY_MSGS
+Create entry:
+- MESSAGE_TYPE: URGENT
+- SEVERITY: HIGH
+- TITLE: Test Banner
+- MESSAGE_TEXT: This is a banner notification
+- DISPLAY_MODE: BANNER
+- ACTIVE: X
+```
+
+**Expected Result**:
+- Fixed banner appears at top of all Fiori apps
+- Red color (HIGH severity)
+- User must click close button to dismiss
+- Banner stays until manually closed
+
+**Test Case 2: TOAST Mode**
+```
+Create entry:
+- MESSAGE_TYPE: INFO
+- SEVERITY: LOW
+- TITLE: Test Toast
+- MESSAGE_TEXT: This is a toast notification
+- DISPLAY_MODE: TOAST
+- ACTIVE: X
+```
+
+**Expected Result**:
+- Toast appears at bottom-right
+- Blue color (LOW severity)
+- Auto-dismisses after 5 seconds
+- Slide-in animation
+
+**Test Case 3: BOTH Mode**
+```
+Create entry:
+- MESSAGE_TYPE: MAINT
+- SEVERITY: MEDIUM
+- TITLE: Test Both
+- MESSAGE_TEXT: This appears as both banner and toast
+- DISPLAY_MODE: BOTH
+- ACTIVE: X
+```
+
+**Expected Result**:
+- Both banner AND toast appear simultaneously
+- Orange color (MEDIUM severity)
+- Banner stays until closed, toast auto-dismisses
+
+**Test Case 4: SILENT Mode**
+```
+Create entry:
+- MESSAGE_TYPE: TIP
+- SEVERITY: LOW
+- TITLE: Test Silent
+- MESSAGE_TEXT: This is logged but not displayed
+- DISPLAY_MODE: SILENT
+- ACTIVE: X
+```
+
+**Expected Result**:
+- No UI display (banner or toast)
+- Check browser console: "Silent notification logged: Test Silent"
+- Verify with: GET /sap/bc/rest/zcl_notification_rest/log
+
+---
+
+#### Test 2: Tile Counter
+
+**Setup**:
+Create multiple notifications with different severities:
+```
+3 notifications with SEVERITY: HIGH
+5 notifications with SEVERITY: MEDIUM
+2 notifications with SEVERITY: LOW
+```
+
+**Expected FLP Tile Display**:
+```
+┌─────────────────────────┐
+│   10  Active            │ ← Total count
+│   🔔                    │ ← Icon
+│   3H|5M|2L             │ ← Breakdown
+└─────────────────────────┘
+   RED background          ← Color (≥3 HIGH = RED)
+```
+
+**Color Coding Rules**:
+- **RED**: high_count >= 3
+- **ORANGE**: high_count 1-2
+- **GREEN**: high_count = 0
+
+**Test Steps**:
+1. Open Fiori Launchpad
+2. Locate notification tile
+3. Verify count: "10 Active"
+4. Verify breakdown: "3H|5M|2L"
+5. Verify color: RED
+6. Wait 60 seconds → Verify auto-update
+
+**Dynamic Update Test**:
+1. Delete 2 HIGH notifications (SM30)
+2. Wait 60 seconds
+3. Expected: Tile updates to "8 Active | 1H|5M|2L" with ORANGE color
+
+---
+
+#### Test 3: Multi-Notification Navigation
+
+**Setup**:
+Create 3 active notifications:
+```
+1. URGENT - System Downtime - HIGH
+2. MAINT - Scheduled Maintenance - MEDIUM
+3. TIP - New Feature Available - LOW
+```
+
+**Test Steps**:
+1. Open any Fiori app
+2. Banner appears with first notification (System Downtime)
+3. Click **Next** arrow (→)
+4. Expected: Shows "Scheduled Maintenance" (2/3)
+5. Click **Next** arrow (→)
+6. Expected: Shows "New Feature Available" (3/3)
+7. Click **Previous** arrow (←)
+8. Expected: Returns to previous notification
+9. Counter shows: "2 / 3"
+
+---
+
+#### Test 4: Target Audience Filtering
+
+**Test Case 1: Public Notification**
+```
+TARGET_USERS: ALL
+```
+**Expected**: All users see this notification
+
+**Test Case 2: Role-Based**
+```
+TARGET_USERS: ROLE:SAP_ALL
+```
+**Expected**: Only users with SAP_ALL role see this
+
+**Test Case 3: Specific User**
+```
+TARGET_USERS: USER:SMITHJ
+```
+**Expected**: Only user SMITHJ sees this
+
+**Test Case 4: Multiple Filters**
+```
+TARGET_USERS: ROLE:SAP_ALL,DEPT:FIN,USER:ADMIN
+```
+**Expected**: Users matching ANY condition see this (OR logic)
+
+**Verification**:
+1. Create notification with specific target
+2. Login as user matching criteria → Should see notification
+3. Login as user NOT matching → Should NOT see notification
+
+---
+
+### Performance Testing
+
+#### Test 1: Polling Performance
+
+**Monitor**:
+- Open Chrome DevTools → Network tab
+- Refresh Fiori app
+- Observe polling requests every 30 seconds
+
+**Expected**:
+- Request URL: `/sap/bc/rest/zcl_notification_rest/`
+- Interval: 30 seconds
+- Response Time: < 500ms
+- Response Size: < 5KB
+
+#### Test 2: Large Data Set
+
+**Setup**:
+Create 50 active notifications
+
+**Expected**:
+- All 50 notifications load successfully
+- Navigation arrows work smoothly
+- No UI freeze or lag
+- Memory usage stable
+
+#### Test 3: Error Recovery
+
+**Simulate Backend Downtime**:
+1. SICF → Deactivate `zcl_notification_rest` service
+2. Open Fiori app
+3. Expected: Silent failure, no error popup
+4. Check console: "Circuit breaker opened after 5 failures"
+5. SICF → Reactivate service
+6. Wait 60 seconds
+7. Expected: Circuit breaker closes, polling resumes
+
+---
+
 ## 🔧 Troubleshooting
 
-### Common Issues & Solutions
+### Issue 1: F4 Help Not Working
 
-#### 1. **Banner Not Appearing**
+**Symptom**: Pressing F4 on MESSAGE_TYPE/SEVERITY/DISPLAY_MODE shows no values
 
-**Symptoms**: No notification banner visible on any app
+**Cause**: Domains or data elements not activated
 
-**Checks**:
-```bash
-# Check component loading
-console.log(sap.ui.getCore().getComponent('com.sap.notifications.banner'));
+**Solution**:
+1. SE11 → Check domain status (ZDOMAIN_MSG_TYPE, etc.)
+2. If inactive: Activate domain
+3. SE11 → Check data element status (ZNOTIFY_MSG_TYPE, etc.)
+4. If inactive: Activate data element
+5. SE14 → ZTNOTIFY_MSGS → Adjust table (if needed)
 
-# Check CSS loading
-console.log(document.querySelector('#globalNotificationBanner'));
-
-# Check API response
-# Open Network tab → Look for REST calls
+**Verification**:
 ```
-
-**Solutions**:
-- Verify component is registered in Fiori Launchpad
-- Check CSS file is loaded
-- Verify backend REST service is active
-- Check user authorizations
-
-#### 2. **API Errors (401 Unauthorized)**
-
-**Symptoms**: Console shows 401 errors for REST calls
-
-**Checks**:
-```abap
-" Check SICF service configuration
-" Transaction: SICF → Navigate to service
-" Verify handler class is assigned
-" Check authentication methods
-```
-
-**Solutions**:
-- Configure SICF service authentication
-- Assign proper authorization role to user
-- Check CORS settings if cross-domain
-
-#### 3. **Notifications Not Loading**
-
-**Symptoms**: Component loads but no notifications appear
-
-**Checks**:
-```sql
--- Check database content
-SELECT * FROM ztnotify_msgs WHERE active = 'X';
-
--- Check date filters
-SELECT * FROM ztnotify_msgs
-WHERE start_date <= sy-datum
-AND end_date >= sy-datum;
-```
-
-**Solutions**:
-- Verify notification data exists
-- Check date ranges are valid
-- Verify user authorization for Z_NOTIFY object
-- Check backend error logs
-
-#### 4. **Performance Issues**
-
-**Symptoms**: Slow loading, UI freezing
-
-**Solutions**:
-- Increase polling interval (modify 30000ms to 60000ms)
-- Implement client-side caching
-- Optimize backend CDS view
-- Add database indices
-
-#### 5. **Mobile Display Issues**
-
-**Symptoms**: Banner doesn't display properly on mobile
-
-**Solutions**:
-```css
-/* Add to webapp/css/style.css */
-@media (max-width: 480px) {
-    #globalNotificationBanner {
-        position: relative !important;
-        top: auto !important;
-    }
-}
-```
-
-### Debug Mode
-
-Enable debug logging:
-
-```javascript
-// Add to Component.js
-sap.ui.getCore().getConfiguration().setDebug(true);
-
-// Add detailed logging
-var Log = sap.ui.require("sap/base/Log");
-Log.setLevel(Log.Level.DEBUG);
-```
-
-### Log Analysis
-
-#### Frontend Logs
-```javascript
-// Check browser console for:
-// - Component initialization errors
-// - API call failures
-// - CSS loading issues
-// - JavaScript errors
-```
-
-#### Backend Logs
-```abap
-* Check ST22 for ABAP dumps
-* Check SM21 for system logs
-* Check SLG1 for application logs
-* Check SICF logs for HTTP errors
+SM30 → ZTNOTIFY_MSGS → Create entry → Press F4 on MESSAGE_TYPE
+Expected: Dropdown with URGENT, INFO, TIP, SUCCESS, MAINT, WARNING
 ```
 
 ---
 
-## 📈 Maintenance
+### Issue 2: REST API Returns 404
 
-### Regular Tasks
+**Symptom**: GET request to `/sap/bc/rest/zcl_notification_rest/` returns 404 Not Found
+
+**Cause**: SICF service not activated
+
+**Solution**:
+1. SICF → Navigate to `/default_host/sap/bc/rest/zcl_notification_rest`
+2. Check service status (should have green traffic light)
+3. If inactive: Right-click → Activate Service
+4. Check Handler List contains `ZCL_NOTIFICATION_REST`
+
+**Verification**:
+```
+curl https://your-system.com/sap/bc/rest/zcl_notification_rest/
+Expected: {"notifications": [...]}
+```
+
+---
+
+### Issue 3: Tile Counter Not Updating
+
+**Symptom**: FLP tile shows "0 Active" despite active notifications
+
+**Cause**: /stats endpoint not accessible or returning wrong format
+
+**Solution**:
+1. Test endpoint directly:
+   ```javascript
+   jQuery.ajax({
+       url: "/sap/bc/rest/zcl_notification_rest/stats",
+       type: "GET",
+       success: console.log
+   });
+   ```
+2. Expected response:
+   ```json
+   {
+       "total": 10,
+       "high_count": 3,
+       "medium_count": 5,
+       "low_count": 2
+   }
+   ```
+3. If response is wrong: Check ZCL_NOTIFICATION_MANAGER → get_statistics method
+4. Ensure method is activated (SE24)
+
+**Verification**:
+- Open FLP
+- Check tile shows correct counts
+- Wait 60 seconds → Verify auto-update works
+
+---
+
+### Issue 4: Toast Not Appearing
+
+**Symptom**: DISPLAY_MODE = TOAST but no toast notification appears
+
+**Cause**: Browser cache or JavaScript error
+
+**Solution**:
+1. Hard refresh browser: Ctrl+F5 (Windows) / Cmd+Shift+R (Mac)
+2. Clear browser cache completely
+3. Check browser console for JavaScript errors
+4. Verify sap.m.MessageToast is loaded:
+   ```javascript
+   console.log(typeof sap.m.MessageToast); // Should be "function"
+   ```
+
+**Verification**:
+1. Create notification with DISPLAY_MODE: TOAST
+2. Open Fiori app
+3. Expected: Toast appears at bottom-right for 5 seconds
+
+---
+
+### Issue 5: Banner Not Closing
+
+**Symptom**: Clicking close button (X) doesn't dismiss banner
+
+**Cause**: Event handler not attached
+
+**Solution**:
+1. Check browser console for errors
+2. Verify Component.js is loaded correctly
+3. Check NotificationBanner.js contains close handler:
+   ```javascript
+   onCloseBanner: function() {
+       this.byId("notificationBanner").setVisible(false);
+   }
+   ```
+
+**Verification**:
+- Click close button → Banner should disappear immediately
+
+---
+
+### Issue 6: Wrong Display Mode Applied
+
+**Symptom**: DISPLAY_MODE = SILENT but banner appears anyway
+
+**Cause**: Default value not set or migration script not run
+
+**Solution**:
+1. SE16 → ZTNOTIFY_MSGS → Check DISPLAY_MODE field values
+2. If NULL or empty: Run update:
+   ```sql
+   UPDATE ztnotify_msgs
+   SET display_mode = 'BANNER'
+   WHERE display_mode IS NULL OR display_mode = ''
+   ```
+3. Check ZCL_NOTIFICATION_MANAGER → get_notifications logic:
+   ```abap
+   IF ls_notification-display_mode = 'SILENT'.
+     CONTINUE. " Skip this notification
+   ENDIF.
+   ```
+
+**Verification**:
+- Create notification with each display mode
+- Verify correct behavior (BANNER stays, TOAST auto-dismisses, BOTH shows both, SILENT logs only)
+
+---
+
+## 🛠️ Maintenance
+
+### Regular Maintenance Tasks
+
+#### Daily
+- Monitor error logs (ST22, SM21)
+- Check REST API response times
+- Verify tile counter accuracy
 
 #### Weekly
-- ✅ Check notification table size: `SELECT COUNT(*) FROM ztnotify_msgs`
-- ✅ Review active notifications: `SELECT * FROM zt_notify_messages`
-- ✅ Check error logs in SM21
-- ✅ Verify REST service availability
+- Review active notifications (SE16 → ZTNOTIFY_MSGS)
+- Clean up expired notifications:
+  ```sql
+  DELETE FROM ztnotify_msgs
+  WHERE end_date < sy-datum
+  ```
 
 #### Monthly
-- ✅ Archive old notifications (>90 days)
-- ✅ Update notification statistics
-- ✅ Review user access and authorizations
-- ✅ Performance analysis and optimization
+- Analyze notification statistics
+- Update message templates
+- Review target audience filters
+- Performance tuning if needed
 
-#### Quarterly
-- ✅ Backend system updates
-- ✅ UI5 framework updates
-- ✅ Security assessment
-- ✅ Disaster recovery testing
+---
 
-### Data Cleanup
+### Backup and Recovery
 
-#### Automatic Cleanup Job
+#### Backup Table Data
 
-```abap
-* Create background job for cleanup
-* Program: ZCL_NOTIFICATION_CLEANUP
-* Frequency: Daily at 02:00
-
-* Cleanup logic:
-DELETE FROM ztnotify_msgs
-WHERE end_date < sy-datum - 90
-AND active = ' '.
-```
-
-#### Manual Cleanup
+**Transaction**: SE16 (Data Browser)
 
 ```sql
--- Remove expired notifications (older than 90 days)
-DELETE FROM ztnotify_msgs
-WHERE end_date < CURRENT_DATE - INTERVAL '90' DAY
-AND active = ' ';
+-- Export to local file
+SE16 → ZTNOTIFY_MSGS → Download → Spreadsheet
 ```
 
-### Monitoring
+**Alternative: ABAP Report**
+```abap
+REPORT z_backup_notifications.
 
-#### KPI Dashboard
+DATA: lt_notifications TYPE TABLE OF ztnotify_msgs,
+      lv_filename TYPE string.
 
-Track these metrics:
-- Active notifications count
-- Average notification lifetime
-- User interaction rates
-- System performance metrics
-- Error rates
+SELECT * FROM ztnotify_msgs INTO TABLE lt_notifications.
 
-#### Alerts Setup
+lv_filename = '/tmp/notifications_backup_' && sy-datum && '.txt'.
 
-Configure alerts for:
-- REST service downtime
-- High error rates (>5%)
-- Performance degradation
-- Database table growth (>10k records)
+OPEN DATASET lv_filename FOR OUTPUT IN TEXT MODE.
+LOOP AT lt_notifications INTO DATA(ls_notif).
+  TRANSFER ls_notif TO lv_filename.
+ENDLOOP.
+CLOSE DATASET lv_filename.
 
-### Updates and Upgrades
-
-#### Frontend Updates
-
-```bash
-# Update UI5 CLI
-npm install -g @ui5/cli@latest
-
-# Update project dependencies
-npm update
-
-# Test after updates
-npm run test
-npm run build
+WRITE: / 'Backup completed:', lv_filename.
 ```
 
-#### Backend Updates
+#### Restore Data
 
-1. **Test in Development**: Always test ABAP changes in DEV first
-2. **Transport Management**: Use proper transport requests
-3. **Regression Testing**: Test all functionality after updates
-4. **Rollback Plan**: Keep previous version available
-
----
-
-## 📞 Support & Contacts
-
-### Technical Support
-- **ABAP Development**: [Your ABAP Team Email]
-- **UI5 Development**: [Your Frontend Team Email]
-- **Basis Administration**: [Your Basis Team Email]
-- **Security Team**: [Your Security Team Email]
-
-### Documentation
-- **Internal Wiki**: [Your Wiki Link]
-- **Change Management**: [Your CM System]
-- **Ticket System**: [Your Ticketing System]
-
-### Emergency Procedures
-
-#### System Down
-1. Check SICF service status
-2. Verify database connectivity
-3. Check authorization services
-4. Contact Basis team if infrastructure issue
-
-#### Data Corruption
-1. Stop notification service immediately
-2. Backup current data
-3. Restore from last known good backup
-4. Investigate root cause
-5. Implement fixes and restart service
+```sql
+-- Transaction: SE16N (direct table update mode)
+1. SE16N → ZTNOTIFY_MSGS
+2. Upload from file
+3. Verify data integrity
+```
 
 ---
 
-## 📄 Version History
+### Monitoring and Logging
 
-| Version | Date | Changes | Author |
-|---------|------|---------|---------|
-| 1.0.0 | 2024-09-29 | Initial release | AI Assistant |
-| 1.0.1 | TBD | Bug fixes and optimizations | TBD |
+#### Enable Debug Logging
+
+**Browser Console**:
+```javascript
+// Enable debug mode
+localStorage.setItem("notificationDebug", "true");
+
+// Check logs
+console.log("Notification polling:", data);
+```
+
+**ABAP Debug**:
+```abap
+" Set breakpoint in ZCL_NOTIFICATION_MANAGER
+BREAK-POINT.
+
+" Enable trace
+ST05 → Activate SQL Trace
+```
 
 ---
 
-**🚀 Congratulations!** Your SAP Fiori Global Notification Banner is now fully deployed and ready for production use.
+## 📞 Support
 
-**Next Steps**:
-1. Create your first test notification
-2. Train admin users on the interface
-3. Set up monitoring and alerts
-4. Schedule regular maintenance tasks
+- **📧 Email**: [gabriele.rendina@lutech.it](mailto:gabriele.rendina@lutech.it)
+- **📖 Documentation**: [README.md](../README.md)
+- **🎯 Admin UI Guide**: [ADMIN_UI_DISPLAY_MODE.md](./ADMIN_UI_DISPLAY_MODE.md)
+- **🏗️ Custom Domains**: [domains/README.md](../abap/domains/README.md)
 
-For additional support, refer to the troubleshooting section or contact the technical teams listed above.
+---
+
+**Deployment Time Estimate**: 4-6 hours
+**Recommended Window**: Non-peak hours
+**Downtime Required**: None (zero-downtime deployment)
+
+---
+
+**Last Updated**: January 30, 2025
+**Version**: 1.1.0
