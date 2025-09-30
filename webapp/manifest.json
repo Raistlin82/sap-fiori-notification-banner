@@ -11,6 +11,10 @@
     "description": "{{appDescription}}",
     "resources": "resources.json",
     "dataSources": {
+      "i18n": {
+        "type": "bundle",
+        "uri": "i18n/i18n.properties"
+      },
       "notificationService": {
         "uri": "/sap/bc/rest/zcl_notification_rest/",
         "type": "REST"
@@ -46,15 +50,10 @@
     },
     "models": {
       "i18n": {
-        "dataSource": "i18n",
         "type": "sap.ui.model.resource.ResourceModel",
         "settings": {
           "bundleName": "com.sap.notifications.banner.i18n.i18n"
         }
-      },
-      "notificationModel": {
-        "dataSource": "notificationService",
-        "type": "sap.ui.model.json.JSONModel"
       }
     },
     "resources": {

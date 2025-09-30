@@ -44,10 +44,18 @@ sap.ui.define([
             // Start polling for notifications every 30 seconds
             this._startNotificationPolling();
 
-            // Listen for shell container ready event
-            sap.ushell.Container.attachRendererCreatedEvent(function() {
-                that._notificationBanner.attachToShell();
-            });
+            // Listen for shell container ready event or attach immediately in standalone mode
+            if (typeof sap !== "undefined" && sap.ushell && sap.ushell.Container) {
+                // FLP mode - wait for shell to be ready
+                sap.ushell.Container.attachRendererCreatedEvent(function() {
+                    that._notificationBanner.attachToShell();
+                });
+            } else {
+                // Standalone mode - attach immediately
+                setTimeout(function() {
+                    that._notificationBanner.attachToShell();
+                }, 1000);
+            }
         },
 
         /**
