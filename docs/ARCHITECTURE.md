@@ -1,10 +1,10 @@
-# 🏗️ Architettura Sistema - SAP Fiori Global Notification Banner
+# 🏗️ System Architecture - SAP Fiori Global Notification Banner
 
-**Diagramma e Documentazione Architetturale Completa**
+**Complete Architectural Diagrams and Documentation**
 
 ---
 
-## 📊 Diagramma Architetturale di Alto Livello
+## 📊 High-Level Architectural Diagram
 
 ```mermaid
 graph TB
@@ -57,7 +57,7 @@ graph TB
 
 ---
 
-## 🔄 Flusso Dati - Visualizzazione Notifiche
+## 🔄 Data Flow - Notification Display
 
 ```mermaid
 sequenceDiagram
@@ -121,7 +121,7 @@ sequenceDiagram
 
 ---
 
-## 🔐 Flusso Sicurezza e Autorizzazioni
+## 🔐 Security and Authorization Flow
 
 ```mermaid
 flowchart TD

@@ -1,301 +1,328 @@
-# 📚 SAP Fiori Global Notification Banner - Documentazione Completa
+# 📚 SAP Fiori Global Notification Banner - Complete Documentation
 
-**Centro Documentazione Navigabile**
+**Navigable Documentation Hub**
 
-Benvenuto nella documentazione completa del sistema SAP Fiori Global Notification Banner. Seleziona la guida appropriata al tuo ruolo.
+Welcome to the complete documentation for the SAP Fiori Global Notification Banner system. Select the appropriate guide for your role.
 
 ---
 
-## 🗺️ Mappa della Documentazione
+## 🗺️ Documentation Map
 
 ```
 📚 Documentation Hub
-├── 👤 Utenti Finali
-│   └── USER_GUIDE.md - Come utilizzare le notifiche
-├── 👨‍💼 Amministratori
-│   └── ADMIN_GUIDE.md - Come gestire le notifiche
-├── 🔧 Team Tecnico
-│   └── DEPLOYMENT_GUIDE.md - Come installare il sistema
+├── 👤 End Users
+│   └── USER_GUIDE.md - How to use notifications
+├── 👨‍💼 Administrators
+│   └── ADMIN_GUIDE.md - How to manage notifications
+├── 🔧 Technical Team
+│   └── DEPLOYMENT_GUIDE.md - How to install the system
+├── 🏗️ Architecture
+│   └── ARCHITECTURE.md - System architecture diagrams
 └── 🧪 Quality Assurance
-    └── TEST_REPORT.md - Report test e validazioni
+    └── TEST_REPORT.md - Test reports and validations
 ```
 
 ---
-│   ├── ARCHITECTURE.md                # 🏗️ Diagramma Architetturale
 
+## 👥 Choose Your Role
 
-## 👥 Scegli il Tuo Ruolo
+### 👤 [**End User**](USER_GUIDE.md)
+**Are you a user who sees notifications on Fiori apps?**
 
-### 👤 [**Utente Finale**](USER_GUIDE.md)
-**Sei un utente che vede le notifiche sulle app Fiori?**
+📖 **Read the User Guide to:**
+- ✅ Understand how notifications work
+- ✅ Learn what colors and priorities mean
+- ✅ Navigate between multiple notifications
+- ✅ Use notifications on mobile and tablet
+- ✅ Find answers to common questions
 
-📖 **Leggi la User Guide per:**
-- ✅ Capire come funzionano le notifiche
-- ✅ Sapere cosa significano i colori e le priorità
-- ✅ Imparare a navigare tra notifiche multiple
-- ✅ Usare le notifiche su mobile e tablet
-- ✅ Trovare risposte alle domande comuni
-
-👉 **[Vai alla Guida Utente →](USER_GUIDE.md)**
+👉 **[Go to User Guide →](USER_GUIDE.md)**
 
 ---
 
-### 👨‍💼 [**Amministratore**](ADMIN_GUIDE.md)
-**Sei responsabile della pubblicazione di messaggi agli utenti?**
+### 👨‍💼 [**Administrator**](ADMIN_GUIDE.md)
+**Are you responsible for publishing messages to users?**
 
-📖 **Leggi la Admin Guide per:**
-- ✅ Creare notifiche efficaci
-- ✅ Gestire priorità e tempistiche
-- ✅ Modificare ed eliminare notifiche
-- ✅ Monitorare statistiche e performance
-- ✅ Seguire best practices di comunicazione
-- ✅ Risolvere problemi comuni
+📖 **Read the Admin Guide to:**
+- ✅ Create effective notifications
+- ✅ Manage priorities and timelines
+- ✅ Modify and delete notifications
+- ✅ Monitor statistics and performance
+- ✅ Follow communication best practices
+- ✅ Troubleshoot common issues
 
-👉 **[Vai alla Guida Amministratore →](ADMIN_GUIDE.md)**
+👉 **[Go to Administrator Guide →](ADMIN_GUIDE.md)**
 
 ---
 
-### 🔧 [**Team Tecnico/Sviluppatore**](DEPLOYMENT_GUIDE.md)
-**Sei responsabile dell'installazione e manutenzione del sistema?**
+### 🔧 [**Technical Team/Developer**](DEPLOYMENT_GUIDE.md)
+**Are you responsible for installation and system maintenance?**
 
-📖 **Leggi la Deployment Guide per:**
-- ✅ Installare il backend ABAP
-- ✅ Deployare il frontend UI5
-- ✅ Configurare sicurezza e autorizzazioni
-- ✅ Impostare servizi REST
-- ✅ Testare l'integrazione
-- ✅ Manutenzione e troubleshooting
+📖 **Read the Deployment Guide to:**
+- ✅ Install ABAP backend
+- ✅ Deploy UI5 frontend
+- ✅ Configure security and authorizations
+- ✅ Set up REST services
+- ✅ Test integration
+- ✅ Perform maintenance and troubleshooting
 
-👉 **[Vai alla Guida Deployment →](DEPLOYMENT_GUIDE.md)**
+👉 **[Go to Deployment Guide →](DEPLOYMENT_GUIDE.md)**
+
+---
+
+### 🏗️ [**Architecture**](ARCHITECTURE.md)
+**Do you want to understand the system architecture?**
+
+📖 **Read the Architecture Guide to:**
+- ✅ View system architecture diagrams
+- ✅ Understand component interactions
+- ✅ Review data flow sequences
+- ✅ Learn about security architecture
+- ✅ See database E-R models
+- ✅ Understand deployment architecture
+
+👉 **[Go to Architecture Guide →](ARCHITECTURE.md)**
 
 ---
 
 ### 🧪 [**Quality Assurance**](../TEST_REPORT.md)
-**Vuoi vedere i risultati dei test di sistema?**
+**Do you want to see system test results?**
 
-📖 **Leggi il Test Report per:**
-- ✅ Risultati test di qualità del codice
-- ✅ Validazioni frontend e backend
-- ✅ Test responsive design
-- ✅ Verifiche sicurezza
-- ✅ Metriche di performance
-- ✅ Status production ready
+📖 **Read the Test Report to:**
+- ✅ Code quality test results
+- ✅ Frontend and backend validations
+- ✅ Responsive design tests
+- ✅ Security verifications
+- ✅ Performance metrics
+- ✅ Production-ready status
 
-👉 **[Vai al Test Report →](../TEST_REPORT.md)**
-
----
-
-## 📑 Guide Rapide per Attività Comuni
-
-### Per Utenti
-
-| Cosa Vuoi Fare | Dove Trovarlo |
-|----------------|---------------|
-| Capire i colori delle notifiche | [User Guide - Tipi di Notifiche](USER_GUIDE.md#tipi-di-notifiche) |
-| Navigare tra più notifiche | [User Guide - Interazioni](USER_GUIDE.md#interazioni-utente) |
-| Usare su mobile | [User Guide - Dispositivi](USER_GUIDE.md#dispositivi-supportati) |
-| Problemi con il banner | [User Guide - FAQ](USER_GUIDE.md#faq) |
-
-### Per Amministratori
-
-| Cosa Vuoi Fare | Dove Trovarlo |
-|----------------|---------------|
-| Creare prima notifica | [Admin Guide - Creare Notifica](ADMIN_GUIDE.md#creare-una-notifica) |
-| Scegliere priorità corretta | [Admin Guide - Priorità](ADMIN_GUIDE.md#creare-una-notifica) |
-| Scrivere messaggi efficaci | [Admin Guide - Best Practices](ADMIN_GUIDE.md#best-practices) |
-| Risolvere problemi | [Admin Guide - Troubleshooting](ADMIN_GUIDE.md#risoluzione-problemi) |
-| Usare le API | [Admin Guide - API Reference](ADMIN_GUIDE.md#api-reference) |
-
-### Per Team Tecnico
-
-| Cosa Vuoi Fare | Dove Trovarlo |
-|----------------|---------------|
-| Installare backend | [Deployment Guide - Backend](DEPLOYMENT_GUIDE.md#backend-deployment-abap) |
-| Installare frontend | [Deployment Guide - Frontend](DEPLOYMENT_GUIDE.md#frontend-deployment-ui5) |
-| Configurare sicurezza | [Deployment Guide - Configuration](DEPLOYMENT_GUIDE.md#configuration) |
-| Testare installazione | [Deployment Guide - Testing](DEPLOYMENT_GUIDE.md#testing) |
-| Risolvere errori | [Deployment Guide - Troubleshooting](DEPLOYMENT_GUIDE.md#troubleshooting) |
+👉 **[Go to Test Report →](../TEST_REPORT.md)**
 
 ---
 
-## 🎯 Percorsi Guidati
+## 📑 Quick Guides for Common Tasks
 
-### 🚀 **Nuovo Progetto - Start to Finish**
-Stai iniziando da zero? Segui questo percorso:
+### For Users
 
-1. **[Deployment Guide](DEPLOYMENT_GUIDE.md)** - Installa il sistema
-2. **[Test Report](../TEST_REPORT.md)** - Verifica che tutto funzioni
-3. **[Admin Guide](ADMIN_GUIDE.md)** - Crea la prima notifica di test
-4. **[User Guide](USER_GUIDE.md)** - Forma gli utenti
+| What Do You Want To Do | Where To Find It |
+|------------------------|------------------|
+| Understand notification colors | [User Guide - Notification Types](USER_GUIDE.md#notification-types) |
+| Navigate between multiple notifications | [User Guide - User Interactions](USER_GUIDE.md#user-interactions) |
+| Use on mobile | [User Guide - Supported Devices](USER_GUIDE.md#supported-devices) |
+| Banner problems | [User Guide - FAQ](USER_GUIDE.md#faq) |
 
-### 👨‍💼 **Nuovo Amministratore - Onboarding**
-Sei stato designato come amministratore? Inizia qui:
+### For Administrators
 
-1. **[Admin Guide - Accesso](ADMIN_GUIDE.md#accesso-allinterfaccia-admin)** - Verifica accesso
-2. **[Admin Guide - Creare](ADMIN_GUIDE.md#creare-una-notifica)** - Prima notifica
-3. **[Admin Guide - Best Practices](ADMIN_GUIDE.md#best-practices)** - Linee guida
-4. **[Admin Guide - Monitoraggio](ADMIN_GUIDE.md#monitoraggio-e-statistiche)** - Dashboard
+| What Do You Want To Do | Where To Find It |
+|------------------------|------------------|
+| Create first notification | [Admin Guide - Creating a Notification](ADMIN_GUIDE.md#creating-a-notification) |
+| Choose correct priority | [Admin Guide - Priority Selection](ADMIN_GUIDE.md#creating-a-notification) |
+| Write effective messages | [Admin Guide - Best Practices](ADMIN_GUIDE.md#best-practices) |
+| Close notification early | [Admin Guide - Early Close](ADMIN_GUIDE.md#closing-a-notification-early) |
+| Troubleshoot issues | [Admin Guide - Troubleshooting](ADMIN_GUIDE.md#troubleshooting) |
+| Use APIs | [Admin Guide - API Reference](ADMIN_GUIDE.md#api-reference) |
 
-### 👤 **Nuovo Utente - Quick Start**
-Hai visto il banner e vuoi capire di più?
+### For Technical Team
 
-1. **[User Guide - Come Funziona](USER_GUIDE.md#come-funziona)** - Panoramica
-2. **[User Guide - Tipi](USER_GUIDE.md#tipi-di-notifiche)** - Colori e priorità
-3. **[User Guide - Interazioni](USER_GUIDE.md#interazioni-utente)** - Come usarlo
-4. **[User Guide - FAQ](USER_GUIDE.md#faq)** - Domande comuni
+| What Do You Want To Do | Where To Find It |
+|------------------------|------------------|
+| Install backend | [Deployment Guide - Backend](DEPLOYMENT_GUIDE.md#backend-deployment-abap) |
+| Install frontend | [Deployment Guide - Frontend](DEPLOYMENT_GUIDE.md#frontend-deployment-ui5) |
+| Configure security | [Deployment Guide - Configuration](DEPLOYMENT_GUIDE.md#configuration) |
+| Test installation | [Deployment Guide - Testing](DEPLOYMENT_GUIDE.md#testing) |
+| Resolve errors | [Deployment Guide - Troubleshooting](DEPLOYMENT_GUIDE.md#troubleshooting) |
 
 ---
 
-## 📊 Struttura del Progetto
+## 🎯 Guided Paths
+
+### 🚀 **New Project - Start to Finish**
+Starting from scratch? Follow this path:
+
+1. **[Deployment Guide](DEPLOYMENT_GUIDE.md)** - Install the system
+2. **[Test Report](../TEST_REPORT.md)** - Verify everything works
+3. **[Admin Guide](ADMIN_GUIDE.md)** - Create first test notification
+4. **[User Guide](USER_GUIDE.md)** - Train end users
+
+### 👨‍💼 **New Administrator - Onboarding**
+Been designated as administrator? Start here:
+
+1. **[Admin Guide - Access](ADMIN_GUIDE.md#accessing-the-admin-interface)** - Verify access
+2. **[Admin Guide - Create](ADMIN_GUIDE.md#creating-a-notification)** - First notification
+3. **[Admin Guide - Best Practices](ADMIN_GUIDE.md#best-practices)** - Guidelines
+4. **[Admin Guide - Monitoring](ADMIN_GUIDE.md#monitoring-and-statistics)** - Dashboard
+
+### 👤 **New User - Quick Start**
+Saw the banner and want to learn more?
+
+1. **[User Guide - How It Works](USER_GUIDE.md#how-it-works)** - Overview
+2. **[User Guide - Types](USER_GUIDE.md#notification-types)** - Colors and priorities
+3. **[User Guide - Interactions](USER_GUIDE.md#user-interactions)** - How to use it
+4. **[User Guide - FAQ](USER_GUIDE.md#faq)** - Common questions
+
+---
+
+## 📊 Project Structure
 
 ```
 sap-fiori-notification-banner/
 │
-├── 📁 docs/                          # 📚 Documentazione (sei qui!)
-│   ├── INDEX.md                      # 🗺️ Questo file - Navigation Hub
-│   ├── USER_GUIDE.md                 # 👤 Guida Utente Finale
-│   ├── ADMIN_GUIDE.md                # 👨‍💼 Guida Amministratore
-│   └── DEPLOYMENT_GUIDE.md           # 🔧 Guida Deployment Tecnico
+├── 📁 docs/                          # 📚 Documentation (you are here!)
+│   ├── INDEX.md                      # 🗺️ This file - Navigation Hub
+│   ├── USER_GUIDE.md                 # 👤 End User Guide
+│   ├── ADMIN_GUIDE.md                # 👨‍💼 Administrator Guide
+│   ├── DEPLOYMENT_GUIDE.md           # 🔧 Technical Deployment Guide
+│   └── ARCHITECTURE.md               # 🏗️ Architecture Documentation
 │
 ├── 📁 webapp/                        # Frontend UI5 Application
 ├── 📁 abap/                          # Backend ABAP Components
 ├── 📁 admin/                         # Admin Interface
 │
 ├── 📄 README.md                      # Project Overview
-├── 📄 TEST_REPORT.md                 # Report Test Completo
+├── 📄 TEST_REPORT.md                 # Complete Test Report
 └── 📄 package.json                   # Dependencies
 
 ```
 
 ---
 
-## 🔍 Ricerca Rapida
+## 🔍 Quick Search
 
-### Cerca per Parola Chiave
+### Search by Keyword
 
-**Notifiche:**
-- Come creare → [Admin Guide](ADMIN_GUIDE.md#creare-una-notifica)
-- Come chiudere → [User Guide](USER_GUIDE.md#interazioni-utente)
-- Tipi disponibili → [User Guide](USER_GUIDE.md#tipi-di-notifiche)
+**Notifications:**
+- How to create → [Admin Guide](ADMIN_GUIDE.md#creating-a-notification)
+- How to close → [User Guide](USER_GUIDE.md#user-interactions)
+- Available types → [User Guide](USER_GUIDE.md#notification-types)
+- Close early → [Admin Guide](ADMIN_GUIDE.md#closing-a-notification-early)
 
-**Priorità:**
-- Quando usare HIGH → [Admin Guide](ADMIN_GUIDE.md#creare-una-notifica)
-- Cosa significa il rosso → [User Guide](USER_GUIDE.md#tipi-di-notifiche)
+**Priorities:**
+- When to use HIGH → [Admin Guide](ADMIN_GUIDE.md#creating-a-notification)
+- What red means → [User Guide](USER_GUIDE.md#notification-types)
 - Best practices → [Admin Guide](ADMIN_GUIDE.md#best-practices)
 
-**Problemi:**
-- Banner non appare → [Admin Guide](ADMIN_GUIDE.md#risoluzione-problemi)
-- Errori durante salvataggio → [Admin Guide](ADMIN_GUIDE.md#risoluzione-problemi)
-- FAQ utenti → [User Guide](USER_GUIDE.md#faq)
+**Problems:**
+- Banner doesn't appear → [Admin Guide](ADMIN_GUIDE.md#troubleshooting)
+- Save errors → [Admin Guide](ADMIN_GUIDE.md#troubleshooting)
+- User FAQs → [User Guide](USER_GUIDE.md#faq)
 
-**Installazione:**
-- Backend ABAP → [Deployment Guide](DEPLOYMENT_GUIDE.md#backend-deployment-abap)
-- Frontend UI5 → [Deployment Guide](DEPLOYMENT_GUIDE.md#frontend-deployment-ui5)
-- Sicurezza → [Deployment Guide](DEPLOYMENT_GUIDE.md#configuration)
+**Installation:**
+- ABAP Backend → [Deployment Guide](DEPLOYMENT_GUIDE.md#backend-deployment-abap)
+- UI5 Frontend → [Deployment Guide](DEPLOYMENT_GUIDE.md#frontend-deployment-ui5)
+- Security → [Deployment Guide](DEPLOYMENT_GUIDE.md#configuration)
+- SAP Transactions → [Deployment Guide](DEPLOYMENT_GUIDE.md#configuration)
 
 **Mobile:**
-- Supporto dispositivi → [User Guide](USER_GUIDE.md#dispositivi-supportati)
+- Device support → [User Guide](USER_GUIDE.md#supported-devices)
 - Responsive design → [Test Report](../TEST_REPORT.md)
 
+**Architecture:**
+- System diagrams → [Architecture](ARCHITECTURE.md)
+- Component structure → [Architecture](ARCHITECTURE.md#component-structure)
+- Data flow → [Architecture](ARCHITECTURE.md#data-flow)
+- Security flow → [Architecture](ARCHITECTURE.md#security-and-authorization-flow)
+
 ---
 
-## 📝 Convenzioni della Documentazione
+## 📝 Documentation Conventions
 
-### Icone Utilizzate
-- 👤 Utente finale
-- 👨‍💼 Amministratore
-- 🔧 Team tecnico
-- ✅ Azione da fare
-- ❌ Cosa evitare
-- ⚠️ Attenzione importante
-- 💡 Suggerimento utile
-- 📊 Dashboard/Statistiche
-- 🔒 Sicurezza
+### Icons Used
+- 👤 End user
+- 👨‍💼 Administrator
+- 🔧 Technical team
+- ✅ Action to do
+- ❌ What to avoid
+- ⚠️ Important warning
+- 💡 Useful tip
+- 📊 Dashboard/Statistics
+- 🔒 Security
 - 📱 Mobile/Responsive
 
-### Livelli di Priorità
-- 🔴 **HIGH**: Urgente, azione immediata
-- 🟡 **MEDIUM**: Importante, pianificare
-- 🔵 **LOW**: Informativo, quando possibile
+### Priority Levels
+- 🔴 **HIGH**: Urgent, immediate action
+- 🟡 **MEDIUM**: Important, plan ahead
+- 🔵 **LOW**: Informative, when possible
 
-### Blocchi di Codice
+### Code Blocks
 ```
-Codice di esempio
+Example code
 ```
 
-### Note Importanti
-> **Note**: Informazioni aggiuntive importanti
+### Important Notes
+> **Note**: Additional important information
 
 ---
 
-## 🆘 Supporto
+## 🆘 Support
 
-### Non Trovi Quello Che Cerchi?
+### Can't Find What You're Looking For?
 
-#### Per Utenti Finali
+#### For End Users
 📧 Email: [gabriele.rendina@lutech.it](mailto:gabriele.rendina@lutech.it) / [ileana.scaglia@lutech.it](mailto:ileana.scaglia@lutech.it)
 
-#### Per Amministratori
-📧 Email: [Ileana Scaglia - ileana.scaglia@lutech.it](mailto:Ileana Scaglia - ileana.scaglia@lutech.it)
-💬 Teams: Canal SAP Support
+#### For Administrators
+📧 Email: [Ileana Scaglia - ileana.scaglia@lutech.it](mailto:ileana.scaglia@lutech.it)
+💬 Teams: SAP Support Channel
 
-#### Per Team Tecnico
-📧 Email: [dev-team@lutech.it](mailto:dev-team@lutech.it)
-🎫 Ticket: [ticket.company.com](https://ticket.company.com)
-
----
-
-## 📅 Aggiornamenti Documentazione
-
-| Data | Versione | Modifiche |
-|------|----------|-----------|
-| 29/09/2024 | 1.0.0 | Prima release completa |
-| TBD | 1.1.0 | Aggiornamenti futuri |
+#### For Technical Team
+📧 Email: [Gabriele Rendina - gabriele.rendina@lutech.it](mailto:gabriele.rendina@lutech.it)
+🎫 Ticket: [Your Ticket System](https://ticket.company.com)
 
 ---
 
-## 🔗 Link Utili
+## 📅 Documentation Updates
 
-### Repository e Codice
-- 📦 **GitHub**: [Repository Link](https://github.com/your-org/sap-fiori-notification-banner)
-- 🐛 **Issues**: [Report Bug/Feature](https://github.com/your-org/sap-fiori-notification-banner/issues)
-- 💬 **Discussions**: [Community Forum](https://github.com/your-org/sap-fiori-notification-banner/discussions)
+| Date | Version | Changes |
+|------|---------|---------|
+| 09/29/2024 | 1.0.0 | First complete release |
+| 09/30/2024 | 1.1.0 | Early Close feature, English translation, detailed deployment |
+| TBD | 1.2.0 | Future updates |
 
-### Risorse SAP
+---
+
+## 🔗 Useful Links
+
+### Repository and Code
+- 📦 **GitHub**: [Repository Link](https://github.com/Raistlin82/sap-fiori-notification-banner)
+- 🐛 **Issues**: [Report Bug/Feature](https://github.com/Raistlin82/sap-fiori-notification-banner/issues)
+- 💬 **Discussions**: [Community Forum](https://github.com/Raistlin82/sap-fiori-notification-banner/discussions)
+
+### SAP Resources
 - 📚 **SAP Help Portal**: [help.sap.com](https://help.sap.com)
 - 🎓 **SAP Learning**: [learning.sap.com](https://learning.sap.com)
 - 💻 **UI5 Documentation**: [ui5.sap.com](https://ui5.sap.com)
 
 ---
 
-## ✨ Contribuisci alla Documentazione
+## ✨ Contribute to Documentation
 
-Hai trovato un errore? Vuoi migliorare una guida?
+Found an error? Want to improve a guide?
 
-1. Apri un [Issue](https://github.com/your-org/sap-fiori-notification-banner/issues)
-2. Proponi una [Pull Request](https://github.com/your-org/sap-fiori-notification-banner/pulls)
-3. Contatta il team di sviluppo
+1. Open an [Issue](https://github.com/Raistlin82/sap-fiori-notification-banner/issues)
+2. Propose a [Pull Request](https://github.com/Raistlin82/sap-fiori-notification-banner/pulls)
+3. Contact the development team
 
-**La documentazione è viva e migliora con il tuo feedback!**
-
----
-
-## 🎓 Training e Formazione
-
-### Corsi Disponibili
-- **Utenti**: 30 minuti - Overview e utilizzo base
-- **Amministratori**: 2 ore - Gestione completa
-- **Tecnici**: 4 ore - Installazione e manutenzione
-
-### Materiali di Training
-- 📹 Video tutorials (prossimamente)
-- 📊 Slide presentazioni
-- 🧪 Ambiente di test per practice
+**Documentation is alive and improves with your feedback!**
 
 ---
 
-**🚀 Inizia ora! Scegli la tua guida e diventa esperto del SAP Fiori Global Notification Banner!**
+## 🎓 Training and Education
+
+### Available Courses
+- **Users**: 30 minutes - Overview and basic usage
+- **Administrators**: 2 hours - Complete management
+- **Technical**: 4 hours - Installation and maintenance
+
+### Training Materials
+- 📹 Video tutorials (coming soon)
+- 📊 Presentation slides
+- 🧪 Test environment for practice
 
 ---
 
-*Documentazione v1.0.0 - Ultimo aggiornamento: 29 Settembre 2024*
+**🚀 Start now! Choose your guide and become an expert with SAP Fiori Global Notification Banner!**
+
+---
+
+*Documentation v1.1.0 - Last updated: September 30, 2024*
+*Architects: Gabriele Rendina & Ileana Scaglia*

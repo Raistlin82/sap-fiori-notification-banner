@@ -68,168 +68,170 @@ You will immediately see:
 
 ---
 
-## ➕ Creare una Notifica
+## ➕ Creating a Notification
 
-### Passo 1: Aprire il Dialog di Creazione
-1. Clicca il pulsante **"Create Notification"** in alto a destra
-2. Si apre un dialog con form vuoto
+For complete architectural information about the notification system, see the [Architecture Guide](ARCHITECTURE.md).
 
-### Passo 2: Compilare i Campi
+### Step 1: Open the Creation Dialog
+1. Click the **"Create Notification"** button in the top right
+2. A dialog opens with an empty form
 
-#### 📝 **Campi Obbligatori**
+### Step 2: Fill in the Fields
 
-| Campo | Descrizione | Esempio |
+#### 📝 **Required Fields**
+
+| Field | Description | Example |
 |-------|-------------|---------|
-| **Title** | Titolo breve e chiaro | "Sistema in Manutenzione" |
-| **Message Text** | Descrizione dettagliata | "Il sistema sarà offline dalle 22:00 alle 24:00" |
-| **Message Type** | Categoria del messaggio | URGENT, INFO, WARNING, MAINTENANCE |
-| **Severity** | Livello di priorità | HIGH, MEDIUM, LOW |
-| **Start Date** | Data inizio validità | 15/01/2024 |
-| **End Date** | Data fine validità | 16/01/2024 |
+| **Title** | Brief and clear title | "System Under Maintenance" |
+| **Message Text** | Detailed description | "The system will be offline from 10:00 PM to 12:00 AM" |
+| **Message Type** | Message category | URGENT, INFO, WARNING, MAINTENANCE |
+| **Severity** | Priority level | HIGH, MEDIUM, LOW |
+| **Start Date** | Validity start date | 01/15/2024 |
+| **End Date** | Validity end date | 01/16/2024 |
 
-#### 🎯 **Campi Opzionali**
+#### 🎯 **Optional Fields**
 
-| Campo | Descrizione | Valori | Default |
+| Field | Description | Values | Default |
 |-------|-------------|--------|---------|
-| **Target Users** | Destinatari | ALL, SPECIFIC, ROLE_NAME | ALL |
-| **Active** | Stato attivazione | X (attivo), vuoto (inattivo) | X |
+| **Target Users** | Recipients | ALL, SPECIFIC, ROLE_NAME | ALL |
+| **Active** | Activation status | X (active), blank (inactive) | X |
 
-### Passo 3: Scegliere la Priorità Corretta
+### Step 3: Choose the Correct Priority
 
-#### 🔴 **HIGH (Alta) - Usare quando:**
-- Sistema completamente offline
-- Problemi di sicurezza critici
-- Perdita di dati possibile
-- Azione immediata richiesta
-- **Esempio**: *"URGENTE: Sistema offline dalle 14:00. Salvare lavoro."*
+#### 🔴 **HIGH (Critical) - Use when:**
+- System completely offline
+- Critical security issues
+- Data loss possible
+- Immediate action required
+- **Example**: *"URGENT: System offline from 2:00 PM. Save your work."*
 
-#### 🟡 **MEDIUM (Media) - Usare quando:**
-- Manutenzioni programmate
-- Nuove funzionalità importanti
-- Cambiamenti di processo
-- Deadline imminenti
-- **Esempio**: *"Manutenzione programmata domenica 20:00-22:00"*
+#### 🟡 **MEDIUM (Warning) - Use when:**
+- Scheduled maintenance
+- Important new features
+- Process changes
+- Imminent deadlines
+- **Example**: *"Scheduled maintenance Sunday 8:00 PM - 10:00 PM"*
 
-#### 🔵 **LOW (Bassa) - Usare quando:**
-- Informazioni generali
-- Suggerimenti e tips
-- Aggiornamenti non urgenti
-- Comunicazioni generali
-- **Esempio**: *"Nuova guida utente disponibile nella knowledge base"*
+#### 🔵 **LOW (Informative) - Use when:**
+- General information
+- Tips and suggestions
+- Non-urgent updates
+- General communications
+- **Example**: *"New user guide available in the knowledge base"*
 
-### Passo 4: Impostare Date Corrette
+### Step 4: Set Correct Dates
 
-#### ⚠️ **Regole Importanti**
-- **End Date** DEVE essere successiva a **Start Date**
-- Le notifiche appaiono SOLO nel periodo Start-End
-- Timezone: Usa il fuso orario del sistema SAP
-- **Suggerimento**: Per emergenze, usa Start Date = oggi
+#### ⚠️ **Important Rules**
+- **End Date** MUST be after **Start Date**
+- Notifications appear ONLY during the Start-End period
+- Timezone: Use SAP system timezone
+- **Tip**: For emergencies, use Start Date = today
 
-#### 📅 **Esempi di Pianificazione**
+#### 📅 **Planning Examples**
 
-**Emergenza Immediata:**
+**Immediate Emergency:**
 ```
-Start Date: 29/09/2024 (oggi)
-End Date: 29/09/2024 (oggi)
-Durata: Fino a fine giornata
-```
-
-**Manutenzione Programmata:**
-```
-Start Date: 01/10/2024 (5 giorni prima)
-End Date: 07/10/2024 (giorno dopo manutenzione)
-Durata: 7 giorni di preavviso
+Start Date: 09/29/2024 (today)
+End Date: 09/29/2024 (today)
+Duration: Until end of day
 ```
 
-**Comunicazione Permanente:**
+**Scheduled Maintenance:**
+```
+Start Date: 10/01/2024 (5 days before)
+End Date: 10/07/2024 (day after maintenance)
+Duration: 7 days advance notice
+```
+
+**Permanent Communication:**
 ```
 Start Date: 01/01/2024
-End Date: 31/12/2024
-Durata: Tutto l'anno
+End Date: 12/31/2024
+Duration: Entire year
 ```
 
-### Passo 5: Salvare e Verificare
+### Step 5: Save and Verify
 
-1. Clicca **"Save"**
-2. Sistema valida i dati:
-   - ✅ Titolo non vuoto
-   - ✅ Messaggio non vuoto
+1. Click **"Save"**
+2. System validates data:
+   - ✅ Title not empty
+   - ✅ Message not empty
    - ✅ End Date > Start Date
-3. Se OK: notifica creata e attiva
-4. Se ERRORE: messaggio di errore specifico
+3. If OK: notification created and active
+4. If ERROR: specific error message
 
-#### Verifica Immediata
-- La notifica appare nella tabella
-- Status = "Active" (se dentro il periodo)
-- Gli utenti la vedono entro 30 secondi
-
----
-
-## ✏️ Modificare una Notifica
-
-### Metodo 1: Dalla Tabella
-1. Trova la notifica nella lista
-2. Clicca l'icona **"Edit" (✏️)** nella colonna Actions
-3. Si apre il dialog pre-compilato
-
-### Metodo 2: Click sulla Riga
-1. Clicca direttamente sulla riga della notifica
-2. Si apre il dialog in modalità visualizzazione
-3. Modifica i campi necessari
-
-### Campi Modificabili
-- ✅ **Title**: Aggiorna titolo
-- ✅ **Message Text**: Modifica descrizione
-- ✅ **Severity**: Cambia priorità
-- ✅ **End Date**: Prolunga o accorcia validità
-- ✅ **Active**: Attiva/disattiva
-- ❌ **Message ID**: NON modificabile (generato dal sistema)
-- ❌ **Start Date**: Modificabile con cautela
-
-### Salvare le Modifiche
-1. Clicca **"Save"**
-2. Le modifiche sono immediate
-3. Gli utenti vedono la versione aggiornata al prossimo refresh (max 30s)
+#### Immediate Verification
+- Notification appears in the table
+- Status = "Active" (if within period)
+- Users see it within 30 seconds
 
 ---
 
-## 🆕 Chiudere Anticipatamente una Notifica
+## ✏️ Modifying a Notification
 
-### Novità Versione 1.1.0
+### Method 1: From Table
+1. Find the notification in the list
+2. Click the **"Edit" (✏️)** icon in the Actions column
+3. Dialog opens pre-filled
 
-A partire dalla **versione 1.1.0**, è disponibile una funzionalità dedicata per chiudere anticipatamente le notifiche ancora attive, senza doverle eliminare o modificare manualmente.
+### Method 2: Click on Row
+1. Click directly on the notification row
+2. Dialog opens in view mode
+3. Modify necessary fields
 
-### 🎯 Quando Usare la Chiusura Anticipata
+### Modifiable Fields
+- ✅ **Title**: Update title
+- ✅ **Message Text**: Modify description
+- ✅ **Severity**: Change priority
+- ✅ **End Date**: Extend or shorten validity
+- ✅ **Active**: Activate/deactivate
+- ❌ **Message ID**: NOT modifiable (system generated)
+- ❌ **Start Date**: Modifiable with caution
 
-Usa questa funzione quando:
-- ✅ Un problema urgente è stato risolto prima del previsto
-- ✅ Una manutenzione è stata completata in anticipo
-- ✅ Una comunicazione non è più rilevante
-- ✅ Vuoi terminare immediatamente una notifica attiva
+### Saving Changes
+1. Click **"Save"**
+2. Changes are immediate
+3. Users see the updated version at next refresh (max 30s)
 
-### 📍 Come Riconoscere il Bottone
+---
 
-Nella colonna **Actions** della tabella, vedrai:
-- 🔴 **Icona "Decline" (✖️)** - Visibile SOLO per notifiche **attive**
-- Il bottone è nascosto per notifiche già inattive o scadute
+## 🆕 Closing a Notification Early
+
+### New Feature in Version 1.1.0
+
+Starting with **version 1.1.0**, a dedicated feature is available to close active notifications early, without having to delete or manually modify them.
+
+### 🎯 When to Use Early Close
+
+Use this function when:
+- ✅ An urgent issue has been resolved ahead of schedule
+- ✅ Maintenance has been completed early
+- ✅ A communication is no longer relevant
+- ✅ You want to immediately terminate an active notification
+
+### 📍 How to Recognize the Button
+
+In the **Actions** column of the table, you will see:
+- 🔴 **"Decline" Icon (✖️)** - Visible ONLY for **active** notifications
+- The button is hidden for already inactive or expired notifications
 
 ```
 Actions:
 [✖️] Close Early  [👁️] Toggle  [✏️] Edit  [🗑️] Delete
  ↑
- Nuovo bottone v1.1.0
+ New button v1.1.0
 ```
 
-### 🚀 Procedura di Chiusura Anticipata
+### 🚀 Early Close Procedure
 
-#### Passo 1: Individuare la Notifica
-1. Nella tabella admin, trova la notifica da chiudere
-2. Verifica che sia **Active** (status verde)
-3. Controlla la colonna **Actions**
+#### Step 1: Identify the Notification
+1. In the admin table, find the notification to close
+2. Verify it is **Active** (green status)
+3. Check the **Actions** column
 
-#### Passo 2: Avviare la Chiusura
-1. Clicca il bottone **"Close Early" (✖️)**
-2. Appare un dialog di conferma:
+#### Step 2: Initiate the Closure
+1. Click the **"Close Early" (✖️)** button
+2. A confirmation dialog appears:
 
 ```
 ┌────────────────────────────────────────────┐
@@ -243,230 +245,230 @@ Actions:
 └────────────────────────────────────────────┘
 ```
 
-#### Passo 3: Confermare
-1. Clicca **"OK"** per confermare la chiusura
-2. Oppure **"Cancel"** per annullare l'operazione
+#### Step 3: Confirm
+1. Click **"OK"** to confirm the closure
+2. Or **"Cancel"** to abort the operation
 
-### 🔧 Cosa Succede Tecnicamente
+### 🔧 What Happens Technically
 
-Quando confermi la chiusura anticipata:
+When you confirm the early closure:
 
-1. **End Date** viene aggiornata alla **data odierna**
+1. **End Date** is updated to **today's date**
    ```
-   Prima:  End Date = 31/12/2024
-   Dopo:   End Date = 30/09/2024 (oggi)
-   ```
-
-2. **Status Active** viene disattivato
-   ```
-   Prima:  Active = 'X'
-   Dopo:   Active = ' ' (vuoto)
+   Before:  End Date = 12/31/2024
+   After:   End Date = 09/30/2024 (today)
    ```
 
-3. **Salvataggio** nel database tramite REST API PUT
+2. **Active Status** is deactivated
+   ```
+   Before:  Active = 'X'
+   After:   Active = ' ' (blank)
+   ```
 
-4. **Refresh automatico** della tabella admin
+3. **Save** to database via REST API PUT
 
-5. **Feedback immediato** con messaggio di successo/errore
+4. **Automatic refresh** of the admin table
 
-### ✅ Vantaggi della Chiusura Anticipata
+5. **Immediate feedback** with success/error message
 
-| Vantaggio | Descrizione |
+### ✅ Advantages of Early Close
+
+| Advantage | Description |
 |-----------|-------------|
-| **🎯 Un Click** | Operazione immediata senza aprire dialog di modifica |
-| **📊 Tracciabilità** | End date aggiornata mantiene storico accurato |
-| **🔒 Sicurezza** | Richiede conferma esplicita prima dell'azione |
-| **⚡ Velocità** | Più rapida rispetto a modifica manuale |
-| **🔄 Reversibile** | Puoi riattivare e modificare se necessario |
+| **🎯 One Click** | Immediate operation without opening edit dialog |
+| **📊 Traceability** | Updated end date maintains accurate history |
+| **🔒 Security** | Requires explicit confirmation before action |
+| **⚡ Speed** | Faster than manual modification |
+| **🔄 Reversible** | You can reactivate and modify if necessary |
 
-### 🆚 Differenza tra Chiusura Anticipata e Altre Azioni
+### 🆚 Difference Between Early Close and Other Actions
 
-| Azione | End Date | Active | Reversibile | Tracciato |
-|--------|----------|--------|-------------|-----------|
-| **Close Early** | ✅ Aggiornata a oggi | ✅ Disattivata | ✅ Sì | ✅ Sì |
-| **Toggle (Disattiva)** | ❌ Invariata | ✅ Disattivata | ✅ Sì | ⚠️ Parziale |
-| **Edit End Date** | ✅ Manuale | ❌ Invariata | ✅ Sì | ✅ Sì |
-| **Delete** | ❌ Rimossa | ❌ Rimossa | ❌ No | ❌ No |
+| Action | End Date | Active | Reversible | Traced |
+|--------|----------|--------|-------------|---------|
+| **Close Early** | ✅ Updated to today | ✅ Deactivated | ✅ Yes | ✅ Yes |
+| **Toggle (Deactivate)** | ❌ Unchanged | ✅ Deactivated | ✅ Yes | ⚠️ Partial |
+| **Edit End Date** | ✅ Manual | ❌ Unchanged | ✅ Yes | ✅ Yes |
+| **Delete** | ❌ Removed | ❌ Removed | ❌ No | ❌ No |
 
 ### 💡 Best Practice
 
-#### ✅ Usa "Close Early" quando:
-- Vuoi terminare una notifica in modo pulito
-- Hai bisogno di tracciabilità storica
-- La notifica era urgente ma ora risolta
+#### ✅ Use "Close Early" when:
+- You want to terminate a notification cleanly
+- You need historical traceability
+- The notification was urgent but now resolved
 
-#### ❌ Non usare "Close Early" se:
-- Vuoi solo nascondere temporaneamente → Usa **Toggle**
-- Vuoi eliminare completamente → Usa **Delete**
-- Vuoi modificare altri campi → Usa **Edit**
+#### ❌ Don't use "Close Early" if:
+- You only want to hide temporarily → Use **Toggle**
+- You want to delete completely → Use **Delete**
+- You want to modify other fields → Use **Edit**
 
-### 🔍 Verificare la Chiusura
+### 🔍 Verifying the Closure
 
-Dopo aver chiuso anticipatamente una notifica:
+After closing a notification early:
 
-1. **Nella tabella admin**:
-   - Status cambia da "Active" (verde) a "Inactive" (rosso)
-   - End Date mostra la data odierna
-   - Bottone "Close Early" sparisce
+1. **In the admin table**:
+   - Status changes from "Active" (green) to "Inactive" (red)
+   - End Date shows today's date
+   - "Close Early" button disappears
 
-2. **Per gli utenti finali**:
-   - La notifica sparisce entro 30 secondi
-   - Non appare più su nessuna app Fiori
+2. **For end users**:
+   - The notification disappears within 30 seconds
+   - No longer appears on any Fiori apps
 
-3. **Nel database**:
-   - Record rimane nel sistema
-   - CHANGED_BY = tuo username
-   - CHANGED_AT = timestamp dell'operazione
-
----
-
-## 🗑️ Eliminare una Notifica
-
-### ⚠️ ATTENZIONE
-L'eliminazione è **PERMANENTE** e **NON REVERSIBILE**!
-
-### Procedura
-1. Trova la notifica nella tabella
-2. Clicca l'icona **"Delete" (🗑️)**
-3. Conferma nel dialog: "Are you sure you want to delete this notification?"
-4. Clicca **"OK"** per confermare o **"Cancel"** per annullare
-
-### Cosa Succede
-- ✅ Notifica rimossa dal database
-- ✅ Sparisce dalla tabella admin
-- ✅ Non più visibile agli utenti (entro 30s)
-- ❌ **NON recuperabile** - backup necessario se importante
-
-### Alternative all'Eliminazione
-
-#### Opzione 1: Disattivazione
-Invece di eliminare, puoi **disattivare**:
-1. Modifica la notifica
-2. Togli la spunta da **"Active"**
-3. Salva
-4. **Risultato**: Notifica nascosta ma recuperabile
-
-#### Opzione 2: Riduzione Validità
-Accorcia la validità:
-1. Modifica la notifica
-2. Imposta **End Date** = oggi
-3. Salva
-4. **Risultato**: Notifica scade automaticamente
+3. **In the database**:
+   - Record remains in the system
+   - CHANGED_BY = your username
+   - CHANGED_AT = timestamp of the operation
 
 ---
 
-## 📊 Gestione Notifiche Multiple
+## 🗑️ Deleting a Notification
 
-### Priorità di Visualizzazione
-Quando ci sono più notifiche attive:
-1. **HIGH** appaiono per prime
-2. **MEDIUM** in seconda posizione
-3. **LOW** per ultime
+### ⚠️ WARNING
+Deletion is **PERMANENT** and **NOT REVERSIBLE**!
 
-### Navigazione Utente
-Gli utenti vedranno:
-```
-⬅️ [1 di 5] ➡️
-```
-E possono navigare tra tutte le notifiche attive.
+### Procedure
+1. Find the notification in the table
+2. Click the **"Delete" (🗑️)** icon
+3. Confirm in the dialog: "Are you sure you want to delete this notification?"
+4. Click **"OK"** to confirm or **"Cancel"** to abort
 
-### Best Practice per Multiple Notifiche
-- ✅ Massimo **3-5 notifiche** attive contemporaneamente
-- ✅ Solo **1 notifica HIGH** alla volta (se possibile)
-- ✅ Raggruppa informazioni simili in una sola notifica
-- ❌ Evita sovraccarico di informazioni
+### What Happens
+- ✅ Notification removed from database
+- ✅ Disappears from admin table
+- ✅ No longer visible to users (within 30s)
+- ❌ **NOT recoverable** - backup necessary if important
 
-### Esempio di Gestione Efficace
+### Alternatives to Deletion
 
-**❌ NON FARE:**
-```
-1. HIGH: Sistema offline
-2. HIGH: Backup in corso
-3. HIGH: Database non disponibile
-4. HIGH: Servizio email down
-5. HIGH: Report non funzionanti
-```
-*Troppo! Gli utenti sono confusi.*
+#### Option 1: Deactivation
+Instead of deleting, you can **deactivate**:
+1. Edit the notification
+2. Uncheck **"Active"**
+3. Save
+4. **Result**: Notification hidden but recoverable
 
-**✅ FARE:**
+#### Option 2: Reduce Validity
+Shorten the validity:
+1. Edit the notification
+2. Set **End Date** = today
+3. Save
+4. **Result**: Notification expires automatically
+
+---
+
+## 📊 Managing Multiple Notifications
+
+### Display Priority
+When there are multiple active notifications:
+1. **HIGH** appear first
+2. **MEDIUM** in second position
+3. **LOW** last
+
+### User Navigation
+Users will see:
 ```
-1. HIGH: Sistema in Manutenzione
-   "Molteplici servizi temporaneamente non disponibili
-    dalle 22:00 alle 24:00. Backup, email e report
-    torneranno operativi dopo la manutenzione."
+⬅️ [1 of 5] ➡️
 ```
-*Chiaro e conciso!*
+And can navigate between all active notifications.
+
+### Best Practices for Multiple Notifications
+- ✅ Maximum **3-5 active notifications** at the same time
+- ✅ Only **1 HIGH notification** at a time (if possible)
+- ✅ Group similar information into one notification
+- ❌ Avoid information overload
+
+### Example of Effective Management
+
+**❌ DON'T DO:**
+```
+1. HIGH: System offline
+2. HIGH: Backup in progress
+3. HIGH: Database unavailable
+4. HIGH: Email service down
+5. HIGH: Reports not working
+```
+*Too much! Users are confused.*
+
+**✅ DO:**
+```
+1. HIGH: System Under Maintenance
+   "Multiple services temporarily unavailable
+    from 10:00 PM to 12:00 AM. Backup, email and reports
+    will be operational after maintenance."
+```
+*Clear and concise!*
 
 ---
 
 ## 💡 Best Practices
 
-### Scrittura Messaggi Efficaci
+### Writing Effective Messages
 
-#### ✅ **DO - Fare**
-- **Chiaro e conciso**: Max 2-3 frasi
-- **Azione specifica**: "Salvare il lavoro entro le 14:00"
-- **Tempistiche precise**: "dalle 22:00 alle 24:00" non "stasera"
-- **Informazioni complete**: Chi, cosa, quando, perché
-- **Tono professionale**: Evita abbreviazioni, emoji, CAPS LOCK
+#### ✅ **DO**
+- **Clear and concise**: Max 2-3 sentences
+- **Specific action**: "Save your work by 2:00 PM"
+- **Precise timing**: "from 10:00 PM to 12:00 AM" not "tonight"
+- **Complete information**: Who, what, when, why
+- **Professional tone**: Avoid abbreviations, emojis, CAPS LOCK
 
-#### ❌ **DON'T - Non Fare**
-- Messaggi vaghi: "Problemi di sistema" (quali?)
-- Troppo lunghi: Più di 200 caratteri
-- Allarmismo: "EMERGENZA!!!" (a meno che non lo sia)
-- Informazioni mancanti: "Domani manutenzione" (che ora?)
-- Errori grammaticali: Rileggi sempre
+#### ❌ **DON'T**
+- Vague messages: "System problems" (which ones?)
+- Too long: More than 200 characters
+- Alarmism: "EMERGENCY!!!" (unless it really is)
+- Missing information: "Maintenance tomorrow" (what time?)
+- Grammatical errors: Always proofread
 
-### Esempi Buoni vs Cattivi
+### Good vs Bad Examples
 
-**❌ Cattivo:**
+**❌ Bad:**
 ```
-"ATTENZIONE!!!! Il sistema avrà dei problemi.
-Potreste non riuscire a lavorare. Scusate."
+"WARNING!!!! The system will have problems.
+You might not be able to work. Sorry."
 ```
-*Vago, allarmista, senza dettagli*
+*Vague, alarmist, lacking details*
 
-**✅ Buono:**
+**✅ Good:**
 ```
-"Manutenzione Programmata: Sistema SAP non disponibile
-domenica 15/10 dalle 20:00 alle 22:00. Salvare il lavoro
-prima delle 19:45."
+"Scheduled Maintenance: SAP system unavailable
+Sunday 10/15 from 8:00 PM to 10:00 PM. Save work
+before 7:45 PM."
 ```
-*Chiaro, preciso, con azione richiesta*
+*Clear, precise, with requested action*
 
-### Pianificazione Temporale
+### Timeline Planning
 
-#### Per Manutenzioni Programmate
-- **5-7 giorni prima**: Notifica LOW con preavviso
-- **24 ore prima**: Notifica MEDIUM con reminder
-- **1 ora prima**: Notifica HIGH con countdown
-- **Durante**: Notifica HIGH con status
+#### For Scheduled Maintenance
+- **5-7 days before**: LOW notification with advance notice
+- **24 hours before**: MEDIUM notification with reminder
+- **1 hour before**: HIGH notification with countdown
+- **During**: HIGH notification with status
 
-#### Per Emergenze
-- **Immediata**: Notifica HIGH non appena identificato il problema
-- **Aggiornamenti**: Modifica la stessa notifica con status update
-- **Risoluzione**: Cambia a notifica LOW/SUCCESS con conferma
+#### For Emergencies
+- **Immediate**: HIGH notification as soon as problem identified
+- **Updates**: Modify the same notification with status update
+- **Resolution**: Change to LOW/SUCCESS notification with confirmation
 
-### Targeting Utenti
+### User Targeting
 
 #### Target: ALL
-- Usa per: Comunicazioni di sistema generale
-- Esempio: Manutenzioni, downtime, nuove features
+- Use for: General system communications
+- Example: Maintenance, downtime, new features
 
 #### Target: SPECIFIC
-- Usa per: Messaggi a utenti specifici
-- Esempio: "Utenti del modulo Finance: nuovo report disponibile"
+- Use for: Messages to specific users
+- Example: "Finance module users: new report available"
 
 #### Target: ROLE_NAME
-- Usa per: Comunicazioni per ruolo
-- Esempio: "Amministratori: aggiornamento security da applicare"
+- Use for: Role-based communications
+- Example: "Administrators: security update to apply"
 
 ---
 
-## 📈 Monitoraggio e Statistiche
+## 📈 Monitoring and Statistics
 
 ### Dashboard Header
-Il dashboard mostra sempre:
+The dashboard always shows:
 
 ```
 ┌─────────────────────────────────────────┐
@@ -474,26 +476,26 @@ Il dashboard mostra sempre:
 └─────────────────────────────────────────┘
 ```
 
-- **Active**: Notifiche attualmente visibili agli utenti
-- **High Priority**: Numero di notifiche critiche
-- **Total**: Tutte le notifiche nel sistema (anche inattive/scadute)
+- **Active**: Notifications currently visible to users
+- **High Priority**: Number of critical notifications
+- **Total**: All notifications in the system (including inactive/expired)
 
-### Filtri e Ricerca
+### Filters and Search
 
-#### Campo Ricerca
-Cerca in:
-- Titolo notifica
-- Testo messaggio
-- Tipo messaggio
+#### Search Field
+Search in:
+- Notification title
+- Message text
+- Message type
 
-#### Filtri Automatici
-- Ordina per priorità
-- Ordina per data
-- Filtra per status (Active/Inactive)
+#### Automatic Filters
+- Sort by priority
+- Sort by date
+- Filter by status (Active/Inactive)
 
-### Report e Analytics
+### Reports and Analytics
 
-#### Notifiche per Periodo
+#### Notifications by Period
 ```sql
 SELECT COUNT(*)
 FROM ZTNOTIFY_MSGS
@@ -501,14 +503,14 @@ WHERE START_DATE >= '20240101'
   AND END_DATE <= '20241231'
 ```
 
-#### Notifiche per Tipo
+#### Notifications by Type
 ```sql
 SELECT SEVERITY, COUNT(*)
 FROM ZTNOTIFY_MSGS
 GROUP BY SEVERITY
 ```
 
-#### Notifiche Attive Ora
+#### Currently Active Notifications
 ```sql
 SELECT *
 FROM ZT_NOTIFY_MESSAGES
@@ -517,73 +519,73 @@ WHERE ACTIVE = 'X'
 
 ---
 
-## 🔧 Risoluzione Problemi
+## 🔧 Troubleshooting
 
-### Problema: Notifica Non Appare agli Utenti
+### Problem: Notification Doesn't Appear to Users
 
-#### Checklist Diagnostica
-- [ ] Verifica **Active** = 'X'
-- [ ] Controlla **Start Date** ≤ oggi
-- [ ] Controlla **End Date** ≥ oggi
-- [ ] Verifica autorizzazioni utente
-- [ ] Controlla servizio REST attivo (SICF)
-- [ ] Test API manualmente
+#### Diagnostic Checklist
+- [ ] Verify **Active** = 'X'
+- [ ] Check **Start Date** ≤ today
+- [ ] Check **End Date** ≥ today
+- [ ] Verify user authorizations
+- [ ] Check REST service is active (SICF)
+- [ ] Test API manually
 
-#### Test API
+#### API Test
 ```bash
 curl -X GET "https://your-system/sap/bc/rest/zcl_notification_rest/" \
   -H "Authorization: Basic <credentials>"
 ```
 
-**Risposta Attesa:**
+**Expected Response:**
 ```json
 [
   {
     "message_id": "...",
     "title": "Test",
-    "message_text": "Messaggio",
+    "message_text": "Message",
     "severity": "HIGH",
     "active": "X"
   }
 ]
 ```
 
-### Problema: Errore Durante Salvataggio
+### Problem: Error During Save
 
-#### Errori Comuni
+#### Common Errors
 
-**Errore**: "Title is required"
-- **Causa**: Campo titolo vuoto
-- **Soluzione**: Inserisci un titolo
+**Error**: "Title is required"
+- **Cause**: Title field is empty
+- **Solution**: Enter a title
 
-**Errore**: "End date must be after start date"
-- **Causa**: Date invertite
-- **Soluzione**: End Date deve essere dopo Start Date
+**Error**: "End date must be after start date"
+- **Cause**: Dates are reversed
+- **Solution**: End Date must be after Start Date
 
-**Errore**: "Unauthorized"
-- **Causa**: Mancano autorizzazioni
-- **Soluzione**: Verifica ruolo Z_NOTIFICATION_ADMIN
+**Error**: "Unauthorized"
+- **Cause**: Missing authorizations
+- **Solution**: Verify Z_NOTIFICATION_ADMIN role
 
-### Problema: Notifica Duplicata
+### Problem: Duplicate Notification
 
-#### Soluzione
-1. Identifica la notifica duplicata
-2. Elimina quella con ID più recente
-3. O disattiva una delle due
+#### Solution
+1. Identify the duplicate notification
+2. Delete the one with the most recent ID
+3. Or deactivate one of them
 
-### Problema: Performance Lente
+### Problem: Slow Performance
 
-#### Cause Possibili
-- Troppe notifiche attive (>10)
-- Database non ottimizzato
-- Polling troppo frequente
+#### Possible Causes
+- Too many active notifications (>10)
+- Database not optimized
+- Polling too frequent
 
-#### Soluzioni
-1. Archivia notifiche vecchie (>90 giorni)
-2. Crea indici su ZTNOTIFY_MSGS:
-   - INDEX su (START_DATE, END_DATE)
-   - INDEX su (ACTIVE)
-3. Considera aumento polling interval a 60s
+#### Solutions
+1. Archive old notifications (>90 days)
+2. Create indexes on ZTNOTIFY_MSGS:
+   - INDEX on (START_DATE, END_DATE)
+   - INDEX on (ACTIVE)
+3. Consider increasing polling interval to 60s
 
 ---
 
@@ -591,13 +593,13 @@ curl -X GET "https://your-system/sap/bc/rest/zcl_notification_rest/" \
 
 ### REST Endpoints
 
-#### GET - Recupera Notifiche
+#### GET - Retrieve Notifications
 ```http
 GET /sap/bc/rest/zcl_notification_rest/
 ```
 
 **Query Parameters:**
-- `user_id` (optional): Filtra per utente specifico
+- `user_id` (optional): Filter by specific user
 
 **Response:**
 ```json
@@ -620,7 +622,7 @@ GET /sap/bc/rest/zcl_notification_rest/
 ]
 ```
 
-#### POST - Crea Notifica
+#### POST - Create Notification
 ```http
 POST /sap/bc/rest/zcl_notification_rest/
 Content-Type: application/json
@@ -649,14 +651,14 @@ X-CSRF-Token: <token>
 }
 ```
 
-#### PUT - Aggiorna Notifica
+#### PUT - Update Notification
 ```http
 PUT /sap/bc/rest/zcl_notification_rest/?message_id=<id>
 Content-Type: application/json
 X-CSRF-Token: <token>
 ```
 
-**Request Body:** (Campi da modificare)
+**Request Body:** (Fields to modify)
 ```json
 {
   "title": "Updated Title",
@@ -664,7 +666,7 @@ X-CSRF-Token: <token>
 }
 ```
 
-#### DELETE - Elimina Notifica
+#### DELETE - Delete Notification
 ```http
 DELETE /sap/bc/rest/zcl_notification_rest/?message_id=<id>
 X-CSRF-Token: <token>
@@ -679,66 +681,67 @@ X-CSRF-Token: <token>
 ```
 
 ### CSRF Token
-Prima di POST/PUT/DELETE, recupera token:
+Before POST/PUT/DELETE, retrieve token:
 ```http
 GET /sap/bc/rest/zcl_notification_rest/
 X-CSRF-Token: Fetch
 ```
 
-Response Header conterrà: `X-CSRF-Token: <actual-token>`
+Response Header will contain: `X-CSRF-Token: <actual-token>`
 
 ---
 
-## 📋 Checklist Amministratore
+## 📋 Administrator Checklist
 
-### Setup Iniziale
-- [ ] Verifica autorizzazioni (Z_NOTIFICATION_ADMIN)
-- [ ] Test accesso interfaccia admin
-- [ ] Verifica connessione API REST
-- [ ] Test creazione notifica di prova
-- [ ] Elimina notifica di prova
+### Initial Setup
+- [ ] Verify authorizations (Z_NOTIFICATION_ADMIN)
+- [ ] Test access to admin interface
+- [ ] Verify REST API connection
+- [ ] Test creating a test notification
+- [ ] Delete test notification
 
-### Operazioni Quotidiane
-- [ ] Controlla notifiche scadute (rimuovere?)
-- [ ] Verifica notifiche attive (massimo 5)
-- [ ] Leggi feedback utenti
-- [ ] Aggiorna notifiche se necessario
+### Daily Operations
+- [ ] Check expired notifications (remove?)
+- [ ] Verify active notifications (maximum 5)
+- [ ] Read user feedback
+- [ ] Update notifications if necessary
 
-### Operazioni Settimanali
-- [ ] Pulisci notifiche vecchie (>30 giorni)
-- [ ] Rivedi priorità notifiche attive
-- [ ] Controlla performance sistema
-- [ ] Backup notifiche importanti
+### Weekly Operations
+- [ ] Clean up old notifications (>30 days)
+- [ ] Review priority of active notifications
+- [ ] Check system performance
+- [ ] Backup important notifications
 
-### Operazioni Mensili
-- [ ] Archivia notifiche >90 giorni
-- [ ] Report utilizzo e statistiche
-- [ ] Review best practices con team
-- [ ] Aggiorna documentazione se necessario
+### Monthly Operations
+- [ ] Archive notifications >90 days
+- [ ] Usage and statistics report
+- [ ] Review best practices with team
+- [ ] Update documentation if necessary
 
 ---
 
-## 📞 Supporto Tecnico
+## 📞 Technical Support
 
-### Contatti
-- **Sviluppo**: [Gabriele Rendina - gabriele.rendina@lutech.it](mailto:Gabriele Rendina - gabriele.rendina@lutech.it)
-- **Basis SAP**: [basis-team@lutech.it](mailto:basis-team@lutech.it)
+### Contacts
+- **Development**: [Gabriele Rendina - gabriele.rendina@lutech.it](mailto:gabriele.rendina@lutech.it)
+- **SAP Basis**: [basis-team@lutech.it](mailto:basis-team@lutech.it)
 - **Security**: [security@lutech.it](mailto:security@lutech.it)
 
 ### Escalation
-1. **Livello 1**: Technical & Functional Support (Gabriele Rendina / Ileana Scaglia)
-2. **Livello 2**: SAP Basis Team
-3. **Livello 3**: External SAP consultants
+1. **Level 1**: Technical & Functional Support (Gabriele Rendina / Ileana Scaglia)
+2. **Level 2**: SAP Basis Team
+3. **Level 3**: External SAP consultants
 
 ---
 
-## 📚 Risorse Aggiuntive
+## 📚 Additional Resources
 
-- [📖 Deployment Guide](DEPLOYMENT_GUIDE.md) - Setup tecnico completo
-- [👤 User Guide](USER_GUIDE.md) - Guida per utenti finali
-- [🔍 API Documentation](#api-reference) - Reference API REST
-- [📊 Test Report](../TEST_REPORT.md) - Report test di sistema
+- [📖 Deployment Guide](DEPLOYMENT_GUIDE.md) - Complete technical setup
+- [👤 User Guide](USER_GUIDE.md) - Guide for end users
+- [🏗️ Architecture Guide](ARCHITECTURE.md) - System architecture diagrams
+- [🔍 API Documentation](#api-reference) - REST API reference
+- [📊 Test Report](../TEST_REPORT.md) - System test reports
 
 ---
 
-**💼 Sei un amministratore responsabile. Usa questo strumento con saggezza per comunicare efficacemente con tutti gli utenti!**
+**💼 You are a responsible administrator. Use this tool wisely to communicate effectively with all users!**
