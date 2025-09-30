@@ -718,6 +718,8 @@ SU21 → Display Z_NOTIFY → Check 2 fields exist (ACTVT, NOTIFY_TYPE)
 
 **Transaction**: PFCG (Role Maintenance)
 
+**📖 Reference**: See [AUTHORIZATION_OBJECTS.md](./AUTHORIZATION_OBJECTS.md) for complete documentation of all authorization objects.
+
 **Create Role: Z_NOTIFICATION_ADMIN**
 
 **Actions**:
@@ -732,56 +734,115 @@ SU21 → Display Z_NOTIFY → Check 2 fields exist (ACTVT, NOTIFY_TYPE)
 4. **Authorizations tab** → Click **Change Authorization Data**
 5. **Manually** → Add the following authorization objects:
 
-   **A) Z_NOTIFY (Custom Notification Authorization)**
+   **A) Z_NOTIFY (Custom - Created in Step 7.1)**
    ```
    Authorization Object: Z_NOTIFY
    ACTVT: 01, 02, 03, 06  (Create, Change, Display, Delete)
-   NOTIFY_TYPE: *         (All types)
+   NOTIFY_TYPE: *         (All notification types)
    ```
+   **Purpose**: Application-specific authorization for notification management
+   **Note**: This is a CUSTOM object created in Step 7.1
 
-   **B) S_SERVICE (ICF Service Authorization)**
-   ```
-   Authorization Object: S_SERVICE
-   ICF_VALUE: zcl_notification_rest
-   ICF_MANDT: * (All clients)
-   ```
-
-   **C) S_TABU_NAM (Table Maintenance Authorization)**
-   ```
-   Authorization Object: S_TABU_NAM
-   TABLE: ZTNOTIFY_MSGS
-   ACTVT: 01, 02, 03, 06  (Create, Change, Display, Delete)
-   ```
-
-   **D) S_TABU_DIS (Table Display Authorization)**
+   **B) S_TABU_DIS (SAP Standard - Table Authorization Group)**
    ```
    Authorization Object: S_TABU_DIS
-   DICBERCLS: &NC& (Customer namespace tables)
+   ACTVT: 01, 02, 03, 06
+   DICBERCLS: &NC&  (Customer namespace tables Z*/Y*)
    ```
+   **Purpose**: Coarse-grained access to customer tables
+   **SAP Note**: Pre-existing SAP standard object, no creation needed
 
-   **E) S_DEVELOP (Development Authorization - for SE11/SE80)**
+   **C) S_TABU_NAM (SAP Standard - Specific Table Authorization)**
+   ```
+   Authorization Object: S_TABU_NAM
+   ACTVT: 01, 02, 03, 06
+   TABLE: ZTNOTIFY_MSGS
+   ```
+   **Purpose**: Fine-grained access to ZTNOTIFY_MSGS table
+   **Protects**: SM30, SE16, SE16N transactions
+   **SAP Note**: Pre-existing SAP standard object, no creation needed
+
+   **D) S_DEVELOP (SAP Standard - Development Authorization)**
    ```
    Authorization Object: S_DEVELOP
-   OBJTYPE: PROG, CLAS, DDLS, TABL
-   OBJNAME: Z*
    ACTVT: 01, 02, 03
+   DEVCLASS: *, $TMP, ZNOTIFY
+   OBJTYPE: TABL, CLAS, DDLS, FUGR
+   OBJNAME: Z*, ZTNOTIFY_*
+   P_GROUP: *
    ```
+   **Purpose**: Repository object maintenance (SE11, SE80, SE24)
+   **Protects**: Creation/modification of tables, classes, CDS views
+   **SAP Note**: Pre-existing SAP standard object, no creation needed
+
+   **E) S_SERVICE (SAP Standard - Service Authorization)**
+   ```
+   Authorization Object: S_SERVICE
+   SRV_NAME: ZCL_NOTIFICATION_REST
+   SRV_TYPE: HTTP
+   ACTVT: 01, 02, 03, 06, 16
+   ```
+   **Purpose**: HTTP service handler class authorization
+   **Protects**: REST API service execution
+   **SAP Note**: Pre-existing SAP standard object, no creation needed
+
+   **F) S_ICF (SAP Standard - ICF Service Authorization)**
+   ```
+   Authorization Object: S_ICF
+   ICF_FIELD: /sap/bc/rest/zcl_notification_rest*
+   ICF_VALUE: *
+   ACTVT: 03, 20
+   ```
+   **Purpose**: ICF service node access and activation
+   **Protects**: SICF transaction, service activation
+   **SAP Note**: Pre-existing SAP standard object, no creation needed
+
+   **G) S_RFC (SAP Standard - RFC Authorization)**
+   ```
+   Authorization Object: S_RFC
+   RFC_NAME: /IWFND/*, SYST
+   RFC_TYPE: FUNC
+   ACTVT: 16
+   ```
+   **Purpose**: Execute RFC calls (OData Gateway Foundation)
+   **Note**: Only required if using OData service (optional for pure REST)
+   **SAP Note**: Pre-existing SAP standard object, no creation needed
+
+   **H) S_TCODE (SAP Standard - Transaction Code Authorization)**
+   ```
+   Authorization Object: S_TCODE
+   TCD: SE11, SE24, SE80, SM30, SICF, SE10, PFCG
+   ```
+   **Purpose**: Grant access to development and maintenance transactions
+   **SAP Note**: Pre-existing SAP standard object, no creation needed
 
 6. **Generate** authorization profile:
    - Click **Generate** button (or Ctrl+F3)
    - System creates profile: `Z_NOTIFICATION_ADMIN`
+   - Wait for green status message
 
 7. **User Assignment tab**:
    - Add users who need admin access
    - Click **User Comparison** → **Complete Comparison**
+   - Verify users have profile assigned
 
 8. **Save** the role
 
 **✅ Verification**:
 ```
 PFCG → Display Z_NOTIFICATION_ADMIN → Authorizations tab
-Expected: 5 authorization objects (Z_NOTIFY, S_SERVICE, S_TABU_NAM, S_TABU_DIS, S_DEVELOP)
+Expected: 8 authorization objects
+  1. Z_NOTIFY (Custom)
+  2. S_TABU_DIS (SAP Standard)
+  3. S_TABU_NAM (SAP Standard)
+  4. S_DEVELOP (SAP Standard)
+  5. S_SERVICE (SAP Standard)
+  6. S_ICF (SAP Standard)
+  7. S_RFC (SAP Standard)
+  8. S_TCODE (SAP Standard)
 ```
+
+**📖 For detailed field descriptions and testing procedures**, see [AUTHORIZATION_OBJECTS.md](./AUTHORIZATION_OBJECTS.md)
 
 ---
 

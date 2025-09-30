@@ -11,10 +11,16 @@ ROLE Z_NOTIFICATION_ADMIN
 
   AUTHORIZATION_OBJECTS {
 
-    *-- Table Maintenance
+    *-- Custom Notification Authorization (Created in SU21)
+    Z_NOTIFY {
+      ACTVT: 01, 02, 03, 06
+      NOTIFY_TYPE: *
+    }
+
+    *-- Table Maintenance Authorization (SAP Standard)
     S_TABU_DIS {
       ACTVT: 01, 02, 03, 06
-      DICBERCLS: &NC&
+      DICBERCLS: &NC&  *-- Customer namespace tables
     }
 
     S_TABU_NAM {
@@ -22,39 +28,39 @@ ROLE Z_NOTIFICATION_ADMIN
       TABLE: ZTNOTIFY_MSGS
     }
 
-    *-- Development Access
+    *-- Development Authorization (SAP Standard)
     S_DEVELOP {
       ACTVT: 01, 02, 03
-      DEVCLASS: *, ZNOTIFY
+      DEVCLASS: *, $TMP, ZNOTIFY
       OBJTYPE: TABL, CLAS, DDLS, FUGR
-      OBJNAME: Z*
+      OBJNAME: Z*, ZTNOTIFY_*
       P_GROUP: *
     }
 
-    *-- HTTP Service Access
+    *-- HTTP Service Authorization (SAP Standard)
     S_SERVICE {
       SRV_NAME: ZCL_NOTIFICATION_REST
       SRV_TYPE: HTTP
-      ACTVT: 01, 02, 03, 06
+      ACTVT: 01, 02, 03, 06, 16
     }
 
-    *-- ICF Service
+    *-- ICF Service Authorization (SAP Standard)
     S_ICF {
       ICF_FIELD: /sap/bc/rest/zcl_notification_rest*
       ICF_VALUE: *
+      ACTVT: 03, 20
     }
 
-    *-- RFC Access (for OData/REST)
+    *-- RFC Authorization for OData Gateway (SAP Standard)
     S_RFC {
       ACTVT: 16
       RFC_NAME: /IWFND/*, SYST
       RFC_TYPE: FUNC
     }
 
-    *-- Custom Notification Authorization
-    Z_NOTIFY {
-      ACTVT: 01, 02, 03, 06
-      NOTIF_TYPE: *
+    *-- Transaction Code Authorization (SAP Standard)
+    S_TCODE {
+      TCD: SE11, SE24, SE80, SM30, SICF, SE10, PFCG
     }
   }
 
