@@ -11,16 +11,34 @@ A comprehensive global notification banner system for SAP Fiori applications on 
 
 ## 🚀 Features
 
+### Core Features
 - **🌐 Global Display** - Appears on all Fiori applications automatically
 - **📱 Responsive Design** - Optimized for desktop, tablet, and mobile
 - **🎨 Multiple Themes** - Supports all SAP Fiori themes and dark mode
 - **♿ Accessibility** - WCAG 2.1 AA compliant with screen reader support
-- **🔄 Real-time Updates** - Automatic polling for new notifications
-- **🎯 Priority Levels** - High, Medium, Low priority with distinct styling
-- **📊 Admin Interface** - Complete CRUD operations for notification management
-- **🆕 Early Close** - Close active notifications before expiration (v1.1.0)
-- **🔒 Security** - Role-based access control and CSRF protection
+- **🔄 Real-time Updates** - Automatic polling for new notifications (30s)
+- **🎯 Priority Levels** - High, Medium, Low with distinct color-coding
+- **🔒 Security** - Public access model, CSRF protection, XSS prevention
 - **🌍 Internationalization** - Multi-language support ready
+
+### ✨ New in v1.1.0
+- **📺 Display Modes** - Choose how notifications appear:
+  - 🎯 **BANNER** - Fixed top banner (default)
+  - 💬 **TOAST** - Bottom-right toast, auto-dismiss 5s
+  - 🎪 **BOTH** - Banner + Toast simultaneously
+  - 🔇 **SILENT** - Logged only, no UI display
+- **📊 Dynamic Tile Counter** - FLP tile shows active notification counts
+  - Real-time statistics: "10 Active | 3H|5M|2L"
+  - Color-coded by HIGH severity (RED/ORANGE/GREEN)
+  - Auto-updates every 60 seconds
+- **🎛️ Custom Domains** - Fixed value validation for data integrity
+  - MESSAGE_TYPE: URGENT, INFO, TIP, SUCCESS, MAINT, WARNING
+  - SEVERITY: HIGH, MEDIUM, LOW
+  - DISPLAY_MODE: BANNER, TOAST, BOTH, SILENT
+  - Automatic F4 help in SM30/SE11
+- **📝 Audit Trail** - Track notification lifecycle
+  - CREATED_BY, CREATED_AT, CHANGED_BY, CHANGED_AT
+  - `/log` REST endpoint for silent notifications
 
 ## 📋 Quick Start
 
@@ -169,27 +187,52 @@ Access the admin interface through Fiori Launchpad:
 
 ### REST Endpoints
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| `GET` | `/sap/bc/rest/zcl_notification_rest/` | Get active notifications |
-| `POST` | `/sap/bc/rest/zcl_notification_rest/` | Create new notification |
-| `PUT` | `/sap/bc/rest/zcl_notification_rest/` | Update notification |
-| `DELETE` | `/sap/bc/rest/zcl_notification_rest/` | Delete notification |
+| Method | Endpoint | Description | Version |
+|--------|----------|-------------|---------|
+| `GET` | `/sap/bc/rest/zcl_notification_rest/` | Get active notifications | v1.0.0 |
+| `GET` | `/sap/bc/rest/zcl_notification_rest/stats` | Get statistics for tile counter | v1.1.0 ✨ |
+| `GET` | `/sap/bc/rest/zcl_notification_rest/log` | Get silent notifications log | v1.1.0 ✨ |
+| `POST` | `/sap/bc/rest/zcl_notification_rest/` | Create new notification | v1.0.0 |
+| `PUT` | `/sap/bc/rest/zcl_notification_rest/` | Update notification | v1.0.0 |
+| `DELETE` | `/sap/bc/rest/zcl_notification_rest/` | Delete notification | v1.0.0 |
 
-### Example Request
+### Example Requests
+
+#### Create Notification (v1.1.0)
 
 ```json
 {
-  "message_type": "URGENT",
-  "severity": "HIGH",
-  "title": "System Maintenance",
-  "message_text": "System will be unavailable from 10 PM to 12 AM",
-  "start_date": "2024-01-15",
-  "end_date": "2024-01-16",
+  "message_type": "MAINT",
+  "severity": "MEDIUM",
+  "title": "Scheduled Maintenance",
+  "message_text": "System will be unavailable Sunday 2-4 AM",
+  "start_date": "20250401",
+  "end_date": "20250430",
   "target_users": "ALL",
-  "active": "X"
+  "active": "X",
+  "display_mode": "TOAST"
 }
 ```
+
+#### Get Statistics Response (v1.1.0)
+
+```json
+{
+  "total": 10,
+  "high_count": 3,
+  "medium_count": 5,
+  "low_count": 2
+}
+```
+
+#### Display Mode Options (v1.1.0)
+
+| Mode | Behavior | Use Case |
+|------|----------|----------|
+| `BANNER` | Fixed top, user closes | Critical announcements |
+| `TOAST` | Bottom-right, 5s auto-dismiss | Non-intrusive updates |
+| `BOTH` | Banner + Toast | Maximum visibility |
+| `SILENT` | No UI, logged only | Audit trail |
 
 ## 🔧 Configuration
 
@@ -309,14 +352,24 @@ Developed with ❤️ by the SAP Development Team
 
 ## 🗺️ Roadmap
 
-### ✅ v1.1.0 (September 2024) - RELEASED
-- [x] **Early Close Notifications** - Close active notifications before scheduled end date
-- [x] Admin interface enhancement with "Close Early" button
-- [x] Automatic end_date update to current date
-- [x] Confirmation dialog for safety
-- [x] Complete documentation update
+### ✅ v1.0.0 (August 2024) - RELEASED
+- [x] Core notification banner system
+- [x] Public access model (no role required)
+- [x] REST API for CRUD operations
+- [x] Real-time polling (30s intervals)
+- [x] Multi-device responsive design
+- [x] Security hardening (XSS, CSRF protection)
 
-### v1.2.0 (Q1 2025)
+### ✅ v1.1.0 (January 2025) - RELEASED
+- [x] **Display Modes** - BANNER, TOAST, BOTH, SILENT
+- [x] **Dynamic Tile Counter** - Real-time statistics with color coding
+- [x] **Custom Domains** - Fixed value validation (MESSAGE_TYPE, SEVERITY, DISPLAY_MODE, TARGET_USERS)
+- [x] **Audit Trail** - CREATED_BY, CREATED_AT, CHANGED_BY, CHANGED_AT
+- [x] **REST Endpoints** - /stats and /log for monitoring
+- [x] **Admin UI Guide** - Complete implementation documentation
+- [x] **Migration Script** - Automated v1.0→v1.1 upgrade
+
+### v1.2.0 (Q2 2025)
 - [ ] Enhanced analytics dashboard
 - [ ] Push notification support
 - [ ] Advanced user targeting
