@@ -179,7 +179,7 @@ erDiagram
         varchar1000 MESSAGE_TEXT
         date START_DATE "INDEXED"
         date END_DATE "INDEXED"
-        varchar255 TARGET_USERS "ALL, SPECIFIC, ROLE"
+        varchar10 TARGET_USERS "ALL, AUTH, ADMIN, etc. (F4 help)"
         char1 ACTIVE "INDEXED - X or blank"
         varchar12 CREATED_BY
         timestamp CREATED_AT
@@ -195,7 +195,7 @@ erDiagram
         varchar1000 MESSAGE_TEXT
         date START_DATE
         date END_DATE
-        varchar255 TARGET_USERS
+        varchar10 TARGET_USERS
         char1 ACTIVE "Always X"
     }
 ```

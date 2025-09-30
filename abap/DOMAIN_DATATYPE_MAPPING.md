@@ -125,15 +125,17 @@ Default: BANNER (set in ABAP code)
 ### Domain: ZDOMAIN_TARGET_USERS
 ```
 Type: CHAR
-Length: 255
-Fixed Values: None (pattern-based free text)
-Patterns:
-  - ALL                    | Public to all users
-  - USER                   | All authenticated users
-  - ROLE:SAP_ALL          | Users with specific role
-  - USER:SMITHJ           | Specific user
-  - DEPT:FIN              | Custom department
-  - Multiple: Comma-separated
+Length: 10
+Fixed Values: 8 predefined values
+Values:
+  - ALL       | All Users (Public)
+  - AUTH      | All Authenticated Users
+  - ADMIN     | Administrators (SAP_ALL or Z_ADMIN role)
+  - DEVELOPER | Developers (SAP_DEV or Z_DEVELOPER role)
+  - FINANCE   | Finance Users (Z_FINANCE role)
+  - SALES     | Sales Users (Z_SALES role)
+  - IT        | IT Department (Z_IT role)
+  - MANAGER   | Managers (Z_MANAGER role)
 ```
 
 ### Data Element: ZNOTIFY_TARGET_USERS
@@ -143,16 +145,16 @@ Labels:
   - Short: Target
   - Medium: Target Users
   - Long: Target Audience Filter
-Search Help: None (free text) - can be enhanced with custom F4
+Search Help: Automatic from domain fixed values (F4 help enabled)
 ```
 
 ### Table Field: ZTNOTIFY_MSGS.TARGET_USERS
 ```
 Data Element: ZNOTIFY_TARGET_USERS
-Inherited Type: CHAR 255
-F4 Help: ⚠️ Not automatic (free text field)
-Validation: Pattern matching in ABAP (CS operator)
-Enhancement: Can create custom search help to USR02/AGR_DEFINE
+Inherited Type: CHAR 10
+F4 Help: ✅ Automatic dropdown in SM30/SE16
+Validation: Domain fixed values + role-based authorization via AGR_USERS table
+Implementation: zcl_notification_manager=>check_target_audience() method
 ```
 
 ---

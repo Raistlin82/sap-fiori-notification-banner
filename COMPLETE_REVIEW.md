@@ -85,7 +85,7 @@ This document provides a comprehensive review of the SAP Fiori Global Notificati
 ✅ MESSAGE_TEXT: DSTRING (STRING 0) - Dynamic length
 ✅ START_DATE: DATS (DATS 8)
 ✅ END_DATE: DATS (DATS 8)
-✅ TARGET_USERS: ZNOTIFY_TARGET_USERS (CHAR 255)
+✅ TARGET_USERS: ZNOTIFY_TARGET_USERS (CHAR 10) - F4 help with 8 values
 ✅ ACTIVE: CHAR1 (CHAR 1)
 ✅ DISPLAY_MODE: ZNOTIFY_DISP_MODE (CHAR 10) - F4 help
 ✅ CREATED_BY: SYUNAME (CHAR 12)
@@ -671,8 +671,8 @@ This document provides a comprehensive review of the SAP Fiori Global Notificati
 ```
 ✅ CDS view filters only active notifications (by design)
 ✅ SILENT mode notifications not shown in UI (by design)
-✅ F4 help available only for 3 fields (MESSAGE_TYPE, SEVERITY, DISPLAY_MODE)
-✅ TARGET_USERS pattern matching requires custom logic in ABAP
+✅ F4 help available for 4 fields (MESSAGE_TYPE, SEVERITY, DISPLAY_MODE, TARGET_USERS)
+✅ TARGET_USERS fixed domain values with role-based authorization via AGR_USERS table
 ✅ OData service optional (REST API sufficient for most use cases)
 ```
 

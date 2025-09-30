@@ -272,17 +272,30 @@ SILENT      Silent (Log Only)
 Domain Name: ZDOMAIN_TARGET_USERS
 Short Description: Target Audience Domain
 Data Type: CHAR
-Length: 255
-Output Length: 255
+Length: 10
+Output Length: 10
 ```
 
-**Value Range**: None (free text with pattern matching)
+**Value Range** (Fixed Values tab):
+```
+Value       Short Description
+----------- ------------------------------------
+ALL         All Users (Public)
+AUTH        All Authenticated Users
+ADMIN       Administrators
+DEVELOPER   Developers
+FINANCE     Finance Users
+SALES       Sales Users
+IT          IT Department
+MANAGER     Managers
+```
 
 **Actions**:
 1. SE11 → Enter "ZDOMAIN_TARGET_USERS" → Create
-2. Enter data type: CHAR, Length: 255
-3. No fixed values needed (pattern-based field)
-4. **Save** → **Activate**
+2. Enter data type: CHAR, Length: 10
+3. Go to "Value Range" tab
+4. Add 8 fixed values as shown above
+5. **Save** → **Activate**
 
 **✅ Verification**: All 4 domains should show "Active" status in SE11.
 
@@ -420,7 +433,7 @@ Delivery Class: A (Application Table)
 | MESSAGE_TEXT    |     | DSTRING                | STRING    | 0      | Message Text (dynamic)       |
 | START_DATE      |     | DATS                   | DATS      | 8      | Valid From Date              |
 | END_DATE        |     | DATS                   | DATS      | 8      | Valid To Date                |
-| TARGET_USERS    |     | ZNOTIFY_TARGET_USERS   | CHAR      | 255    | Target Audience              |
+| TARGET_USERS    |     | ZNOTIFY_TARGET_USERS   | CHAR      | 10     | Target Audience (F4 help)    |
 | ACTIVE          |     | CHAR1                  | CHAR      | 1      | Active Flag (X/blank)        |
 | DISPLAY_MODE    |     | ZNOTIFY_DISP_MODE      | CHAR      | 10     | Display Mode (F4 help)       |
 | CREATED_BY      |     | SYUNAME                | CHAR      | 12     | Created By User              |
@@ -442,12 +455,13 @@ Delivery Class: A (Application Table)
 - MESSAGE_TYPE uses ZNOTIFY_MSG_TYPE → Automatic F4 help with 6 values
 - SEVERITY uses ZNOTIFY_SEVERITY → Automatic F4 help with 3 values
 - DISPLAY_MODE uses ZNOTIFY_DISP_MODE → Automatic F4 help with 4 values
-- TARGET_USERS uses ZNOTIFY_TARGET_USERS → Free text with pattern matching
+- TARGET_USERS uses ZNOTIFY_TARGET_USERS → Automatic F4 help with 8 values (role-based)
 - MESSAGE_TEXT uses DSTRING (dynamic string, no length limit)
 
 **✅ Verification**:
 - SE11 → Display ZTNOTIFY_MSGS → Check all fields exist
 - SM30 → ZTNOTIFY_MSGS → Test F4 help on MESSAGE_TYPE (should show 6 values)
+- SM30 → ZTNOTIFY_MSGS → Test F4 help on TARGET_USERS (should show 8 values)
 
 ---
 
@@ -556,7 +570,7 @@ TYPES: BEGIN OF ty_notification,
 4. **Save** → **Check** → **Activate**
 
 **🎯 Key Features**:
-- Target audience filtering (ALL, USER, ROLE:*, USER:*, DEPT:*)
+- Role-based target audience filtering (8 fixed values: ALL, AUTH, ADMIN, DEVELOPER, FINANCE, SALES, IT, MANAGER)
 - Display mode support (BANNER, TOAST, BOTH, SILENT)
 - Audit trail (automatically sets created_by, created_at, changed_by, changed_at)
 - Statistics calculation for tile counter
@@ -1299,32 +1313,46 @@ Create 3 active notifications:
 
 **Test Case 1: Public Notification**
 ```
-TARGET_USERS: ALL
+Transaction: SM30 → ZTNOTIFY_MSGS → Create entry
+TARGET_USERS: ALL (select from F4 dropdown)
 ```
 **Expected**: All users see this notification
 
-**Test Case 2: Role-Based**
+**Test Case 2: Administrators Only**
 ```
-TARGET_USERS: ROLE:SAP_ALL
+Transaction: SM30 → ZTNOTIFY_MSGS → Create entry
+TARGET_USERS: ADMIN (select from F4 dropdown)
 ```
-**Expected**: Only users with SAP_ALL role see this
+**Expected**: Only users with SAP_ALL or Z_ADMIN role see this
+**Verification**: Check AGR_USERS table for user role assignments
 
-**Test Case 3: Specific User**
+**Test Case 3: Developers Only**
 ```
-TARGET_USERS: USER:SMITHJ
+Transaction: SM30 → ZTNOTIFY_MSGS → Create entry
+TARGET_USERS: DEVELOPER (select from F4 dropdown)
 ```
-**Expected**: Only user SMITHJ sees this
+**Expected**: Only users with SAP_DEV or Z_DEVELOPER role see this
 
-**Test Case 4: Multiple Filters**
+**Test Case 4: Finance Users Only**
 ```
-TARGET_USERS: ROLE:SAP_ALL,DEPT:FIN,USER:ADMIN
+Transaction: SM30 → ZTNOTIFY_MSGS → Create entry
+TARGET_USERS: FINANCE (select from F4 dropdown)
 ```
-**Expected**: Users matching ANY condition see this (OR logic)
+**Expected**: Only users with Z_FINANCE role see this
 
-**Verification**:
-1. Create notification with specific target
-2. Login as user matching criteria → Should see notification
-3. Login as user NOT matching → Should NOT see notification
+**Test Case 5: Authenticated Users Only**
+```
+Transaction: SM30 → ZTNOTIFY_MSGS → Create entry
+TARGET_USERS: AUTH (select from F4 dropdown)
+```
+**Expected**: Any logged-in user sees this (sy-uname <> 'ANONYMOUS')
+
+**Verification Steps**:
+1. Create notification with specific TARGET_USERS value
+2. Check user roles: SU01 → User → Roles tab
+3. Login as user WITH required role → Should see notification
+4. Login as user WITHOUT required role → Should NOT see notification
+5. Check ABAP logic: zcl_notification_manager=>check_target_audience method
 
 ---
 
