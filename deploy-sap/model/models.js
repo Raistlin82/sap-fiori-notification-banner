@@ -1,0 +1,2 @@
+sap.ui.define(["sap/ui/model/json/JSONModel","sap/ui/Device"],function(e,n){"use strict";return{createDeviceModel:function(){var i=new e(n);i.setDefaultBindingMode("OneWay");return i},createNotificationModel:function(){var n=new e({notifications:[],currentIndex:0,isLoading:false,lastUpdated:null});n.setDefaultBindingMode("TwoWay");return n}}});
+//# sourceMappingURL=models.js.map

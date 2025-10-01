@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Global Notification Banner - SAP Fiori</title>
+
+    <script
+        id="sap-ui-bootstrap"
+        src="https://ui5.sap.com/1.120.0/resources/sap-ui-core.js"
+        data-sap-ui-theme="sap_fiori_3"
+        data-sap-ui-libs="sap.m,sap.ui.core,sap.ui.layout,sap.f"
+        data-sap-ui-resourceroots='{
+            "com.sap.notifications.banner": "./"
+        }'
+        data-sap-ui-preload=""
+        data-sap-ui-async="true"
+        data-sap-ui-compatVersion="edge"
+        data-sap-ui-xx-waitForTheme="true"
+        data-sap-ui-frameOptions="trusted">
+    </script>
+
+    <script>
+        sap.ui.getCore().attachInit(function() {
+            sap.ui.require([
+                "sap/m/Shell",
+                "sap/ui/core/ComponentContainer"
+            ], function(Shell, ComponentContainer) {
+                new Shell({
+                    app: new ComponentContainer({
+                        id: "app",
+                        height : "100%",
+                        name : "com.sap.notifications.banner"
+                    })
+                }).placeAt("content");
+            });
+        });
+    </script>
+</head>
+<body class="sapUiBody" id="content">
+</body>
+</html>

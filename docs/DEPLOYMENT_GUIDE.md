@@ -1243,22 +1243,44 @@ Expected: Shows Z_NOTIFY check with values used
 
 ### Option A: Manual Deployment to BSP Application
 
-#### Step 1: Build the Application
+#### Step 1: Build SAP-Compatible Package
+
+⚠️ **IMPORTANT**: SAP BSP does NOT support filenames with hyphens (`-`).
+Use the special `build:sap` command to generate SAP-compatible files.
 
 ```bash
 cd sap-fiori-notification-banner
 npm install
-npm run build
+npm run build:sap
 ```
+
+**What This Does**:
+1. Builds the UI5 application (`npm run build`)
+2. Creates `deploy-sap/` folder with SAP-compatible files:
+   - ✅ Removes debug files (`*-dbg.js`)
+   - ✅ Removes source maps (`*.js.map`)
+   - ✅ Removes preload bundle (`Component-preload.js` - contains hyphens)
+   - ✅ Keeps only essential production files (10 files total)
 
 **Expected Output**:
 ```
-ℹ info graph Initializing module collection...
-ℹ info build Building...
-ℹ info minify Minifying resources...
-✔ Build succeeded
-✔ Created dist/sap_fiori_notification_banner.zip
+🚀 Preparing SAP BSP Deployment...
+
+⏭️  Skipped: Component-preload.js
+✅ Copied: Component.js
+✅ Copied: controller/NotificationBanner.js
+✅ Copied: controller/TileCounter.js
+✅ Copied: i18n/i18n.properties
+... (10 files total)
+
+✅ Deployment folder created successfully!
+📁 Location: deploy-sap/
+
+📝 Note: Preload bundle excluded (contains hyphens incompatible with SAP BSP)
+   UI5 will load individual files - works perfectly, just slightly slower on first load.
 ```
+
+**Result**: `deploy-sap/` folder with 10 clean files ready for SE80 import
 
 #### Step 2: Upload to BSP Application
 

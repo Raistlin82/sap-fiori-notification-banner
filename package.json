@@ -5,11 +5,12 @@
   "main": "webapp/Component.js",
   "scripts": {
     "build": "ui5 build --config ui5.yaml",
+    "build:sap": "npm run build && node scripts/prepare-sap-deploy.js",
     "deploy": "npm run build && npm run deploy-to-abap",
     "deploy-to-abap": "ui5 deploy --config ui5-deploy.yaml",
     "start": "ui5 serve --config ui5.yaml --port 8080",
     "lint": "eslint webapp/",
-    "clean": "rm -rf dist/",
+    "clean": "rm -rf dist/ deploy-sap/",
     "watch": "ui5 serve --config ui5.yaml --port 8080 --open"
   },
   "keywords": [
