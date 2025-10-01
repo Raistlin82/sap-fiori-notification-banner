@@ -32,19 +32,25 @@ Before starting the deployment process, verify that the project is ready for pro
 ### Build Verification
 Run the following commands to ensure the build process works correctly:
 
-```bash
-# Build the application
-npm run build
+⚠️ **IMPORTANT**: Use `build:sap` for SAP BSP deployment (not `build`)
 
-# Verify build output
-ls -lh dist/sap_fiori_notification_banner.zip
-# Expected: ~27KB file
+```bash
+# Build SAP-compatible deployment package
+npm run build:sap
+
+# Verify output folders
+ls -lh deploy-sap/
+# Expected: 10 files (no hyphens in names)
+
+ls deploy-sap/controller/
+# Expected: 3 files (NotificationBanner.js, TileCounter.js, View1.controller.js)
 ```
 
 **Expected Results:**
 - ✅ Build completes in ~20-30 seconds without errors
-- ✅ `dist/sap_fiori_notification_banner.zip` created (~27KB)
-- ✅ `dist/Component-preload.js` generated and minified
+- ✅ `deploy-sap/` folder created with 10 SAP-compatible files
+- ✅ No files with hyphens (`-`) in filenames
+- ✅ All critical files present (Component.js, index.html, manifest.json, etc.)
 
 ### Code Quality Verification
 
