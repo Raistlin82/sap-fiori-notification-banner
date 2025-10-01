@@ -847,33 +847,156 @@ Response: []  ✅ SERVICE WORKING!
 
 **Transaction**: SU21 (Maintain Authorization Objects)
 
-**Actions**:
-1. **Transaction SU21** → Authorization Objects
-2. Click **Create** button (or press F5)
-3. Enter object details:
+##### Step 7.1.1: Create Authorization Object
+
+1. **Open Transaction SU21**
+   - Enter transaction code: `/nsu21`
+   - Press Enter
+
+2. **Navigate to Object Class**
+   - In the left tree, expand **"Authorization Objects"**
+   - Expand **"Cross-Application Authorization Objects"**
+   - Select **"BC_A"** (or your preferred object class)
+
+3. **Create New Object**
+   - Click **"Create"** button (or press F5)
+   - Enter object name: `Z_NOTIFY`
+   - Press Enter
+
+4. **Enter Object Details**
    ```
    Object: Z_NOTIFY
    Object Class: BC_A (Cross-Application Authorization Objects)
-   Text: Notification Banner Administration
+   Short Text: Notification Banner Administration
    ```
-4. **Add Fields**:
+   - Click **"Continue"** (green checkmark) or press Enter
 
-   **Field 1: ACTVT** (Activity)
+##### Step 7.1.2: Add Field 1 - ACTVT (Activity)
+
+5. **Add ACTVT Field** (standard SAP authorization field)
+   - In the "Fields" section at the bottom, click **"New Entries"** or press F5
+   - Enter field details:
+     ```
+     Authorization Field: ACTVT
+     ```
+   - **IMPORTANT**: Type `ACTVT` and press Enter - the system will automatically populate:
+     - Data Element: `ACTIV_AUTH`
+     - Short Text: "Activity"
+   - **Do NOT manually select a data element** - ACTVT is a standard SAP field
+
+##### Step 7.1.3: Create Authorization Field NOTIFY_TYP
+
+**⚠️ CRITICAL**: You must create the authorization field NOTIFY_TYP BEFORE adding it to the object.
+
+6. **Open Transaction SE11** (in a new session, keep SU21 open)
+   - Enter transaction code: `/nse11`
+   - Select: **"Data type"** radio button
+   - Enter: `NOTIFY_TYP`
+   - Click **"Create"**
+
+7. **Select Authorization Field Type**
+   - A popup appears: "Create Data Type"
+   - Select: **"Authorization Object Field"**
+   - Click **"Continue"** (green checkmark)
+
+8. **Define Authorization Field**
    ```
-   Field Name: ACTVT
-   Authorization Field: ACTVT (already exists in system)
-   Text: Activity
+   Short Description: Notification Type
+   Data Type: CHAR
+   No. characters: 10
+   Short field label: Notif.Type
+   Field Label: Notification Type
+   Header: Type
    ```
 
-   **Field 2: NOTIFY_TYPE** (Notification Type)
+9. **Add Value Table (F4 Help) - Optional but Recommended**
+   - Go to **"Further Characteristics"** section
+   - Search help: Leave blank (we'll use check table values)
+   - Check table: Leave blank (or create ZNOTIFY_TYPES table with values)
+
+10. **Add Documentation**
+    - Click **"Documentation"** button in toolbar
+    - Enter documentation text:
+      ```
+      Notification Type
+
+      This authorization field restricts access to specific notification types.
+
+      Allowed values:
+      * - All notification types (wildcard)
+      URGENT - Urgent notifications
+      INFO - Informational notifications
+      MAINT - Maintenance notifications
+      WARNING - Warning notifications
+      TIP - Tips and suggestions
+      SUCCESS - Success messages
+
+      Examples:
+      - To allow all types: NOTIFY_TYP = *
+      - To allow only urgent: NOTIFY_TYP = URGENT
+      - To allow multiple: Create multiple entries with URGENT, INFO, etc.
+      ```
+    - **Save** the documentation
+    - Click **"Back"** to return to field definition
+
+11. **Save and Activate Authorization Field**
+    - Click **"Save"** (Ctrl+S)
+    - Select package: `$TMP` (local object) or your custom package (e.g., `ZNOTIFY`)
+    - Click **"Activate"** (Ctrl+F3)
+    - Close SE11 window
+
+##### Step 7.1.4: Add Field 2 - NOTIFY_TYP to Authorization Object
+
+12. **Return to SU21 Window** (should still be open)
+    - In the "Fields" section, click **"New Entries"** again (or press F5)
+    - Enter field details:
+      ```
+      Authorization Field: NOTIFY_TYP
+      ```
+    - Press Enter - the system will populate:
+      - Data Element: (none - it's an authorization field)
+      - Short Text: "Notification Type" (from SE11 definition)
+
+13. **Save Authorization Object**
+    - Click **"Save"** button (Ctrl+S)
+    - Select package: `$TMP` (local object) or your custom package (e.g., `ZNOTIFY`)
+    - Enter transport request if using custom package
+
+14. **Check Authorization Object**
+    - The object should now show 2 fields:
+      1. ACTVT (Activity)
+      2. NOTIFY_TYP (Notification Type)
+
+##### Step 7.1.5: Verification
+
+**✅ Verification Steps**:
+
+1. **Check Authorization Field**:
    ```
-   Field Name: NOTIFY_TYPE
-   Data Element: CHAR10
-   Text: Notification Type
-   Checkbox Documentation: [Enter documentation about notification types]
+   SE11 → Data Type → NOTIFY_TYP → Display
+   Expected:
+   - Type: Authorization Object Field
+   - Data Type: CHAR(10)
+   - Short Description: Notification Type
+   - Documentation exists
    ```
 
-5. **Save** → **Activate**
+2. **Check Authorization Object**:
+   ```
+   SU21 → Authorization Objects → BC_A → Z_NOTIFY → Display
+   Expected:
+   - Object: Z_NOTIFY
+   - Object Class: BC_A
+   - 2 Fields:
+     1. ACTVT (Activity)
+     2. NOTIFY_TYP (Notification Type)
+   ```
+
+3. **Test in PFCG**:
+   - Transaction PFCG → Create test role
+   - Authorizations → Change Authorization Data → Manually
+   - Search for "Z_NOTIFY"
+   - **Expected**: Object appears with 2 fields (ACTVT and NOTIFY_TYP)
 
 **Authorization Values for ACTVT**:
 - `01` - Create notifications (POST)
@@ -881,16 +1004,23 @@ Response: []  ✅ SERVICE WORKING!
 - `03` - Display notifications (GET)
 - `06` - Delete notifications (DELETE)
 
-**Authorization Values for NOTIFY_TYPE**:
-- `*` - All notification types
+**Authorization Values for NOTIFY_TYP**:
+- `*` - All notification types (wildcard)
 - `URGENT` - Only urgent notifications
 - `INFO` - Only informational notifications
 - `MAINT` - Only maintenance notifications
+- `WARNING` - Only warning notifications
+- `TIP` - Only tips and suggestions
+- `SUCCESS` - Only success messages
 
-**✅ Verification**:
-```
-SU21 → Display Z_NOTIFY → Check 2 fields exist (ACTVT, NOTIFY_TYPE)
-```
+**🎯 Common Issues & Solutions**:
+
+| Issue | Solution |
+|-------|----------|
+| "Authorization field NOTIFY_TYP does not exist" | Create field in SE11 first (Step 7.1.3) |
+| "Field NOTIFY_TYP not found" | Activate the field in SE11 (Step 7.1.3, item 11) |
+| "Cannot add field to object" | Ensure SE11 field is activated and of type "Authorization Object Field" |
+| "Field does not appear in PFCG" | Save and re-open PFCG role, or restart transaction |
 
 ---
 
