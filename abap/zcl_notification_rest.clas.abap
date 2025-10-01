@@ -16,17 +16,7 @@ CLASS zcl_notification_rest DEFINITION
              handle_update_notification,
              handle_delete_notification,
              handle_get_stats,
-             handle_get_log,
-             serialize_notifications
-               IMPORTING
-                 it_notifications TYPE zcl_notification_manager=>tt_notifications
-               RETURNING
-                 VALUE(rv_json) TYPE string,
-             deserialize_notification
-               IMPORTING
-                 iv_json TYPE string
-               RETURNING
-                 VALUE(rs_notification) TYPE zcl_notification_manager=>ty_notification.
+             handle_get_log.
 
 ENDCLASS.
 
