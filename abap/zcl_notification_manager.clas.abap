@@ -95,13 +95,13 @@ CLASS zcl_notification_manager IMPLEMENTATION.
       FROM ztnotify_msgs
       INTO TABLE @DATA(lt_all_notifications)
       WHERE active = 'X'
-        AND start_date <= sy-datum
-        AND end_date >= sy-datum.
+        AND start_date <= @sy-datum
+        AND end_date >= @sy-datum.
 
     " Filter by target audience (role-based authorization)
-    LOOP AT lt_all_notifications INTO DATA(ls_notif).
-      IF check_target_audience( ls_notif-target_users ) = abap_true.
-        APPEND ls_notif TO rt_notifications.
+    LOOP AT lt_all_notifications INTO DATA(ls_notification).
+      IF check_target_audience( ls_notification-target_users ) = abap_true.
+        APPEND ls_notification TO rt_notifications.
       ENDIF.
     ENDLOOP.
 
@@ -216,9 +216,9 @@ CLASS zcl_notification_manager IMPLEMENTATION.
 
     UPDATE ztnotify_msgs
       SET active = ' ',
-          changed_by = sy-uname,
-          changed_at = lv_timestamp
-      WHERE message_id = iv_message_id.
+          changed_by = @sy-uname,
+          changed_at = @lv_timestamp
+      WHERE message_id = @iv_message_id.
 
     IF sy-subrc = 0.
       COMMIT WORK.
