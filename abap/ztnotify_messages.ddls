@@ -1,24 +1,23 @@
-@AbapCatalog.sqlViewName: 'ZNOTIFY_MSG'
-@AbapCatalog.compiler.compareFilter: true
 @AccessControl.authorizationCheck: #NOT_REQUIRED
 @EndUserText.label: 'Global Notification Messages'
-@OData.publish: true
 
-define view ZTNOTIFY_MESSAGES as select from ztnotify_msgs {
-    key message_id,
-    message_type,
-    severity,
-    title,
-    message_text,
-    start_date,
-    end_date,
-    target_users,
-    active,
-    display_mode,
-    created_by,
-    created_at,
-    changed_by,
-    changed_at
+define view entity ZTNOTIFY_MESSAGES
+  as select from ztnotify_msgs
+{
+  key message_id,
+      message_type,
+      severity,
+      title,
+      message_text,
+      start_date,
+      end_date,
+      target_users,
+      active,
+      display_mode,
+      created_by,
+      created_at,
+      changed_by,
+      changed_at
 }
 where active = 'X'
   and start_date <= $session.system_date

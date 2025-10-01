@@ -474,27 +474,26 @@ Delivery Class: A (Application Table)
 > You must use Eclipse ADT (recommended) or create the DDL source code manually and activate it via SE38.
 
 ```sql
-@AbapCatalog.sqlViewName: 'ZNOTIFY_MSG'
-@AbapCatalog.compiler.compareFilter: true
 @AccessControl.authorizationCheck: #NOT_REQUIRED
 @EndUserText.label: 'Global Notification Messages'
-@OData.publish: true
 
-define view ZTNOTIFY_MESSAGES as select from ztnotify_msgs {
-    key message_id,
-    message_type,
-    severity,
-    title,
-    message_text,
-    start_date,
-    end_date,
-    target_users,
-    active,
-    display_mode,
-    created_by,
-    created_at,
-    changed_by,
-    changed_at
+define view entity ZTNOTIFY_MESSAGES
+  as select from ztnotify_msgs
+{
+  key message_id,
+      message_type,
+      severity,
+      title,
+      message_text,
+      start_date,
+      end_date,
+      target_users,
+      active,
+      display_mode,
+      created_by,
+      created_at,
+      changed_by,
+      changed_at
 }
 where active = 'X'
   and start_date <= $session.system_date
@@ -502,10 +501,15 @@ where active = 'X'
 ```
 
 **Key Features**:
+- **define view entity** → Modern CDS syntax (replaces obsolete DDIC-based views)
 - **@AccessControl.authorizationCheck: #NOT_REQUIRED** → Public access for all users
-- **@OData.publish: true** → Automatic OData service generation
 - **WHERE clause** → Only active notifications within date range
 - **All fields** → Includes display_mode and audit fields
+
+**Important Notes**:
+- Uses modern `view entity` syntax (not obsolete `define view`)
+- No SQL view name annotation needed (modern approach)
+- For OData exposure, use RAP or create separate service definition
 
 **Actions (Eclipse ADT Method - Recommended)**:
 1. Open Eclipse with ABAP Development Tools (ADT)
@@ -522,9 +526,9 @@ where active = 'X'
 4. Enter CDS view name: `ZTNOTIFY_MESSAGES`
 
 **✅ Verification**:
-- SE11 → Display `ZNOTIFY_MSG` (SQL view name, not DDL source name)
-- Transaction SE11 will show the generated database view
 - Eclipse ADT → Check "Active" status for `ZTNOTIFY_MESSAGES`
+- SE11 → Display table `ZTNOTIFY_MSGS` (base table)
+- Note: Modern view entities don't create SQL views automatically
 
 ---
 
