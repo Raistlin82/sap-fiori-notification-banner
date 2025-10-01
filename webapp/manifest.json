@@ -52,7 +52,9 @@
       "i18n": {
         "type": "sap.ui.model.resource.ResourceModel",
         "settings": {
-          "bundleName": "com.sap.notifications.banner.i18n.i18n"
+          "bundleName": "com.sap.notifications.banner.i18n.i18n",
+          "supportedLocales": [""],
+          "fallbackLocale": ""
         }
       }
     },

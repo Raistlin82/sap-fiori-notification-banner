@@ -1531,7 +1531,34 @@ npm install -g @ui5/cli
    4. Check status shows green traffic light ✅
    ```
 
-2. **Virus Scan Profile Configuration** (SAP Note 1797736):
+2. **Gateway Service Registration** (CRITICAL - Required for OData deployment):
+   ```
+   Transaction: /n/IWFND/MAINT_SERVICE
+   Purpose: Register UI5 Repository service in Gateway
+   ```
+
+   **How to Register** (do this BEFORE attempting deployment):
+   ```
+   1. Transaction: /n/IWFND/MAINT_SERVICE
+   2. Click "Add Service" button
+   3. System Alias: LOCAL (or your backend system alias)
+   4. External Service Name: UI5_REPOSITORY_SRV
+   5. Click "Get Services" button
+   6. Select service from list: UI5_REPOSITORY_SRV
+   7. Package Assignment: $TMP (or ZNOTIFY)
+   8. Save
+   9. Verify service appears in service list with status "Active"
+   ```
+
+   **Verification**:
+   ```
+   /IWFND/MAINT_SERVICE → Filter by "UI5_REPOSITORY"
+   Expected: Service listed with green status icon
+   ```
+
+   ⚠️ **Without this step, deployment will fail with 403/404 errors even if SICF is active!**
+
+3. **Virus Scan Profile Configuration** (SAP Note 1797736):
    ```
    Transaction: VSCAN or VSCANPROFILE
    Purpose: Required for OData file uploads
@@ -1548,7 +1575,7 @@ npm install -g @ui5/cli
 
    **Alternative**: If virus scan profile cannot be configured, use **Option A: Manual Deployment**
 
-3. **User Authorization**:
+4. **User Authorization**:
    ```
    Required Authorization Objects:
    - S_DEVELOP: ACTVT=01,02 (Create/Change repository objects)
@@ -1699,49 +1726,110 @@ Still in Catalog ZNOTIFY_CATALOG:
 5. Save
 ```
 
-#### 1.3 Create Tile
+#### 1.3 Create Dynamic Tile
+
+⚠️ **IMPORTANT**: Before creating the tile, ensure you have created the **Catalog** (Step 1.1) and **Target Mapping** (Step 1.2).
 
 ```
-Still in Catalog ZNOTIFY_CATALOG:
-1. Click tab: "Tiles" (bottom section)
-2. Click "Create" or "+"
-3. Fill in:
-
-   General Information:
-   - Tile ID: ZNOTIFY_TILE_01
-   - Title: Notifications
-   - Subtitle: Active System Messages
-   - Icon: sap-icon://message-information
-   - Tile Type: Dynamic
-
-   Configuration (for Dynamic Tile):
-   - Service URL: /sap/bc/rest/zcl_notification_rest/stats
-   - Service Refresh Interval: 60 (seconds)
-   - Number Value: Use ABAP value from service response "total"
-   - Number Unit: Active
-   - Info: Use ABAP value format "3H|5M|2L" from service response
-
-   Target Mapping:
-   - Select: NotificationBanner-display (created in step 1.2)
-
-4. Save
+Transaction: /UI2/FLPD_CUST
+1. Navigate to tab: "Catalogs"
+2. Select catalog: ZNOTIFY_CATALOG (created in Step 1.1)
+3. Click tab: "Tiles" (bottom section)
+4. Click "Create" button (or "+" icon)
+5. Select Tile Type: "Dynamic Tile"
 ```
 
-**Dynamic Tile Service Response Format**:
-The REST endpoint `/stats` must return:
+**Fill in the following fields** (based on official SAP documentation):
+
+**📋 General Section**:
+```
+Title:         System Notifications
+Subtitle:      Active Messages
+Keywords:      notifications, alerts, messages, system (space or comma separated)
+Icon:          sap-icon://message-information (use value help F4 to select)
+Information:   (leave empty - will be filled dynamically from service)
+Number Unit:   Active
+```
+
+**📊 Dynamic Data Section**:
+```
+Service URL:            /sap/bc/rest/zcl_notif_rest/stats
+Refresh Interval:       60
+  (in seconds - 0 = refresh only on load, 10-999 = auto-refresh interval)
+
+  ⚠️ Note: Values 1-9 will be automatically increased to 10 seconds
+           Value 0 = update only once on page load
+```
+
+**🔗 Navigation Section**:
+```
+☑ Use Semantic Object Navigation:  [CHECKED]
+
+Semantic Object:    NotificationBanner
+Action:            display
+Parameters:        (leave empty - no parameters needed)
+
+Target URL:        (auto-generated - do not fill manually)
+  → Will show: #NotificationBanner-display
+```
+
+**Alternative Navigation (if semantic object doesn't work)**:
+```
+☐ Use Semantic Object Navigation:  [UNCHECKED]
+
+Target URL:  /sap/bc/bsp/sap/znotify_banner/index.html
+```
+
+**💾 Save** the tile configuration.
+
+---
+
+**📊 Dynamic Tile Service Response Format**:
+
+The REST endpoint `/sap/bc/rest/zcl_notif_rest/stats` **MUST** return JSON in this exact format:
+
 ```json
 {
-  "total": 10,
-  "high_count": 3,
-  "medium_count": 5,
-  "low_count": 2
+  "d": {
+    "results": {
+      "number": "10",
+      "numberUnit": "Active",
+      "info": "3H|5M|2L",
+      "infoState": "Error"
+    }
+  }
 }
 ```
 
-**Tile Color Logic** (configured in tile settings):
-- Critical (Red): high_count >= 3
-- Warning (Orange): high_count 1-2
-- Success (Green): high_count = 0
+**Field Mapping** (OData V2 format required):
+- `number`: Total count of active notifications (string)
+- `numberUnit`: Unit text shown below the number (e.g., "Active", "Open", "New")
+- `info`: Additional information line (e.g., "3H|5M|2L" for severity breakdown)
+- `infoState`: Tile color state
+  - `"Success"` → Green (0 high priority)
+  - `"Warning"` → Orange (1-2 high priority)
+  - `"Error"` → Red (3+ high priority)
+
+**Tile Color Logic** (implemented in ABAP REST service):
+```abap
+DATA: lv_info_state TYPE string.
+
+IF lv_high_count >= 3.
+  lv_info_state = 'Error'.        " Red tile
+ELSEIF lv_high_count > 0.
+  lv_info_state = 'Warning'.      " Orange tile
+ELSE.
+  lv_info_state = 'Success'.      " Green tile
+ENDIF.
+```
+
+**Visual Result**:
+- **Title**: "System Notifications"
+- **Subtitle**: "Active Messages"
+- **Number**: "10" (large, center)
+- **Number Unit**: "Active" (below number)
+- **Info**: "3H|5M|2L" (bottom line)
+- **Color**: Red/Orange/Green based on infoState
 
 #### 1.4 Create Group
 

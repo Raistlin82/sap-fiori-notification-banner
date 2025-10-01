@@ -14,7 +14,7 @@ builder:
         app:
           name: ZNOTIFY_BANNER
           description: Global Notification Banner
-          package: ZNOTIFY
+          package: $TMP
           transport: ''
         excludes:
           - node_modules/
