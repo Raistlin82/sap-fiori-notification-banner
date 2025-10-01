@@ -884,29 +884,30 @@ Response: []  ✅ SERVICE WORKING!
      - Short Text: "Activity"
    - **Do NOT manually select a data element** - ACTVT is a standard SAP field
 
-##### Step 7.1.3: Create Data Element ZNOTIFY_TYP (for Authorization Field)
+##### Step 7.1.3: Create Authorization Field ZNOTIFY_TP
 
-**💡 SMART APPROACH**: We'll create a shorter data element that reuses the existing domain `ZDOMAIN_MSG_TYPE`!
+**💡 CRITICAL**: Authorization fields in SU21 require **Authorization Object Field** type (not Data Element)!
 
-**⚠️ Why a New Data Element?**:
-- `ZNOTIFY_MSG_TYPE` (17 chars) is too long for SU21 authorization field names
-- `ZNOTIFY_TYP` (12 chars) fits within SU21 limits
-- We reuse the **domain** ZDOMAIN_MSG_TYPE to maintain consistency
+**⚠️ Name Length Limit**:
+- SU21 authorization field names: **Maximum 10 characters**
+- `ZNOTIFY_MSG_TYPE` (17 chars) ❌ Too long
+- `ZNOTIFY_TYP` (12 chars) ❌ Still too long
+- `ZNOTIFY_TP` (10 chars) ✅ Perfect!
 
 6. **Open Transaction SE11** (in a new session, keep SU21 open)
    - Enter transaction code: `/nse11`
    - Select: **"Data type"** radio button
-   - Enter: `ZNOTIFY_TYP` (**Must start with Z!**)
+   - Enter: `ZNOTIFY_TP` (**Max 10 chars!**)
    - Click **"Create"**
 
-7. **Select Data Element Type** (NOT Authorization Field!)
+7. **Select Authorization Object Field Type** ⭐ CRITICAL!
    - A popup appears: "Create Data Type"
-   - Select: **"Data Element"** ⭐ (NOT "Authorization Object Field")
+   - Select: **"Authorization Object Field"** ⭐ (NOT "Data Element"!)
    - Click **"Continue"** (green checkmark)
 
-8. **Define Data Element Reusing Existing Domain**
+8. **Define Authorization Field Reusing Existing Domain**
    ```
-   Short Description: Notification Type (Auth)
+   Short Description: Notification Type
    Domain: ZDOMAIN_MSG_TYPE  ⭐ REUSE DOMAIN FROM STEP 1!
    ```
    - **IMPORTANT**: By selecting domain `ZDOMAIN_MSG_TYPE`, you automatically get:
@@ -920,8 +921,8 @@ Response: []  ✅ SERVICE WORKING!
    - Enter labels:
      ```
      Short:  Type
-     Medium: Notif Type
-     Long:   Notification Type
+     Medium: Type
+     Long:   Type
      Heading: Type
      ```
 
@@ -932,19 +933,19 @@ Response: []  ✅ SERVICE WORKING!
     - Fixed Values: 6 values (from domain)
     - Value Table: (none)
 
-11. **Add Data Element Documentation**
+11. **Add Authorization Field Documentation**
     - Click **"Documentation"** button in toolbar
     - Enter documentation text:
       ```
-      Data Element: Notification Type (Authorization)
+      Authorization Field: Notification Type
 
-      This data element is specifically designed for use in authorization objects.
+      This authorization field is specifically designed for use in authorization object Z_NOTIFY.
       It reuses domain ZDOMAIN_MSG_TYPE to ensure consistency with the main
       MESSAGE_TYPE field in table ZTNOTIFY_MSGS.
 
       Purpose:
-      - Used in authorization object Z_NOTIFY field ZNOTIFY_TYP
-      - Shorter name (12 chars) to fit SU21 authorization field limits
+      - Used in authorization object Z_NOTIFY field ZNOTIFY_TP
+      - Maximum 10 characters to fit SU21 authorization field name limits
       - Same domain as ZNOTIFY_MSG_TYPE for consistent values
 
       Allowed values (from domain ZDOMAIN_MSG_TYPE):
@@ -957,32 +958,34 @@ Response: []  ✅ SERVICE WORKING!
       SUCCESS - Success confirmations
 
       Technical Details:
+      - Type: Authorization Object Field (required for SU21)
       - Domain: ZDOMAIN_MSG_TYPE (shared with ZNOTIFY_MSG_TYPE)
       - Data Type: CHAR(12)
       - Fixed Values: 6 values from domain
       - F4 Help: Automatically inherited from domain
+      - Name Length: 10 chars (SU21 limit)
       ```
     - **Save** the documentation
     - Click **"Back"** to return to field definition
 
-12. **Save and Activate Data Element**
+12. **Save and Activate Authorization Field**
     - Click **"Save"** (Ctrl+S)
     - Select package: Same package as other ZNOTIFY objects (e.g., `ZNOTIFY` or `$TMP`)
     - Click **"Activate"** (Ctrl+F3)
-    - ✅ Verification: SE11 → Display ZNOTIFY_TYP → Status should be "Active"
+    - ✅ Verification: SE11 → Display ZNOTIFY_TP → Status should be "Active", Type: "Authorization Object Field"
     - Close SE11 window
 
-##### Step 7.1.4: Add Field 2 - ZNOTIFY_TYP to Authorization Object
+##### Step 7.1.4: Add Field 2 - ZNOTIFY_TP to Authorization Object
 
 13. **Return to SU21 Window** (should still be open)
     - In the "Fields" section, click **"New Entries"** again (or press F5)
     - Enter field details:
       ```
-      Authorization Field: ZNOTIFY_TYP
+      Authorization Field: ZNOTIFY_TP
       ```
     - Press Enter - the system will populate:
-      - Data Element: `ZNOTIFY_TYP`
-      - Short Text: "Notification Type (Auth)" (from SE11 definition)
+      - Short Text: "Notification Type" (from SE11 definition)
+      - Domain: `ZDOMAIN_MSG_TYPE` (from authorization field)
 
 14. **Save Authorization Object**
     - Click **"Save"** button (Ctrl+S)
@@ -992,23 +995,24 @@ Response: []  ✅ SERVICE WORKING!
 15. **Check Authorization Object**
     - The object should now show 2 fields:
       1. ACTVT (Activity) - Data Element: ACTIV_AUTH
-      2. ZNOTIFY_TYP (Notification Type) - Data Element: ZNOTIFY_TYP
+      2. ZNOTIFY_TP (Notification Type) - Domain: ZDOMAIN_MSG_TYPE
 
 ##### Step 7.1.5: Verification
 
 **✅ Verification Steps**:
 
-1. **Check Data Element ZNOTIFY_TYP**:
+1. **Check Authorization Field ZNOTIFY_TP**:
    ```
-   SE11 → Data Type → ZNOTIFY_TYP → Display
+   SE11 → Data Type → ZNOTIFY_TP → Display
    Expected:
-   - Type: Data Element (NOT Authorization Object Field!)
+   - Type: Authorization Object Field ⭐ (NOT Data Element!)
    - Domain: ZDOMAIN_MSG_TYPE
    - Data Type: CHAR(12)
-   - Short Description: Notification Type (Auth)
+   - Short Description: Notification Type
    - Documentation exists
    - Fixed Values: Inherited from domain (URGENT, INFO, MAINT, WARNING, TIP, SUCCESS)
-   - Field Labels: Type, Notif Type, Notification Type
+   - Field Labels: Type (all)
+   - Name Length: 10 characters (within SU21 limit)
    ```
 
 2. **Check Authorization Object**:
@@ -1019,22 +1023,22 @@ Response: []  ✅ SERVICE WORKING!
    - Object Class: BC_A
    - 2 Fields:
      1. ACTVT (Activity) - Data Element: ACTIV_AUTH
-     2. ZNOTIFY_TYP (Notification Type) - Data Element: ZNOTIFY_TYP
+     2. ZNOTIFY_TP (Notification Type) - Domain: ZDOMAIN_MSG_TYPE
    ```
 
 3. **Test in PFCG**:
    - Transaction PFCG → Create test role
    - Authorizations → Change Authorization Data → Manually
    - Search for "Z_NOTIFY"
-   - **Expected**: Object appears with 2 fields (ACTVT and ZNOTIFY_TYP)
-   - **Test F4 Help**: Click on ZNOTIFY_TYP value field → Should show 6 values from domain
+   - **Expected**: Object appears with 2 fields (ACTVT and ZNOTIFY_TP)
+   - **Test F4 Help**: Click on ZNOTIFY_TP value field → Should show 6 values from domain
 
 4. **Verify Domain Reuse**:
    ```
    SE11 → Domain → ZDOMAIN_MSG_TYPE → Where-Used List
    Expected to find:
    - ZNOTIFY_MSG_TYPE (Data Element for table)
-   - ZNOTIFY_TYP (Data Element for authorization)
+   - ZNOTIFY_TP (Authorization Object Field for Z_NOTIFY)
    ```
 
 **Authorization Values for ACTVT**:
@@ -1043,7 +1047,7 @@ Response: []  ✅ SERVICE WORKING!
 - `03` - Display notifications (GET)
 - `06` - Delete notifications (DELETE)
 
-**Authorization Values for ZNOTIFY_TYP** (from domain ZDOMAIN_MSG_TYPE):
+**Authorization Values for ZNOTIFY_TP** (from domain ZDOMAIN_MSG_TYPE):
 - `*` - All notification types (wildcard - for admin authorization)
 - `URGENT` - Only urgent notifications
 - `INFO` - Only informational notifications
@@ -1054,28 +1058,30 @@ Response: []  ✅ SERVICE WORKING!
 
 **✨ Benefits of Domain Reuse Architecture**:
 ```
-ZDOMAIN_MSG_TYPE (Domain)
-    ├── ZNOTIFY_MSG_TYPE (Data Element) → Used in ZTNOTIFY_MSGS.MESSAGE_TYPE
-    └── ZNOTIFY_TYP (Data Element) → Used in Z_NOTIFY.ZNOTIFY_TYP (authorization)
+ZDOMAIN_MSG_TYPE (Domain - 6 fixed values)
+    ├── ZNOTIFY_MSG_TYPE (Data Element) → ZTNOTIFY_MSGS.MESSAGE_TYPE
+    └── ZNOTIFY_TP (Auth Object Field) → Z_NOTIFY.ZNOTIFY_TP
 ```
 - ✅ Single domain maintains all fixed values (URGENT, INFO, MAINT, WARNING, TIP, SUCCESS)
-- ✅ Two data elements with different names but same domain
+- ✅ One data element + one authorization field, both using same domain
 - ✅ Automatic F4 help in both table maintenance (SM30) and authorization maintenance (PFCG)
-- ✅ Single point of maintenance: Update domain → affects both data elements
+- ✅ Single point of maintenance: Update domain → affects both fields
 - ✅ Consistency guaranteed: Same CHAR(12) length and values everywhere
-- ✅ SU21 compatible: ZNOTIFY_TYP (12 chars) fits field name limits
+- ✅ SU21 compatible: ZNOTIFY_TP (10 chars) fits authorization field name limits
+- ✅ Authorization Object Field type: Visible in SU21 field selection
 
 **🎯 Common Issues & Solutions**:
 
 | Issue | Solution |
 |-------|----------|
-| "Data element ZNOTIFY_TYP does not exist" | Create data element in SE11 first (Step 7.1.3) - must be Data Element type, not Auth Field |
-| "Field ZNOTIFY_TYP not found" | Activate the data element in SE11 (Step 7.1.3, item 12) |
-| "Cannot add field to authorization object" | Ensure ZNOTIFY_TYP is activated as Data Element (not Auth Object Field) |
+| "Authorization field ZNOTIFY_TP does not exist" | Create in SE11 first (Step 7.1.3) - must be **Authorization Object Field** type |
+| "Field ZNOTIFY_TP not found in SU21" | Activate the authorization field in SE11 (Step 7.1.3, item 12) |
+| "Cannot add field to authorization object" | Ensure ZNOTIFY_TP is type "Authorization Object Field" (NOT "Data Element") |
+| "Field does not appear in SU21 field list" | Wrong type selected - must create as "Authorization Object Field" in SE11 |
 | "Field does not appear in PFCG" | Save and re-open PFCG role, or restart transaction |
 | "Domain ZDOMAIN_MSG_TYPE not found" | Ensure Step 1 (Create Custom Domains) was completed and activated |
 | "F4 help shows no values in PFCG" | Check domain ZDOMAIN_MSG_TYPE has 6 fixed values defined (URGENT, INFO, MAINT, WARNING, TIP, SUCCESS) |
-| "Field name too long in SU21" | Use ZNOTIFY_TYP (12 chars), not ZNOTIFY_MSG_TYPE (17 chars) |
+| "Field name too long in SU21" | SU21 limit is 10 chars: ZNOTIFY_TP (10 chars) ✅, ZNOTIFY_TYP (12 chars) ❌ |
 
 ---
 
@@ -1103,15 +1109,16 @@ ZDOMAIN_MSG_TYPE (Domain)
    ```
    Authorization Object: Z_NOTIFY
    ACTVT: 01, 02, 03, 06    (Create, Change, Display, Delete)
-   ZNOTIFY_TYP: *           (All notification types)
+   ZNOTIFY_TP: *            (All notification types)
    ```
    **Purpose**: Application-specific authorization for notification management
    **Note**: This is a CUSTOM object created in Step 7.1
    **Field Details**:
    - ACTVT: Standard SAP activity field (01=Create, 02=Change, 03=Display, 06=Delete)
-   - ZNOTIFY_TYP: Custom field using ZNOTIFY_TYP data element (domain: ZDOMAIN_MSG_TYPE, same as table field)
+   - ZNOTIFY_TP: Custom authorization field (domain: ZDOMAIN_MSG_TYPE, same domain as table MESSAGE_TYPE)
    - F4 Help: Shows 6 values (URGENT, INFO, MAINT, WARNING, TIP, SUCCESS) + wildcard (*)
-   - Architecture: ZDOMAIN_MSG_TYPE → ZNOTIFY_TYP (data element) → Z_NOTIFY.ZNOTIFY_TYP (auth field)
+   - Architecture: ZDOMAIN_MSG_TYPE → ZNOTIFY_TP (auth object field) → Z_NOTIFY.ZNOTIFY_TP
+   - Name: 10 characters (SU21 limit)
 
    **B) S_TABU_DIS (SAP Standard - Table Authorization Group)**
    ```
