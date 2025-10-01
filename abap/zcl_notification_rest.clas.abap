@@ -16,7 +16,17 @@ CLASS zcl_notification_rest DEFINITION
              handle_update_notification,
              handle_delete_notification,
              handle_get_stats,
-             handle_get_log.
+             handle_get_log,
+             serialize_notifications
+               IMPORTING
+                 it_notifications TYPE zcl_notification_manager=>tt_notifications
+               RETURNING
+                 VALUE(rv_json) TYPE string,
+             deserialize_notification
+               IMPORTING
+                 iv_json TYPE string
+               RETURNING
+                 VALUE(rs_notification) TYPE zcl_notification_manager=>ty_notification.
 
 ENDCLASS.
 
@@ -68,7 +78,7 @@ CLASS zcl_notification_rest IMPLEMENTATION.
     " Set response
     mo_response->create_entity( )->set_string_data( lv_json ).
     mo_response->set_status( cl_rest_status_code=>gc_success_ok ).
-    mo_response->set_header_field( name = 'Content-Type' value = 'application/json' ).
+    mo_response->set_header_field( iv_name = 'Content-Type' iv_value = 'application/json' ).
 
   ENDMETHOD.
 
@@ -96,7 +106,7 @@ CLASS zcl_notification_rest IMPLEMENTATION.
       mo_response->set_status( cl_rest_status_code=>gc_server_error_internal ).
     ENDIF.
 
-    mo_response->set_header_field( name = 'Content-Type' value = 'application/json' ).
+    mo_response->set_header_field( iv_name = 'Content-Type' iv_value = 'application/json' ).
 
   ENDMETHOD.
 
@@ -104,7 +114,7 @@ CLASS zcl_notification_rest IMPLEMENTATION.
 
     DATA: lv_json TYPE string,
           ls_notification TYPE zcl_notification_manager=>ty_notification,
-          lv_message_id TYPE string,
+          lv_message_id TYPE char32,
           lv_success TYPE abap_bool.
 
     " Get message ID from URI
@@ -130,13 +140,13 @@ CLASS zcl_notification_rest IMPLEMENTATION.
       mo_response->set_status( cl_rest_status_code=>gc_server_error_internal ).
     ENDIF.
 
-    mo_response->set_header_field( name = 'Content-Type' value = 'application/json' ).
+    mo_response->set_header_field( iv_name = 'Content-Type' iv_value = 'application/json' ).
 
   ENDMETHOD.
 
   METHOD handle_delete_notification.
 
-    DATA: lv_message_id TYPE string,
+    DATA: lv_message_id TYPE char32,
           lv_success TYPE abap_bool.
 
     " Get message ID from URI
@@ -154,7 +164,7 @@ CLASS zcl_notification_rest IMPLEMENTATION.
       mo_response->set_status( cl_rest_status_code=>gc_server_error_internal ).
     ENDIF.
 
-    mo_response->set_header_field( name = 'Content-Type' value = 'application/json' ).
+    mo_response->set_header_field( iv_name = 'Content-Type' iv_value = 'application/json' ).
 
   ENDMETHOD.
 
@@ -230,7 +240,7 @@ CLASS zcl_notification_rest IMPLEMENTATION.
     " Set response
     mo_response->create_entity( )->set_string_data( lv_json ).
     mo_response->set_status( cl_rest_status_code=>gc_success_ok ).
-    mo_response->set_header_field( name = 'Content-Type' value = 'application/json' ).
+    mo_response->set_header_field( iv_name = 'Content-Type' iv_value = 'application/json' ).
 
   ENDMETHOD.
 
@@ -295,7 +305,7 @@ CLASS zcl_notification_rest IMPLEMENTATION.
     " Set response
     mo_response->create_entity( )->set_string_data( lv_json ).
     mo_response->set_status( cl_rest_status_code=>gc_success_ok ).
-    mo_response->set_header_field( name = 'Content-Type' value = 'application/json' ).
+    mo_response->set_header_field( iv_name = 'Content-Type' iv_value = 'application/json' ).
 
   ENDMETHOD.
 
