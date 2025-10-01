@@ -601,46 +601,113 @@ TYPES: tt_notifications TYPE STANDARD TABLE OF ty_notification WITH DEFAULT KEY.
 
 #### Class 2: ZCL_NOTIFICATION_REST
 
-**Transaction**: SE80 → Class Builder
+**Transaction**: SE80 → Class Builder (or Eclipse ADT)
 
 **File Reference**: `abap/zcl_notification_rest.clas.abap`
 
-This class provides the REST API interface.
+This class provides the REST API interface for SICF HTTP service handler.
 
 **Class Structure**:
 ```
 Class Name: ZCL_NOTIFICATION_REST
-Description: Notification REST Service
-Superclass: CL_REST_RESOURCE
-Methods Redefined: IF_REST_RESOURCE~GET, ~POST, ~PUT, ~DELETE
+Description: Notification REST Service Handler
+Interfaces: IF_HTTP_EXTENSION (required by SICF)
 ```
 
-**REST Methods**:
+**REST Endpoints**:
 - `GET /` - Get all active notifications for current user
 - `GET /stats` - Get statistics (total, high_count, medium_count, low_count)
 - `GET /log` - Get silent notifications (display_mode = SILENT)
 - `POST /` - Create new notification
-- `PUT /` - Update existing notification
-- `DELETE /?message_id=xxx` - Delete notification
+- `PUT /?message_id=xxx` - Update existing notification
+- `DELETE /?message_id=xxx` - Delete (deactivate) notification
+
+**Architecture**:
+```abap
+PUBLIC SECTION.
+  INTERFACES: if_http_extension.
+
+PRIVATE SECTION.
+  DATA: mo_server TYPE REF TO if_http_server.
+
+  METHODS: handle_get_notifications,
+           handle_create_notification,
+           handle_update_notification,
+           handle_delete_notification,
+           handle_get_stats,
+           handle_get_log,
+           serialize_notifications,
+           deserialize_notification.
+```
+
+**Implementation Highlights**:
+```abap
+METHOD if_http_extension~handle_request.
+  " Store server reference
+  mo_server = server.
+
+  " Set CORS headers for Fiori apps
+  server->response->set_header_field(
+    name = 'Access-Control-Allow-Origin' value = '*' ).
+  server->response->set_header_field(
+    name = 'Access-Control-Allow-Methods'
+    value = 'GET,POST,PUT,DELETE,OPTIONS' ).
+  server->response->set_header_field(
+    name = 'Access-Control-Allow-Headers'
+    value = 'Content-Type,Accept,Authorization,X-Requested-With' ).
+
+  " Handle OPTIONS preflight for CORS
+  IF lv_method = 'OPTIONS'.
+    server->response->set_status( code = 200 reason = 'OK' ).
+    RETURN.
+  ENDIF.
+
+  " Route to appropriate handler based on method and path
+  CASE lv_method.
+    WHEN 'GET'.
+      IF lv_path CS '/stats'.
+        handle_get_stats( ).
+      ELSEIF lv_path CS '/log'.
+        handle_get_log( ).
+      ELSE.
+        handle_get_notifications( ).
+      ENDIF.
+    WHEN 'POST'.
+      handle_create_notification( ).
+    " ... etc
+  ENDCASE.
+ENDMETHOD.
+```
 
 **Actions**:
-1. SE80 → Class Builder → Create class `ZCL_NOTIFICATION_REST`
-2. Set Superclass: `CL_REST_RESOURCE`
-3. Copy definition and implementation from `abap/zcl_notification_rest.clas.abap`
-4. Redefine methods: IF_REST_RESOURCE~GET, ~POST, ~PUT, ~DELETE
-5. **Save** → **Check** → **Activate**
+1. **Eclipse ADT** (Recommended):
+   - New → ABAP Class → `ZCL_NOTIFICATION_REST`
+   - Copy definition and implementation from `abap/zcl_notification_rest.clas.abap`
+   - **Save** (Ctrl+S) → **Activate** (Ctrl+F3)
+
+2. **SE80** (Alternative):
+   - Class Builder → Create class `ZCL_NOTIFICATION_REST`
+   - Add interface: `IF_HTTP_EXTENSION`
+   - Implement method: `IF_HTTP_EXTENSION~HANDLE_REQUEST`
+   - Copy implementation code
+   - **Save** → **Check** → **Activate**
 
 **🎯 Key Features**:
-- JSON serialization/deserialization (uses TYPE string for local variables - allowed)
-- Error handling with HTTP status codes
-- CSRF token support
-- CORS headers for cross-origin requests
-- Modern SQL with @ escape (already implemented correctly)
+- ✅ **IF_HTTP_EXTENSION** interface (required by SICF handlers)
+- ✅ **Direct HTTP server access** via `mo_server->request/response`
+- ✅ **CORS handling** in code (no SICF configuration needed)
+- ✅ **OPTIONS preflight** support for cross-origin requests
+- ✅ **JSON serialization** using `/UI2/CL_JSON` (standard SAP class)
+- ✅ **HTTP status codes**: 200 OK, 201 Created, 500 Internal Server Error
+- ✅ **Query parameter handling**: `get_form_field('user_id')`, `get_form_field('message_id')`
+- ✅ **Request body parsing**: `mo_server->request->get_cdata()`
+- ✅ **Response formatting**: `mo_server->response->set_cdata( lv_json )`
 
 **Modern ABAP Compliance**:
 - ✅ All SQL statements use @ escape: `WHERE active = 'X' AND start_date <= @lv_today`
-- ✅ TYPE string allowed in local variables (DATA: lv_json TYPE string)
-- ✅ Inherits from CL_REST_RESOURCE (standard SAP class)
+- ✅ Type conversion: `string` → `char32` / `sy-uname` for method calls
+- ✅ JSON handling: `/ui2/cl_json=>serialize()` and `=>deserialize()`
+- ✅ No deprecated CL_REST_* classes (pure IF_HTTP_EXTENSION implementation)
 
 **✅ Verification**:
 - SE80 → Display both classes → Check "Active" status
@@ -676,46 +743,99 @@ Configure the REST endpoint to make the notification service accessible via HTTP
    - Right-click on `/rest/` → **New Sub-Element**
    - Service Name: `zcl_notif_rest` (shorter name, max 30 chars)
    - Description: `Global Notification REST Service`
+   - **Important**: Select **"Standalone Service"** (NOT "Alias to an existing service")
+   - **Administration Service**: Leave **unchecked** (standard application service)
 
 3. **Configure Handler**:
-   - Go to "Handler List" tab
-   - Add handler class: `ZCL_NOTIFICATION_REST`
+   - Go to **"Handler List"** tab
+   - Click **"New Entry"** or **"+"**
+   - Handler class: `ZCL_NOTIFICATION_REST`
+   - **Save**
 
-4. **Security Settings**:
-   - Logon Data → Service Specific Settings:
-     - ✅ Standard (SAP Standard)
-     - ✅ Alternative Logon → Basic Authentication
-     - ✅ SAP Logon Ticket
+4. **Security Settings** (Logon Data tab):
+   - Go to **"Logon Data"** tab
+   - Service Specific Settings:
+     - ✅ **Standard** (SAP Standard)
+     - ✅ **Alternative Logon** → Basic Authentication
+     - ✅ **SAP Logon Ticket**
+   - Security Requirement: **Standard User**
 
-5. **Enable CORS** (for Fiori apps):
-   - Go to "Service Data" tab
-   - Add CORS settings:
-     ```
-     ~cors_headers:
-       Access-Control-Allow-Origin: *
-       Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS
-       Access-Control-Allow-Headers: *
-     ```
+5. **CORS Configuration** (handled in code):
+   - ✅ **No SICF configuration needed** - CORS headers are set in `ZCL_NOTIFICATION_REST->IF_HTTP_EXTENSION~HANDLE_REQUEST`
+   - The class automatically sets:
+     - `Access-Control-Allow-Origin: *`
+     - `Access-Control-Allow-Methods: GET,POST,PUT,DELETE,OPTIONS`
+     - `Access-Control-Allow-Headers: Content-Type,Accept,Authorization,X-Requested-With`
+     - `Access-Control-Max-Age: 3600`
 
 6. **Activate Service**:
    - Right-click on `zcl_notif_rest` → **Activate Service**
+   - Status should show **green traffic light** 🟢
+
+**SICF Configuration Summary**:
+```
+Service Path: /sap/bc/rest/zcl_notif_rest
+Handler Class: ZCL_NOTIFICATION_REST
+Interface: IF_HTTP_EXTENSION
+Service Type: Standalone (Independent Service)
+Administration: No (Standard Application Service)
+Security: SAP Standard + Basic Auth + Logon Ticket
+CORS: Handled in code (automatic)
+```
 
 **Test the Endpoint**:
+
+**Test 1 - Empty Response (expected if no data)**:
 ```
-URL: https://your-s4hana-system.com/sap/bc/rest/zcl_notif_rest/
+URL: https://<your-server>:<port>/sap/bc/rest/zcl_notif_rest?sap-client=<client>
 Method: GET
-Expected: JSON response with active notifications
+Expected Response: []
+HTTP Status: 200 OK
+```
+
+**Test 2 - Statistics Endpoint**:
+```
+URL: https://<your-server>:<port>/sap/bc/rest/zcl_notif_rest/stats?sap-client=<client>
+Method: GET
+Expected Response: {"total":0,"high_count":0,"medium_count":0,"low_count":0}
+HTTP Status: 200 OK
+```
+
+**Test 3 - CORS Preflight**:
+```
+URL: https://<your-server>:<port>/sap/bc/rest/zcl_notif_rest?sap-client=<client>
+Method: OPTIONS
+Expected Headers:
+  Access-Control-Allow-Origin: *
+  Access-Control-Allow-Methods: GET,POST,PUT,DELETE,OPTIONS
+HTTP Status: 200 OK
+```
+
+**Example Working URL** (based on your test):
+```
+https://vhwqtds4ci.sap.windtre.it:44300/sap/bc/rest/zcl_notif_rest?sap-client=100
+Response: []  ✅ SERVICE WORKING!
 ```
 
 **Note**:
-- Service name in SICF: `zcl_notif_rest` (shorter, 14 chars)
-- Handler class name: `ZCL_NOTIFICATION_REST` (full name, 21 chars)
+- Service name in SICF: `zcl_notif_rest` (14 chars)
+- Handler class name: `ZCL_NOTIFICATION_REST` (21 chars)
+- Empty array `[]` response means service is working correctly - table has no active notifications
 
 **✅ Verification**:
-- SICF → Check `zcl_notif_rest` is active (green traffic light)
-- Test GET request using browser or Postman
-- Check handler class `ZCL_NOTIFICATION_REST` is assigned
-- Response should return `{"notifications": []}`  if no data exists
+- ✅ SICF → Check `zcl_notif_rest` is active (green traffic light 🟢)
+- ✅ Test GET request using browser or Postman
+- ✅ Handler class `ZCL_NOTIFICATION_REST` is assigned
+- ✅ Response returns `[]` (empty array) if no data exists
+- ✅ Response returns JSON array with notifications if data exists
+- ✅ HTTP Status: 200 OK
+- ✅ CORS headers present in response (check browser Developer Tools → Network)
+
+**🎯 Success Criteria**:
+- Browser/Postman returns `[]` without authentication errors
+- No 401 Unauthorized or 403 Forbidden errors
+- No 500 Internal Server Error
+- Response Content-Type: `application/json`
 
 ---
 

@@ -1,16 +1,14 @@
 CLASS zcl_notification_rest DEFINITION
   PUBLIC
   FINAL
-  CREATE PUBLIC
-  INHERITING FROM cl_rest_resource.
+  CREATE PUBLIC.
 
   PUBLIC SECTION.
-    METHODS: if_rest_resource~post REDEFINITION,
-             if_rest_resource~get REDEFINITION,
-             if_rest_resource~put REDEFINITION,
-             if_rest_resource~delete REDEFINITION.
+    INTERFACES: if_http_extension.
 
   PRIVATE SECTION.
+    DATA: mo_server TYPE REF TO if_http_server.
+
     METHODS: handle_get_notifications,
              handle_create_notification,
              handle_update_notification,
@@ -32,42 +30,66 @@ ENDCLASS.
 
 CLASS zcl_notification_rest IMPLEMENTATION.
 
-  METHOD if_rest_resource~get.
-    DATA: lv_path TYPE string.
+  METHOD if_http_extension~handle_request.
+    DATA: lv_method TYPE string,
+          lv_path TYPE string.
 
-    " Get request path to route to correct handler
-    lv_path = mo_request->get_uri_path( ).
+    " Store server reference for use in other methods
+    mo_server = server.
 
-    CASE lv_path.
-      WHEN '/stats'.
-        handle_get_stats( ).
-      WHEN '/log'.
-        handle_get_log( ).
+    " Set CORS headers to allow cross-origin requests from Fiori apps
+    server->response->set_header_field( name = 'Access-Control-Allow-Origin' value = '*' ).
+    server->response->set_header_field( name = 'Access-Control-Allow-Methods' value = 'GET,POST,PUT,DELETE,OPTIONS' ).
+    server->response->set_header_field( name = 'Access-Control-Allow-Headers' value = 'Content-Type,Accept,Authorization,X-Requested-With' ).
+    server->response->set_header_field( name = 'Access-Control-Max-Age' value = '3600' ).
+
+    " Get HTTP method and path
+    lv_method = server->request->get_header_field( '~request_method' ).
+    lv_path = server->request->get_header_field( '~path_info' ).
+
+    " Handle OPTIONS preflight request for CORS
+    IF lv_method = 'OPTIONS'.
+      server->response->set_status( code = 200 reason = 'OK' ).
+      RETURN.
+    ENDIF.
+
+    " Route based on HTTP method and path
+    CASE lv_method.
+      WHEN 'GET'.
+        IF lv_path CS '/stats'.
+          handle_get_stats( ).
+        ELSEIF lv_path CS '/log'.
+          handle_get_log( ).
+        ELSE.
+          handle_get_notifications( ).
+        ENDIF.
+
+      WHEN 'POST'.
+        handle_create_notification( ).
+
+      WHEN 'PUT'.
+        handle_update_notification( ).
+
+      WHEN 'DELETE'.
+        handle_delete_notification( ).
+
       WHEN OTHERS.
-        handle_get_notifications( ).
+        " Method not allowed
+        server->response->set_status( code = 405 reason = 'Method Not Allowed' ).
     ENDCASE.
-  ENDMETHOD.
 
-  METHOD if_rest_resource~post.
-    handle_create_notification( ).
-  ENDMETHOD.
-
-  METHOD if_rest_resource~put.
-    handle_update_notification( ).
-  ENDMETHOD.
-
-  METHOD if_rest_resource~delete.
-    handle_delete_notification( ).
   ENDMETHOD.
 
   METHOD handle_get_notifications.
 
     DATA: lt_notifications TYPE zcl_notification_manager=>tt_notifications,
           lv_json TYPE string,
+          lv_user_id_str TYPE string,
           lv_user_id TYPE sy-uname.
 
     " Get user ID from query parameter
-    lv_user_id = mo_request->get_uri_query_parameter( 'user_id' ).
+    lv_user_id_str = mo_server->request->get_form_field( 'user_id' ).
+    lv_user_id = lv_user_id_str.
 
     " Get active notifications
     lt_notifications = zcl_notification_manager=>get_active_notifications( lv_user_id ).
@@ -76,9 +98,9 @@ CLASS zcl_notification_rest IMPLEMENTATION.
     lv_json = serialize_notifications( lt_notifications ).
 
     " Set response
-    mo_response->create_entity( )->set_string_data( lv_json ).
-    mo_response->set_status( cl_rest_status_code=>gc_success_ok ).
-    mo_response->set_header_field( iv_name = 'Content-Type' iv_value = 'application/json' ).
+    mo_server->response->set_status( code = 200 reason = 'OK' ).
+    mo_server->response->set_header_field( name = 'Content-Type' value = 'application/json' ).
+    mo_server->response->set_cdata( data = lv_json ).
 
   ENDMETHOD.
 
@@ -89,7 +111,7 @@ CLASS zcl_notification_rest IMPLEMENTATION.
           lv_success TYPE abap_bool.
 
     " Get JSON from request body
-    lv_json = mo_request->get_entity( )->get_string_data( ).
+    lv_json = mo_server->request->get_cdata( ).
 
     " Deserialize JSON to notification structure
     ls_notification = deserialize_notification( lv_json ).
@@ -98,15 +120,15 @@ CLASS zcl_notification_rest IMPLEMENTATION.
     lv_success = zcl_notification_manager=>create_notification( ls_notification ).
 
     " Set response
-    IF lv_success = abap_true.
-      mo_response->create_entity( )->set_string_data( '{"success": true, "message": "Notification created"}' ).
-      mo_response->set_status( cl_rest_status_code=>gc_success_created ).
-    ELSE.
-      mo_response->create_entity( )->set_string_data( '{"success": false, "message": "Failed to create notification"}' ).
-      mo_response->set_status( cl_rest_status_code=>gc_server_error_internal ).
-    ENDIF.
+    mo_server->response->set_header_field( name = 'Content-Type' value = 'application/json' ).
 
-    mo_response->set_header_field( iv_name = 'Content-Type' iv_value = 'application/json' ).
+    IF lv_success = abap_true.
+      mo_server->response->set_status( code = 201 reason = 'Created' ).
+      mo_server->response->set_cdata( data = '{"success": true, "message": "Notification created"}' ).
+    ELSE.
+      mo_server->response->set_status( code = 500 reason = 'Internal Server Error' ).
+      mo_server->response->set_cdata( data = '{"success": false, "message": "Failed to create notification"}' ).
+    ENDIF.
 
   ENDMETHOD.
 
@@ -114,14 +136,16 @@ CLASS zcl_notification_rest IMPLEMENTATION.
 
     DATA: lv_json TYPE string,
           ls_notification TYPE zcl_notification_manager=>ty_notification,
+          lv_message_id_str TYPE string,
           lv_message_id TYPE char32,
           lv_success TYPE abap_bool.
 
-    " Get message ID from URI
-    lv_message_id = mo_request->get_uri_query_parameter( 'message_id' ).
+    " Get message ID from query parameter
+    lv_message_id_str = mo_server->request->get_form_field( 'message_id' ).
+    lv_message_id = lv_message_id_str.
 
     " Get JSON from request body
-    lv_json = mo_request->get_entity( )->get_string_data( ).
+    lv_json = mo_server->request->get_cdata( ).
 
     " Deserialize JSON to notification structure
     ls_notification = deserialize_notification( lv_json ).
@@ -132,39 +156,41 @@ CLASS zcl_notification_rest IMPLEMENTATION.
       is_notification = ls_notification ).
 
     " Set response
-    IF lv_success = abap_true.
-      mo_response->create_entity( )->set_string_data( '{"success": true, "message": "Notification updated"}' ).
-      mo_response->set_status( cl_rest_status_code=>gc_success_ok ).
-    ELSE.
-      mo_response->create_entity( )->set_string_data( '{"success": false, "message": "Failed to update notification"}' ).
-      mo_response->set_status( cl_rest_status_code=>gc_server_error_internal ).
-    ENDIF.
+    mo_server->response->set_header_field( name = 'Content-Type' value = 'application/json' ).
 
-    mo_response->set_header_field( iv_name = 'Content-Type' iv_value = 'application/json' ).
+    IF lv_success = abap_true.
+      mo_server->response->set_status( code = 200 reason = 'OK' ).
+      mo_server->response->set_cdata( data = '{"success": true, "message": "Notification updated"}' ).
+    ELSE.
+      mo_server->response->set_status( code = 500 reason = 'Internal Server Error' ).
+      mo_server->response->set_cdata( data = '{"success": false, "message": "Failed to update notification"}' ).
+    ENDIF.
 
   ENDMETHOD.
 
   METHOD handle_delete_notification.
 
-    DATA: lv_message_id TYPE char32,
+    DATA: lv_message_id_str TYPE string,
+          lv_message_id TYPE char32,
           lv_success TYPE abap_bool.
 
-    " Get message ID from URI
-    lv_message_id = mo_request->get_uri_query_parameter( 'message_id' ).
+    " Get message ID from query parameter
+    lv_message_id_str = mo_server->request->get_form_field( 'message_id' ).
+    lv_message_id = lv_message_id_str.
 
     " Deactivate notification
     lv_success = zcl_notification_manager=>deactivate_notification( lv_message_id ).
 
     " Set response
-    IF lv_success = abap_true.
-      mo_response->create_entity( )->set_string_data( '{"success": true, "message": "Notification deleted"}' ).
-      mo_response->set_status( cl_rest_status_code=>gc_success_ok ).
-    ELSE.
-      mo_response->create_entity( )->set_string_data( '{"success": false, "message": "Failed to delete notification"}' ).
-      mo_response->set_status( cl_rest_status_code=>gc_server_error_internal ).
-    ENDIF.
+    mo_server->response->set_header_field( name = 'Content-Type' value = 'application/json' ).
 
-    mo_response->set_header_field( iv_name = 'Content-Type' iv_value = 'application/json' ).
+    IF lv_success = abap_true.
+      mo_server->response->set_status( code = 200 reason = 'OK' ).
+      mo_server->response->set_cdata( data = '{"success": true, "message": "Notification deleted"}' ).
+    ELSE.
+      mo_server->response->set_status( code = 500 reason = 'Internal Server Error' ).
+      mo_server->response->set_cdata( data = '{"success": false, "message": "Failed to delete notification"}' ).
+    ENDIF.
 
   ENDMETHOD.
 
@@ -235,9 +261,9 @@ CLASS zcl_notification_rest IMPLEMENTATION.
       pretty_name = /ui2/cl_json=>pretty_mode-low_case ).
 
     " Set response
-    mo_response->create_entity( )->set_string_data( lv_json ).
-    mo_response->set_status( cl_rest_status_code=>gc_success_ok ).
-    mo_response->set_header_field( iv_name = 'Content-Type' iv_value = 'application/json' ).
+    mo_server->response->set_status( code = 200 reason = 'OK' ).
+    mo_server->response->set_header_field( name = 'Content-Type' value = 'application/json' ).
+    mo_server->response->set_cdata( data = lv_json ).
 
   ENDMETHOD.
 
@@ -250,13 +276,13 @@ CLASS zcl_notification_rest IMPLEMENTATION.
           lt_db_notifications TYPE TABLE OF ztnotify_msgs,
           ls_db_notification TYPE ztnotify_msgs,
           lv_json TYPE string,
-          lv_user_id TYPE sy-uname,
+          lv_user_id TYPE string,
           lv_today TYPE sy-datum.
 
     lv_today = sy-datum.
 
     " Get user ID from query parameter (optional filter)
-    lv_user_id = mo_request->get_uri_query_parameter( 'user_id' ).
+    lv_user_id = mo_server->request->get_form_field( 'user_id' ).
 
     " Select all notifications with SILENT display mode
     SELECT * FROM ztnotify_msgs
@@ -300,9 +326,9 @@ CLASS zcl_notification_rest IMPLEMENTATION.
     lv_json = serialize_notifications( lt_notifications ).
 
     " Set response
-    mo_response->create_entity( )->set_string_data( lv_json ).
-    mo_response->set_status( cl_rest_status_code=>gc_success_ok ).
-    mo_response->set_header_field( iv_name = 'Content-Type' iv_value = 'application/json' ).
+    mo_server->response->set_status( code = 200 reason = 'OK' ).
+    mo_server->response->set_header_field( name = 'Content-Type' value = 'application/json' ).
+    mo_server->response->set_cdata( data = lv_json ).
 
   ENDMETHOD.
 
