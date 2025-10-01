@@ -254,20 +254,20 @@ sap.ui.define([
                 var displayMode = (notification.display_mode || "BANNER").toUpperCase();
 
                 switch(displayMode) {
-                    case "BANNER":
-                        bannerNotifications.push(notification);
-                        break;
-                    case "TOAST":
-                        toastNotifications.push(notification);
-                        break;
-                    case "BOTH":
-                        bothNotifications.push(notification);
-                        break;
-                    case "SILENT":
-                        silentNotifications.push(notification);
-                        break;
-                    default:
-                        bannerNotifications.push(notification); // Default to banner
+                case "BANNER":
+                    bannerNotifications.push(notification);
+                    break;
+                case "TOAST":
+                    toastNotifications.push(notification);
+                    break;
+                case "BOTH":
+                    bothNotifications.push(notification);
+                    break;
+                case "SILENT":
+                    silentNotifications.push(notification);
+                    break;
+                default:
+                    bannerNotifications.push(notification); // Default to banner
                 }
             }
 
@@ -330,7 +330,7 @@ sap.ui.define([
         _logNotification: function(notification) {
             Log.info("SILENT NOTIFICATION: [" + notification.severity + "] " +
                     notification.title + ": " + notification.message_text,
-                    "notification_id: " + notification.message_id);
+            "notification_id: " + notification.message_id);
         },
 
         /**
