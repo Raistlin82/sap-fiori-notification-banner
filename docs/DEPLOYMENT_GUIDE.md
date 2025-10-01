@@ -1292,34 +1292,152 @@ npm run build
    You do NOT need to create it manually!
    ```
 
-3. **Import UI5 Files as MIME Objects**:
-   ```
-   Method A: Import individual files
-   - Expand: ZNOTIFY_BANNER → MIME Objects
-   - Right-click on "MIME Objects"
-   - Select: "Import" → "MIME Objects" (NOT "Create")
-   - Browse to dist/webapp folder
-   - Select files to import:
-     * Component-preload.js
-     * manifest.json
-     * index.html
-     * i18n/i18n.properties
-     * css/*.css
-     * controller/*.js
-     * view/*.xml
-   - Click "Import"
-   - Files appear under MIME Objects in tree
+3. **Import UI5 Files as MIME Objects (23 files total)**:
 
-   Method B: Import entire folder structure (RECOMMENDED)
-   - Right-click on "MIME Objects"
-   - Select: "Import" → "MIME Objects"
-   - Dialog opens: "Import MIME Repository Objects"
-   - Click "Browse" button
-   - Navigate to: dist/webapp folder (entire folder)
-   - Select all files/subfolders
-   - Click "OK"
-   - System imports complete folder structure
-   - Subfolders (i18n, css, controller, view) created automatically
+   ⚠️ **IMPORTANT**: SE80 import dialog does NOT support folder selection.
+   You must import files ONE BY ONE or use multi-select (Ctrl+Click).
+
+   **Complete File List from `dist/` folder**:
+
+   **Step 3.1: Import Root Files** (8 files)
+   ```
+   Right-click on "MIME Objects" → "Import" → "MIME Objects"
+   Navigate to: dist/ folder
+   Select these files (use Ctrl+Click for multi-select):
+
+   1. Component.js               (MIME type: application/javascript)
+   2. Component-dbg.js           (MIME type: application/javascript)
+   3. Component-preload.js       (MIME type: application/javascript) ⭐ CRITICAL
+   4. Component-preload.js.map   (MIME type: application/json)
+   5. Component.js.map           (MIME type: application/json)
+   6. index.html                 (MIME type: text/html) ⭐ CRITICAL
+   7. manifest.json              (MIME type: application/json) ⭐ CRITICAL
+   8. sap_fiori_notification_banner.zip (MIME type: application/zip) - OPTIONAL
+
+   Click "Import" → Files uploaded to MIME Objects root
+   ```
+
+   **Step 3.2: Create Subfolder and Import controller/** (9 files)
+   ```
+   Right-click on "MIME Objects" → "Create" → "Folder"
+   Folder Name: controller
+
+   Right-click on "controller" folder → "Import" → "MIME Objects"
+   Navigate to: dist/controller/ folder
+   Select all 9 files:
+
+   1. NotificationBanner.js      (MIME type: application/javascript) ⭐ CRITICAL
+   2. NotificationBanner-dbg.js  (MIME type: application/javascript)
+   3. NotificationBanner.js.map  (MIME type: application/json)
+   4. TileCounter.js             (MIME type: application/javascript) ⭐ CRITICAL
+   5. TileCounter-dbg.js         (MIME type: application/javascript)
+   6. TileCounter.js.map         (MIME type: application/json)
+   7. View1.controller.js        (MIME type: application/javascript)
+   8. View1-dbg.controller.js    (MIME type: application/javascript)
+   9. View1.controller.js.map    (MIME type: application/json)
+
+   Click "Import" → Files uploaded to controller/ subfolder
+   ```
+
+   **Step 3.3: Create Subfolder and Import css/** (1 file)
+   ```
+   Right-click on "MIME Objects" → "Create" → "Folder"
+   Folder Name: css
+
+   Right-click on "css" folder → "Import" → "MIME Objects"
+   Navigate to: dist/css/ folder
+   Select:
+
+   1. style.css                  (MIME type: text/css)
+
+   Click "Import"
+   ```
+
+   **Step 3.4: Create Subfolder and Import i18n/** (1 file)
+   ```
+   Right-click on "MIME Objects" → "Create" → "Folder"
+   Folder Name: i18n
+
+   Right-click on "i18n" folder → "Import" → "MIME Objects"
+   Navigate to: dist/i18n/ folder
+   Select:
+
+   1. i18n.properties            (MIME type: text/plain) ⭐ CRITICAL
+
+   Click "Import"
+   ```
+
+   **Step 3.5: Create Subfolder and Import model/** (3 files)
+   ```
+   Right-click on "MIME Objects" → "Create" → "Folder"
+   Folder Name: model
+
+   Right-click on "model" folder → "Import" → "MIME Objects"
+   Navigate to: dist/model/ folder
+   Select all 3 files:
+
+   1. models.js                  (MIME type: application/javascript)
+   2. models-dbg.js              (MIME type: application/javascript)
+   3. models.js.map              (MIME type: application/json)
+
+   Click "Import"
+   ```
+
+   **Step 3.6: Create Subfolder and Import view/** (1 file)
+   ```
+   Right-click on "MIME Objects" → "Create" → "Folder"
+   Folder Name: view
+
+   Right-click on "view" folder → "Import" → "MIME Objects"
+   Navigate to: dist/view/ folder
+   Select:
+
+   1. View1.view.xml             (MIME type: application/xml)
+
+   Click "Import"
+   ```
+
+   **📊 Import Summary**:
+   ```
+   Total Files: 23 (excluding .zip)
+   Critical Files (⭐): 6
+   - Component-preload.js (minified bundle)
+   - index.html (entry point)
+   - manifest.json (app descriptor)
+   - NotificationBanner.js (banner logic)
+   - TileCounter.js (tile counter logic)
+   - i18n.properties (translations)
+
+   Folder Structure After Import:
+   ZNOTIFY_BANNER/
+   └── MIME Objects/
+       ├── Component.js
+       ├── Component-dbg.js
+       ├── Component-preload.js ⭐
+       ├── Component-preload.js.map
+       ├── Component.js.map
+       ├── index.html ⭐
+       ├── manifest.json ⭐
+       ├── controller/
+       │   ├── NotificationBanner.js ⭐
+       │   ├── NotificationBanner-dbg.js
+       │   ├── NotificationBanner.js.map
+       │   ├── TileCounter.js ⭐
+       │   ├── TileCounter-dbg.js
+       │   ├── TileCounter.js.map
+       │   ├── View1.controller.js
+       │   ├── View1-dbg.controller.js
+       │   └── View1.controller.js.map
+       ├── css/
+       │   └── style.css
+       ├── i18n/
+       │   └── i18n.properties ⭐
+       ├── model/
+       │   ├── models.js
+       │   ├── models-dbg.js
+       │   └── models.js.map
+       └── view/
+           └── View1.view.xml
    ```
 
 4. **Set MIME Type** (auto-detected but verify):
@@ -1357,37 +1475,157 @@ SE80 → Display BSP Application: ZNOTIFY_BANNER
 
 ### Option B: Automated Deployment with Fiori Tools
 
+⚠️ **IMPORTANT**: Automated deployment requires SAP system configuration that may not be available in all environments.
+If automated deployment fails, use **Option A: Manual Deployment** instead.
+
 #### Prerequisites
 
+**Local Environment**:
 ```bash
 npm install -g @sap/ux-ui5-tooling
 npm install -g @ui5/cli
 ```
 
+**SAP System Requirements** ⚠️ **CRITICAL**:
+
+1. **OData Service for UI5 Repository** (must be active):
+   ```
+   Transaction: SICF
+   Path: /default_host/sap/opu/odata/UI5/ABAP_REPOSITORY_SRV
+   Status: Must be ACTIVE (green traffic light)
+   ```
+
+   **How to Activate**:
+   ```
+   1. SICF → Navigate to /sap/opu/odata/UI5/ABAP_REPOSITORY_SRV
+   2. Right-click on service
+   3. Select "Activate Service"
+   4. Check status shows green traffic light ✅
+   ```
+
+2. **Virus Scan Profile Configuration** (SAP Note 1797736):
+   ```
+   Transaction: VSCAN or VSCANPROFILE
+   Purpose: Required for OData file uploads
+   SAP Note: 1797736 - Virus scan at upload via OData service
+   ```
+
+   **How to Configure** (requires BASIS team):
+   ```
+   1. Transaction: VSCAN
+   2. Create/activate a default virus scan profile
+   3. Configure virus scan interface (external antivirus software)
+   4. Test profile: Upload a test file via OData
+   ```
+
+   **Alternative**: If virus scan profile cannot be configured, use **Option A: Manual Deployment**
+
+3. **User Authorization**:
+   ```
+   Required Authorization Objects:
+   - S_DEVELOP: ACTVT=01,02 (Create/Change repository objects)
+   - S_TABU_NAM: TABLE=TADIR (Repository information system)
+   - S_RFC: Execute OData RFC calls
+   ```
+
+**Verification Before Deployment**:
+```bash
+# Test 1: Check OData service accessibility
+curl -u username:password \
+  "https://your-system:port/sap/opu/odata/UI5/ABAP_REPOSITORY_SRV/Repositories?sap-client=100"
+
+# Expected: XML response with repository list (not 404 or 403)
+
+# Test 2: Check virus scan profile (via ABAP report or BASIS team)
+# Execute report: RSVSCAN_CHECK_PROFILE
+# Expected: "Default virus scan profile found" message
+```
+
 #### Deploy Command
 
 ```bash
+# Set environment variables for authentication
+export SAP_USER="your-username"
+export SAP_PASSWORD="your-password"
+
+# Run deployment
 npx fiori deploy
 ```
 
 **Deployment Configuration** (when prompted):
 ```
-Target System: [Your S/4HANA system]
+Target System: [Your S/4HANA system URL]
+Client: [Your client number, e.g., 100]
 BSP Application Name: ZNOTIFY_BANNER
-Package: $TMP (or your custom package)
-Transport Request: [Your TR number]
+Package: $TMP (or your custom package, e.g., ZNOTIFY)
+Transport Request: [Your TR number or leave empty for $TMP]
 ```
 
-**Expected Output**:
+**Alternative: Use ui5-deploy.yaml Configuration**:
+```bash
+# Deployment configuration already exists in ui5-deploy.yaml
+# Uses environment variables: SAP_USER and SAP_PASSWORD
+npx fiori deploy --config ui5-deploy.yaml
 ```
+
+**Expected Output (Success)**:
+```
+ℹ info Deploying application ZNOTIFY_BANNER...
+ℹ info Uploading files to /sap/opu/odata/UI5/ABAP_REPOSITORY_SRV...
 ✔ Deployment successful
 ✔ BSP application ZNOTIFY_BANNER created
 ✔ All resources uploaded and activated
+✔ Application URL: https://your-system:port/sap/bc/bsp/sap/znotify_banner/index.html
 ```
 
-**✅ Verification**:
-- SE80 → Display ZNOTIFY_BANNER
-- Test application URL
+**Common Deployment Errors**:
+
+| Error Code | Error Message | Root Cause | Solution |
+|------------|--------------|------------|----------|
+| **403** | Request failed with status code 403 | OData service not active OR missing authorization | 1. SICF → Activate `/sap/opu/odata/UI5/ABAP_REPOSITORY_SRV`<br>2. Check user has S_DEVELOP authorization |
+| **400** | No default virus profile active or found | Virus scan profile not configured (SAP Note 1797736) | 1. Contact BASIS team to configure VSCAN profile<br>2. **OR** Use Option A: Manual Deployment |
+| **404** | Service not found | OData service doesn't exist or path incorrect | 1. Verify SAP_GWFND component is installed<br>2. Check service path in SICF |
+| **401** | Unauthorized | Incorrect credentials | 1. Check SAP_USER and SAP_PASSWORD env vars<br>2. Verify user account is not locked (SU01) |
+| **500** | Internal Server Error | ABAP runtime error during upload | 1. Check ST22 dump analysis<br>2. Review SM21 system log<br>3. Check application log in SLG1 |
+
+**✅ Verification After Successful Deployment**:
+```bash
+# 1. Check BSP Application created
+# SE80 → Display ZNOTIFY_BANNER
+# Expected: Application exists with MIME Objects folder populated
+
+# 2. Test application URL
+curl -u username:password \
+  "https://your-system:port/sap/bc/bsp/sap/znotify_banner/index.html?sap-client=100"
+
+# Expected: HTML content with UI5 bootstrap (not 404)
+
+# 3. Verify MIME Objects count
+# SE80 → ZNOTIFY_BANNER → MIME Objects
+# Expected: 23 files in correct folder structure
+```
+
+**⚠️ If Automated Deployment Fails**:
+1. Review error message and check table above
+2. If virus scan profile error: **Use Option A: Manual Deployment** (recommended)
+3. If OData service error: Contact BASIS team to activate service
+4. If authorization error: Request required authorizations from security team
+
+**Troubleshooting Steps**:
+```bash
+# Enable verbose logging
+npx fiori deploy --config ui5-deploy.yaml --verbose
+
+# Check ui5-deploy.yaml configuration
+cat ui5-deploy.yaml
+
+# Verify environment variables are set
+echo $SAP_USER
+echo $SAP_PASSWORD
+
+# Test SICF service manually
+# SICF → Test Service → /sap/opu/odata/UI5/ABAP_REPOSITORY_SRV
+```
 
 ---
 

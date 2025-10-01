@@ -24,3 +24,4 @@ builder:
         credentials:
           username: env:SAP_USER
           password: env:SAP_PASSWORD
+        verbose: true
