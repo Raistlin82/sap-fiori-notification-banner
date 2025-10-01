@@ -16,7 +16,7 @@
         "uri": "i18n/i18n.properties"
       },
       "notificationService": {
-        "uri": "/sap/bc/rest/zcl_notification_rest/",
+        "uri": "/sap/bc/rest/zcl_notif_rest/",
         "type": "REST"
       }
     }

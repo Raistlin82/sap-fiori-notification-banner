@@ -19,7 +19,7 @@ sap.ui.define([
 
                 // Create mock server instance
                 oMockServer = new MockServer({
-                    rootUri: "/sap/bc/rest/zcl_notification_rest/"
+                    rootUri: "/sap/bc/rest/zcl_notif_rest/"
                 });
 
                 // Configure mock server

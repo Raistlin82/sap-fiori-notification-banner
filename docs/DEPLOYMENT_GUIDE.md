@@ -674,12 +674,12 @@ Configure the REST endpoint to make the notification service accessible via HTTP
 
 2. **Create new sub-element**:
    - Right-click on `/rest/` → **New Sub-Element**
-   - Service Name: `zcl_notification_rest`
+   - Service Name: `zcl_notif_rest` (shorter name, max 30 chars)
    - Description: `Global Notification REST Service`
 
 3. **Configure Handler**:
    - Go to "Handler List" tab
-   - Add handler: `ZCL_NOTIFICATION_REST`
+   - Add handler class: `ZCL_NOTIFICATION_REST`
 
 4. **Security Settings**:
    - Logon Data → Service Specific Settings:
@@ -698,18 +698,23 @@ Configure the REST endpoint to make the notification service accessible via HTTP
      ```
 
 6. **Activate Service**:
-   - Right-click on `zcl_notification_rest` → **Activate Service**
+   - Right-click on `zcl_notif_rest` → **Activate Service**
 
 **Test the Endpoint**:
 ```
-URL: https://your-s4hana-system.com/sap/bc/rest/zcl_notification_rest/
+URL: https://your-s4hana-system.com/sap/bc/rest/zcl_notif_rest/
 Method: GET
 Expected: JSON response with active notifications
 ```
 
+**Note**:
+- Service name in SICF: `zcl_notif_rest` (shorter, 14 chars)
+- Handler class name: `ZCL_NOTIFICATION_REST` (full name, 21 chars)
+
 **✅ Verification**:
-- SICF → Check `zcl_notification_rest` is active (green traffic light)
+- SICF → Check `zcl_notif_rest` is active (green traffic light)
 - Test GET request using browser or Postman
+- Check handler class `ZCL_NOTIFICATION_REST` is assigned
 - Response should return `{"notifications": []}`  if no data exists
 
 ---

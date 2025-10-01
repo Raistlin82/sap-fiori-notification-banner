@@ -62,7 +62,7 @@ sap.ui.define([
             var that = this;
 
             jQuery.ajax({
-                url: "/sap/bc/rest/zcl_notification_rest/stats",
+                url: "/sap/bc/rest/zcl_notif_rest/stats",
                 type: "GET",
                 timeout: 5000,
                 success: function(data) {

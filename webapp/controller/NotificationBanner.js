@@ -57,7 +57,7 @@ sap.ui.define([
             }
 
             jQuery.ajax({
-                url: "/sap/bc/rest/zcl_notification_rest/",
+                url: "/sap/bc/rest/zcl_notif_rest/",
                 type: "GET",
                 data: {
                     user_id: sUserId
