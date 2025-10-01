@@ -68,21 +68,21 @@ These are **pre-existing SAP standard data elements**. They do NOT need to be cr
 
 ---
 
-### DSTRING (Dynamic String)
+### CHAR255 (Character Field 255)
 
-**Data Element**: DSTRING
-**Domain**: DSTRING
-**Type**: STRING, Length: 0 (dynamic)
-**Purpose**: Variable-length string without fixed limit
-**SAP Note**: Built-in ABAP Dictionary type for long texts
+**Data Element**: CHAR255
+**Domain**: -
+**Type**: CHAR, Length: 255
+**Purpose**: Fixed-length character field for notification messages
+**SAP Note**: Standard SAP data element, SM30 compatible
 **Used In**: ZTNOTIFY_MSGS.MESSAGE_TEXT
 
 **Characteristics**:
-- No fixed length limit
-- Efficiently stored in database (only uses required space)
-- Automatically handled by ABAP runtime
-- Ideal for long message texts
-- Recommended max: 2000 characters for UI performance
+- Fixed length: 255 characters maximum
+- Compatible with SM30 Table Maintenance Generator
+- Sufficient for most notification messages
+- Standard CHAR type, widely supported
+- Works with all SAP tools (SE11, SE16, SM30)
 
 ---
 
@@ -277,7 +277,7 @@ Complete mapping of all fields in ZTNOTIFY_MSGS table:
 | MESSAGE_TYPE     | ZNOTIFY_MSG_TYPE     | CHAR    | 12     | 0        | Custom     | ✅ Yes  |
 | SEVERITY         | ZNOTIFY_SEVERITY     | CHAR    | 8      | 0        | Custom     | ✅ Yes  |
 | TITLE            | CHAR255              | CHAR    | 255    | 0        | SAP Std    | No      |
-| MESSAGE_TEXT     | DSTRING              | STRING  | 0      | 0        | SAP Std    | No      |
+| MESSAGE_TEXT     | CHAR255              | CHAR    | 255    | 0        | SAP Std    | No      |
 | START_DATE       | DATS                 | DATS    | 8      | 0        | SAP Std    | No      |
 | END_DATE         | DATS                 | DATS    | 8      | 0        | SAP Std    | No      |
 | TARGET_USERS     | ZNOTIFY_TARGET_USERS | CHAR    | 10     | 0        | Custom     | ✅ Yes  |
@@ -407,7 +407,7 @@ Complete mapping of all fields in ZTNOTIFY_MSGS table:
    MESSAGE_TYPE: URGENT (select from F4)
    SEVERITY: HIGH (select from F4)
    TITLE: Test Notification (free text, max 255 chars)
-   MESSAGE_TEXT: Long message text (free text, unlimited)
+   MESSAGE_TEXT: Notification message text (free text, max 255 chars)
    START_DATE: 20250101 (date picker)
    END_DATE: 20251231 (date picker)
    TARGET_USERS: ALL (select from F4 - 3 values)

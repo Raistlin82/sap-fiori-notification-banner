@@ -38,7 +38,7 @@ MESSAGE_ID        X    SYSUUID_X16        RAW        16      0         Message G
 MESSAGE_TYPE           ZNOTIFY_MSG_TYPE   CHAR       12      0         Message Type (F4)
 SEVERITY               ZNOTIFY_SEVERITY   CHAR       8       0         Severity Level (F4)
 TITLE                  CHAR255            CHAR       255     0         Notification Title
-MESSAGE_TEXT           DSTRING            STRING     0       0         Notification Text (long)
+MESSAGE_TEXT           CHAR255            CHAR       255     0         Notification Text
 START_DATE             DATS               DATS       8       0         Valid From Date
 END_DATE               DATS               DATS       8       0         Valid To Date
 TARGET_USERS           ZNOTIFY_TARGET_USERS CHAR     10      0         Target Audience Filter
@@ -68,12 +68,12 @@ CHANGED_AT             TIMESTAMPL         DEC        21      7         Changed T
 
 *-- Field Details and Usage:
 *
-*   MESSAGE_TEXT (Data Element: DSTRING, Type: STRING):
-*     - Data Element: DSTRING (predefined ABAP Dictionary type)
-*     - Built-in Type: STRING (dynamic length string)
-*     - No fixed length limit, stored efficiently in database
-*     - Automatically handled by ABAP runtime
-*     - Recommended: Keep under 2000 chars for UI display performance
+*   MESSAGE_TEXT (Data Element: CHAR255, Type: CHAR):
+*     - Data Element: CHAR255 (standard SAP data element)
+*     - Built-in Type: CHAR (character field, 255 chars max)
+*     - Fixed length: 255 characters
+*     - Compatible with SM30 Table Maintenance Generator
+*     - Sufficient for most notification messages
 *
 *   TARGET_USERS (Audience Filtering):
 *     - Purpose: Control WHO sees the notification

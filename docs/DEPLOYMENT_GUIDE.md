@@ -427,7 +427,7 @@ Delivery Class: A (Application Table)
 | MESSAGE_TYPE    |     | ZNOTIFY_MSG_TYPE       | CHAR      | 12     | Message Type (F4 help)       |
 | SEVERITY        |     | ZNOTIFY_SEVERITY       | CHAR      | 8      | Severity Level (F4 help)     |
 | TITLE           |     | CHAR255                | CHAR      | 255    | Notification Title           |
-| MESSAGE_TEXT    |     | DSTRING                | STRING    | 0      | Message Text (dynamic)       |
+| MESSAGE_TEXT    |     | CHAR255                | CHAR      | 255    | Message Text                 |
 | START_DATE      |     | DATS                   | DATS      | 8      | Valid From Date              |
 | END_DATE        |     | DATS                   | DATS      | 8      | Valid To Date                |
 | TARGET_USERS    |     | ZNOTIFY_TARGET_USERS   | CHAR      | 10     | Target Audience (F4 help)    |
@@ -453,7 +453,7 @@ Delivery Class: A (Application Table)
 - SEVERITY uses ZNOTIFY_SEVERITY → Automatic F4 help with 3 values
 - DISPLAY_MODE uses ZNOTIFY_DISP_MODE → Automatic F4 help with 4 values
 - TARGET_USERS uses ZNOTIFY_TARGET_USERS → Automatic F4 help with 3 values (SAP standard roles only)
-- MESSAGE_TEXT uses DSTRING (dynamic string, no length limit)
+- MESSAGE_TEXT uses CHAR255 (fixed length 255 chars, SM30 compatible)
 
 **✅ Verification**:
 - SE11 → Display ZTNOTIFY_MSGS → Check all fields exist
