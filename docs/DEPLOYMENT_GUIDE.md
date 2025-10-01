@@ -898,12 +898,40 @@ Response: []  ✅ SERVICE WORKING!
    - Enter transaction code: `/nse11`
    - Select: **"Data type"** radio button
    - Enter: `ZNOTIFY_TP` (**Max 10 chars!**)
-   - Click **"Create"**
+   - Click **"Create"** button
 
-7. **Select Authorization Object Field Type** ⭐ CRITICAL!
-   - A popup appears: "Create Data Type"
-   - Select: **"Authorization Object Field"** ⭐ (NOT "Data Element"!)
-   - Click **"Continue"** (green checkmark)
+7. **Select Authorization Object Field Type** ⭐ CRITICAL STEP!
+   - A popup window appears with title: **"Create Data Type"**
+   - You will see 4 radio button options:
+     ```
+     ○ Data element
+     ○ Structure
+     ○ Table type
+     ○ Authorization object field  ⭐ SELECT THIS ONE!
+     ```
+   - **SELECT**: ○ **Authorization object field** (4th option)
+   - Click **"Continue"** button (green checkmark ✓) or press Enter
+
+   **⚠️ CRITICAL**:
+   - If you select "Data element" → Field will NOT appear in SU21
+   - If you select "Authorization object field" → Field WILL appear in SU21
+   - This choice CANNOT be changed later - you must delete and recreate if wrong!
+
+   **Visual Guide**:
+   ```
+   ┌────────────────────────────────────────┐
+   │ Create Data Type                       │
+   ├────────────────────────────────────────┤
+   │ Select one of the following:           │
+   │                                        │
+   │ ○ Data element                         │ ← DON'T SELECT
+   │ ○ Structure                            │
+   │ ○ Table type                           │
+   │ ● Authorization object field           │ ← ✅ SELECT THIS!
+   │                                        │
+   │ [Continue ✓]  [Cancel]                 │
+   └────────────────────────────────────────┘
+   ```
 
 8. **Define Authorization Field Reusing Existing Domain**
    ```
