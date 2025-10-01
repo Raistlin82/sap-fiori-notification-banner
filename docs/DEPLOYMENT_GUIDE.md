@@ -1,7 +1,21 @@
 # 🚀 Complete Deployment Guide - SAP Fiori Global Notification Banner
 
-**Version**: 1.1.0
-**Last Updated**: January 30, 2025
+**Version**: 1.1.1
+**Last Updated**: January 2025
+
+---
+
+## 🆕 Latest Updates (v1.1.1)
+
+**Application Name Changed**: `ZNOTIFY_BANNER` → `ZNOTIFY_BANNER2`
+**Namespace**: `com.sap.notifications.banner2`
+
+**Critical Fixes Applied**:
+- ✅ Page height CSS issue resolved (inline styles added)
+- ✅ Mockserver error handling fixed (graceful fallback)
+- ✅ BSP structure confirmed correct per SAP official documentation
+
+📄 **See**: [`docs/RELEASE_NOTES.md`](./RELEASE_NOTES.md) for complete change log.
 
 ---
 
@@ -1611,7 +1625,7 @@ npx fiori deploy
 ```
 Target System: [Your S/4HANA system URL]
 Client: [Your client number, e.g., 100]
-BSP Application Name: ZNOTIFY_BANNER
+BSP Application Name: ZNOTIFY_BANNER2
 Package: $TMP (or your custom package, e.g., ZNOTIFY)
 Transport Request: [Your TR number or leave empty for $TMP]
 ```

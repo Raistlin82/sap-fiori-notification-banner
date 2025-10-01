@@ -12,7 +12,7 @@ sap.ui.define([
 
     var MessageType = coreLibrary.MessageType;
 
-    return BaseObject.extend("com.sap.notifications.banner.controller.NotificationBanner", {
+    return BaseObject.extend("com.sap.notifications.banner2.controller.NotificationBanner", {
 
         constructor: function() {
             BaseObject.apply(this, arguments);

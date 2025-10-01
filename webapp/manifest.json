@@ -1,7 +1,7 @@
 {
   "_version": "1.21.0",
   "sap.app": {
-    "id": "com.sap.notifications.banner",
+    "id": "com.sap.notifications.banner2",
     "type": "application",
     "i18n": "i18n/i18n.properties",
     "applicationVersion": {
@@ -52,7 +52,7 @@
       "i18n": {
         "type": "sap.ui.model.resource.ResourceModel",
         "settings": {
-          "bundleName": "com.sap.notifications.banner.i18n.i18n",
+          "bundleName": "com.sap.notifications.banner2.i18n.i18n",
           "supportedLocales": [""],
           "fallbackLocale": ""
         }
@@ -66,7 +66,7 @@
       ]
     },
     "rootView": {
-      "viewName": "com.sap.notifications.banner.view.View1",
+      "viewName": "com.sap.notifications.banner2.view.View1",
       "type": "XML",
       "async": true,
       "id": "View1"

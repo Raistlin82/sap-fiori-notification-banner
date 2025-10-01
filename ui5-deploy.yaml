@@ -12,7 +12,7 @@ builder:
           client: '100'
           auth: basic
         app:
-          name: ZNOTIFY_BANNER
+          name: ZNOTIFY_BANNER2
           description: Global Notification Banner
           package: $TMP
           transport: ''

@@ -1,13 +1,13 @@
 sap.ui.define([
     "sap/ui/core/UIComponent",
     "sap/ui/Device",
-    "com/sap/notifications/banner/model/models",
-    "com/sap/notifications/banner/controller/NotificationBanner",
-    "com/sap/notifications/banner/controller/TileCounter"
+    "com/sap/notifications/banner2/model/models",
+    "com/sap/notifications/banner2/controller/NotificationBanner",
+    "com/sap/notifications/banner2/controller/TileCounter"
 ], function (UIComponent, Device, models, NotificationBanner, TileCounter) {
     "use strict";
 
-    return UIComponent.extend("com.sap.notifications.banner.Component", {
+    return UIComponent.extend("com.sap.notifications.banner2.Component", {
 
         metadata: {
             manifest: "json",
@@ -57,8 +57,11 @@ sap.ui.define([
          */
         _initMockServer: function() {
             return new Promise(function(resolve) {
-                sap.ui.require(["com/sap/notifications/banner/localService/mockserver"], function(mockserver) {
+                sap.ui.require(["com/sap/notifications/banner2/localService/mockserver"], function(mockserver) {
                     mockserver.init();
+                    resolve();
+                }, function(error) {
+                    // Mockserver not available - continue without it
                     resolve();
                 });
             });

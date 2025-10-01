@@ -1,5 +1,5 @@
 <mvc:View
-    controllerName="com.sap.notifications.banner.controller.View1"
+    controllerName="com.sap.notifications.banner2.controller.View1"
     xmlns:mvc="sap.ui.core.mvc"
     displayBlock="true"
     xmlns="sap.m">

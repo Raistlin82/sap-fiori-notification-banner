@@ -9,7 +9,7 @@ sap.ui.define([
      * Updates tile with active notification counts by severity
      * Format: "10 Active | 3H|5M|2L" (High, Medium, Low breakdown)
      */
-    return BaseObject.extend("com.sap.notifications.banner.controller.TileCounter", {
+    return BaseObject.extend("com.sap.notifications.banner2.controller.TileCounter", {
 
         constructor: function() {
             BaseObject.apply(this, arguments);

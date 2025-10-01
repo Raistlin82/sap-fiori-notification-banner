@@ -5,13 +5,27 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Global Notification Banner - SAP Fiori</title>
 
+    <style>
+        html, body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+        }
+        #content {
+            height: 100% !important;
+        }
+        .sapMPageEnableScrolling {
+            height: calc(100vh - 3rem) !important;
+        }
+    </style>
+
     <script
         id="sap-ui-bootstrap"
         src="https://ui5.sap.com/1.120.0/resources/sap-ui-core.js"
         data-sap-ui-theme="sap_fiori_3"
         data-sap-ui-libs="sap.m,sap.ui.core,sap.ui.layout,sap.f"
         data-sap-ui-resourceroots='{
-            "com.sap.notifications.banner": "./"
+            "com.sap.notifications.banner2": "./"
         }'
         data-sap-ui-preload=""
         data-sap-ui-async="true"
@@ -30,7 +44,7 @@
                     app: new ComponentContainer({
                         id: "app",
                         height : "100%",
-                        name : "com.sap.notifications.banner"
+                        name : "com.sap.notifications.banner2"
                     })
                 }).placeAt("content");
             });

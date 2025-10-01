@@ -15,7 +15,7 @@ sap.ui.define([
          */
         init: function () {
             return new Promise(function (resolve) {
-                var sJsonFilesPath = sap.ui.require.toUrl("com/sap/notifications/banner/localService/mockdata");
+                var sJsonFilesPath = sap.ui.require.toUrl("com/sap/notifications/banner2/localService/mockdata");
 
                 // Create mock server instance
                 oMockServer = new MockServer({

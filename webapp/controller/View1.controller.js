@@ -4,7 +4,7 @@ sap.ui.define([
 ], function (Controller, MessageToast) {
     "use strict";
 
-    return Controller.extend("com.sap.notifications.banner.controller.View1", {
+    return Controller.extend("com.sap.notifications.banner2.controller.View1", {
 
         onInit: function () {
             // Controller initialization
