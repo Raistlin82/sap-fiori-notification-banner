@@ -1016,30 +1016,31 @@ SU20: Authorization Field ZNOTIFY_TP
 - `TIP` - Only tips and suggestions
 - `SUCCESS` - Only success messages
 
-**✨ Benefits of Domain Reuse Architecture**:
+**✨ Benefits of Data Element Reuse Architecture**:
 ```
 ZDOMAIN_MSG_TYPE (Domain - 6 fixed values)
-    ├── ZNOTIFY_MSG_TYPE (Data Element) → ZTNOTIFY_MSGS.MESSAGE_TYPE
-    └── ZNOTIFY_TP (Auth Object Field) → Z_NOTIFY.ZNOTIFY_TP
+  └── ZNOTIFY_MSG_TYPE (Data Element)
+       ├── ZTNOTIFY_MSGS.MESSAGE_TYPE (table field)
+       └── ZNOTIFY_TP (authorization field via SU20)
 ```
 - ✅ Single domain maintains all fixed values (URGENT, INFO, MAINT, WARNING, TIP, SUCCESS)
-- ✅ One data element + one authorization field, both using same domain
+- ✅ One data element reused in both table field and authorization field
 - ✅ Automatic F4 help in both table maintenance (SM30) and authorization maintenance (PFCG)
-- ✅ Single point of maintenance: Update domain → affects both fields
+- ✅ Single point of maintenance: Update domain → affects both table and authorization
 - ✅ Consistency guaranteed: Same CHAR(12) length and values everywhere
 - ✅ SU21 compatible: ZNOTIFY_TP (10 chars) fits authorization field name limits
-- ✅ Authorization Object Field type: Visible in SU21 field selection
+- ✅ Created in SU20: Properly registered as authorization field
 
 **🎯 Common Issues & Solutions**:
 
 | Issue | Solution |
 |-------|----------|
-| "Authorization field ZNOTIFY_TP does not exist" | Create in SE11 first (Step 7.1.3) - must be **Authorization Object Field** type |
-| "Field ZNOTIFY_TP not found in SU21" | Activate the authorization field in SE11 (Step 7.1.3, item 12) |
-| "Cannot add field to authorization object" | Ensure ZNOTIFY_TP is type "Authorization Object Field" (NOT "Data Element") |
-| "Field does not appear in SU21 field list" | Wrong type selected - must create as "Authorization Object Field" in SE11 |
+| "Authorization field ZNOTIFY_TP does not exist" | Create in **SU20** first (Step 7.1.3), NOT in SE11 |
+| "Field ZNOTIFY_TP not found in SU21" | Create the field in SU20 first, then it will appear in SU21 field list |
+| "Cannot add field to authorization object" | Ensure ZNOTIFY_TP was created in SU20 and saved properly |
+| "Field does not appear in SU21 field list" | Transaction SU20 → Create field ZNOTIFY_TP → Reference data element ZNOTIFY_MSG_TYPE → Save |
 | "Field does not appear in PFCG" | Save and re-open PFCG role, or restart transaction |
-| "Domain ZDOMAIN_MSG_TYPE not found" | Ensure Step 1 (Create Custom Domains) was completed and activated |
+| "Data element ZNOTIFY_MSG_TYPE not found" | Ensure Step 2 (Create Data Elements) was completed and activated |
 | "F4 help shows no values in PFCG" | Check domain ZDOMAIN_MSG_TYPE has 6 fixed values defined (URGENT, INFO, MAINT, WARNING, TIP, SUCCESS) |
 | "Field name too long in SU21" | SU21 limit is 10 chars: ZNOTIFY_TP (10 chars) ✅, ZNOTIFY_TYP (12 chars) ❌ |
 
@@ -1075,9 +1076,11 @@ ZDOMAIN_MSG_TYPE (Domain - 6 fixed values)
    **Note**: This is a CUSTOM object created in Step 7.1
    **Field Details**:
    - ACTVT: Standard SAP activity field (01=Create, 02=Change, 03=Display, 06=Delete)
-   - ZNOTIFY_TP: Custom authorization field (domain: ZDOMAIN_MSG_TYPE, same domain as table MESSAGE_TYPE)
+   - ZNOTIFY_TP: Custom authorization field created in SU20
+   - Data Element: ZNOTIFY_MSG_TYPE (same as table field MESSAGE_TYPE)
+   - Domain: ZDOMAIN_MSG_TYPE (shared domain ensures consistency)
    - F4 Help: Shows 6 values (URGENT, INFO, MAINT, WARNING, TIP, SUCCESS) + wildcard (*)
-   - Architecture: ZDOMAIN_MSG_TYPE → ZNOTIFY_TP (auth object field) → Z_NOTIFY.ZNOTIFY_TP
+   - Architecture: ZDOMAIN_MSG_TYPE → ZNOTIFY_MSG_TYPE → ZNOTIFY_TP (via SU20)
    - Name: 10 characters (SU21 limit)
 
    **B) S_TABU_DIS (SAP Standard - Table Authorization Group)**
@@ -1829,7 +1832,52 @@ Expected: {"notifications": [...]}
 
 ---
 
-### Issue 6: Wrong Display Mode Applied
+### Issue 6: Authorization Field Not Found in SU21
+
+**Symptom**: When creating authorization object Z_NOTIFY in SU21, field ZNOTIFY_TP doesn't appear in the available fields list
+
+**Cause**: Authorization field not created in SU20 (Maintain Authorization Fields)
+
+**Solution**:
+1. **Create authorization field in SU20** (NOT SE11):
+   ```
+   Transaction: SU20
+   → New Entries
+   → Field Name: ZNOTIFY_TP
+   → Data Element: ZNOTIFY_MSG_TYPE
+   → Save
+   ```
+
+2. **Verify the field exists**:
+   ```
+   Transaction: SU20
+   → Search for ZNOTIFY_TP
+   → Should show: Data Element = ZNOTIFY_MSG_TYPE
+   ```
+
+3. **Return to SU21 and add field**:
+   ```
+   Transaction: SU21
+   → BC_A → Z_NOTIFY
+   → New Entries in Fields section
+   → Authorization Field: ZNOTIFY_TP
+   → Press Enter (system populates Data Element automatically)
+   → Save
+   ```
+
+**Verification**:
+- SU20 → Display field ZNOTIFY_TP → Should exist
+- SU21 → Z_NOTIFY → Should show 2 fields (ACTVT, ZNOTIFY_TP)
+- PFCG → Test role → F4 on ZNOTIFY_TP → Should show 6 values
+
+**Common Mistakes**:
+- ❌ Creating field in SE11 as "Data Element" → Won't appear in SU21
+- ❌ Creating field in SE11 as "Authorization Object Field" → Wrong transaction, use SU20
+- ✅ Creating field in SU20 referencing data element ZNOTIFY_MSG_TYPE → Correct!
+
+---
+
+### Issue 7: Wrong Display Mode Applied
 
 **Symptom**: DISPLAY_MODE = SILENT but banner appears anyway
 
