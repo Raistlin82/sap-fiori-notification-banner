@@ -1268,38 +1268,58 @@ npm run build
    ```
    - SE80 → Repository Browser (first dropdown)
    - Select: "BSP Application" from object type dropdown
+   - Enter name in field: ZNOTIFY_BANNER
    - Click "Create" button (F5)
-   - Application Name: ZNOTIFY_BANNER
-   - Description: Global Notification Banner
-   - Package: ZNOTIFY (or $TMP for local)
-   - Save
+   - Popup appears:
+     * Application Name: ZNOTIFY_BANNER
+     * Description: Global Notification Banner
+     * Package: ZNOTIFY (or $TMP for local)
+   - Click Save (popup closes)
+   - BSP Application created with MIME Objects folder automatically
    ```
 
-2. **Create MIME Objects folder** (if not exists):
+2. **Locate MIME Objects Folder** (already exists):
    ```
    - SE80 → Display BSP Application: ZNOTIFY_BANNER
-   - Right-click on ZNOTIFY_BANNER
-   - Create → MIME Objects → Folder
-   - Folder name: (leave default or create subfolders like "webapp")
+   - Expand tree: ZNOTIFY_BANNER
+   - You should see:
+     ├── ZNOTIFY_BANNER
+     │   ├── Pages
+     │   ├── Page Fragments
+     │   └── MIME Objects  ← This folder already exists!
+
+   ⚠️ NOTE: MIME Objects folder is created AUTOMATICALLY
+   You do NOT need to create it manually!
    ```
 
 3. **Import UI5 Files as MIME Objects**:
    ```
    Method A: Import individual files
-   - Expand ZNOTIFY_BANNER in tree
-   - Right-click on "MIME Objects" folder
-   - Create → MIME Object → Import
-   - Select files from dist/ folder one by one:
+   - Expand: ZNOTIFY_BANNER → MIME Objects
+   - Right-click on "MIME Objects"
+   - Select: "Import" → "MIME Objects" (NOT "Create")
+   - Browse to dist/webapp folder
+   - Select files to import:
      * Component-preload.js
      * manifest.json
      * index.html
-     * All files from i18n/, css/, controller/, view/ folders
+     * i18n/i18n.properties
+     * css/*.css
+     * controller/*.js
+     * view/*.xml
+   - Click "Import"
+   - Files appear under MIME Objects in tree
 
-   Method B: Import entire folder structure
-   - Right-click on "MIME Objects" folder
-   - Import → MIME Objects
-   - Select entire dist/webapp folder
-   - System imports full folder structure
+   Method B: Import entire folder structure (RECOMMENDED)
+   - Right-click on "MIME Objects"
+   - Select: "Import" → "MIME Objects"
+   - Dialog opens: "Import MIME Repository Objects"
+   - Click "Browse" button
+   - Navigate to: dist/webapp folder (entire folder)
+   - Select all files/subfolders
+   - Click "OK"
+   - System imports complete folder structure
+   - Subfolders (i18n, css, controller, view) created automatically
    ```
 
 4. **Set MIME Type** (auto-detected but verify):
