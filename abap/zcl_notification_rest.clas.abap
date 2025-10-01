@@ -170,23 +170,21 @@ CLASS zcl_notification_rest IMPLEMENTATION.
 
   METHOD serialize_notifications.
 
-    DATA: lo_json TYPE REF TO cl_trex_json_serializer.
-
-    CREATE OBJECT lo_json.
-    rv_json = lo_json->serialize( data = it_notifications ).
+    rv_json = /ui2/cl_json=>serialize(
+      data = it_notifications
+      compress = abap_true
+      pretty_name = /ui2/cl_json=>pretty_mode-camel_case ).
 
   ENDMETHOD.
 
   METHOD deserialize_notification.
 
-    DATA: lo_json TYPE REF TO cl_trex_json_deserializer.
-
-    CREATE OBJECT lo_json.
-    CALL METHOD lo_json->deserialize
+    /ui2/cl_json=>deserialize(
       EXPORTING
         json = iv_json
+        pretty_name = /ui2/cl_json=>pretty_mode-camel_case
       CHANGING
-        data = rs_notification.
+        data = rs_notification ).
 
   ENDMETHOD.
 
@@ -194,48 +192,47 @@ CLASS zcl_notification_rest IMPLEMENTATION.
     " Provides statistics for the dynamic tile counter
     " Response format: { total: N, high_count: N, medium_count: N, low_count: N }
 
-    DATA: lt_notifications TYPE TABLE OF ztnotify_msgs,
-          lv_json TYPE string,
-          lv_total TYPE i,
-          lv_high TYPE i,
-          lv_medium TYPE i,
-          lv_low TYPE i,
+    DATA: BEGIN OF ls_stats,
+            total        TYPE i,
+            high_count   TYPE i,
+            medium_count TYPE i,
+            low_count    TYPE i,
+          END OF ls_stats.
+
+    DATA: lv_json TYPE string,
           lv_today TYPE sy-datum.
 
     lv_today = sy-datum.
 
     " Count active notifications by severity
     SELECT COUNT(*) FROM ztnotify_msgs
-      INTO @lv_high
+      INTO @ls_stats-high_count
       WHERE active = 'X'
         AND start_date <= @lv_today
         AND end_date >= @lv_today
         AND severity = 'HIGH'.
 
     SELECT COUNT(*) FROM ztnotify_msgs
-      INTO @lv_medium
+      INTO @ls_stats-medium_count
       WHERE active = 'X'
         AND start_date <= @lv_today
         AND end_date >= @lv_today
         AND severity = 'MEDIUM'.
 
     SELECT COUNT(*) FROM ztnotify_msgs
-      INTO @lv_low
+      INTO @ls_stats-low_count
       WHERE active = 'X'
         AND start_date <= @lv_today
         AND end_date >= @lv_today
         AND severity = 'LOW'.
 
-    lv_total = lv_high + lv_medium + lv_low.
+    ls_stats-total = ls_stats-high_count + ls_stats-medium_count + ls_stats-low_count.
 
-    " Build JSON response
-    CONCATENATE '{'
-                  '"total":' lv_total ','
-                  '"high_count":' lv_high ','
-                  '"medium_count":' lv_medium ','
-                  '"low_count":' lv_low
-                '}'
-    INTO lv_json.
+    " Build JSON response using /ui2/cl_json
+    lv_json = /ui2/cl_json=>serialize(
+      data = ls_stats
+      compress = abap_true
+      pretty_name = /ui2/cl_json=>pretty_mode-low_case ).
 
     " Set response
     mo_response->create_entity( )->set_string_data( lv_json ).
