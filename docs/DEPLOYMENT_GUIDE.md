@@ -552,11 +552,11 @@ Instantiation: Public
 ```
 
 **Static Methods**:
-- `get_notifications` - Retrieve active notifications for a user
+- `get_active_notifications` - Retrieve active notifications for a user
 - `create_notification` - Create a new notification
 - `update_notification` - Update an existing notification
-- `delete_notification` - Delete a notification
-- `get_statistics` - Get notification counts by severity (for tile counter)
+- `deactivate_notification` - Deactivate a notification (sets active = ' ')
+- `check_user_authorization` - Check if user is authorized
 
 **Key Type Definition**:
 ```abap
@@ -580,8 +580,8 @@ TYPES: BEGIN OF ty_notification,
 
 **Actions**:
 1. SE80 → Class Builder → Create class `ZCL_NOTIFICATION_MANAGER`
-2. Copy content from `abap/zcl_notification_manager.clas.abap`
-3. Implement all 5 static methods
+2. Copy definition and implementation from `abap/zcl_notification_manager.clas.abap`
+3. Verify all 5 public static methods are present
 4. **Save** → **Check** → **Activate**
 
 **🎯 Key Features**:
@@ -602,7 +602,8 @@ This class provides the REST API interface.
 ```
 Class Name: ZCL_NOTIFICATION_REST
 Description: Notification REST Service
-Interfaces: IF_REST_RESOURCE
+Superclass: CL_REST_RESOURCE
+Methods Redefined: IF_REST_RESOURCE~GET, ~POST, ~PUT, ~DELETE
 ```
 
 **REST Methods**:
@@ -615,9 +616,9 @@ Interfaces: IF_REST_RESOURCE
 
 **Actions**:
 1. SE80 → Class Builder → Create class `ZCL_NOTIFICATION_REST`
-2. Add interface: `IF_REST_RESOURCE`
-3. Copy content from `abap/zcl_notification_rest.clas.abap`
-4. Implement GET, POST, PUT, DELETE methods
+2. Set Superclass: `CL_REST_RESOURCE`
+3. Copy definition and implementation from `abap/zcl_notification_rest.clas.abap`
+4. Redefine methods: IF_REST_RESOURCE~GET, ~POST, ~PUT, ~DELETE
 5. **Save** → **Check** → **Activate**
 
 **🎯 Key Features**:
@@ -628,7 +629,8 @@ Interfaces: IF_REST_RESOURCE
 
 **✅ Verification**:
 - SE80 → Display both classes → Check "Active" status
-- SE24 → ZCL_NOTIFICATION_MANAGER → Test method `get_statistics`
+- SE24 → ZCL_NOTIFICATION_MANAGER → Test method `get_active_notifications`
+- SE37 → Test `ZCL_NOTIFICATION_REST` is inheriting from `CL_REST_RESOURCE`
 
 ---
 
