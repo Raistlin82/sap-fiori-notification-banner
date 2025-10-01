@@ -37,16 +37,11 @@ Target Audience Filter controls WHO sees the notification using FIXED VALUES.
 
 **Fixed Values (from ZDOMAIN_TARGET_USERS):**
 
-Value    | Description                          | ABAP Logic
+Value    | Description                          | ABAP Logic (Exact Match)
 ---------|--------------------------------------|------------------------------------------
-ALL      | All Users (Public)                   | No filtering, everyone sees it
-AUTH     | All Authenticated Users              | sy-uname <> 'ANONYMOUS'
-ADMIN    | Administrators                       | Has SAP_ALL or Z_ADMIN role
-DEVELOPER| Developers                           | Has SAP_DEV or Z_DEVELOPER role
-FINANCE  | Finance Users                        | Has Z_FINANCE role
-SALES    | Sales Users                          | Has Z_SALES role
-IT       | IT Department                        | Has Z_IT role
-MANAGER  | Managers                             | Has Z_MANAGER role
+ALL      | All Users                            | No filtering, everyone sees it
+ADMIN    | Administrators                       | Has SAP_ALL role (exact match)
+DEVELOPER| Developers                           | Has SAP_BR_DEVELOPER role (exact match)
 
 **Benefits:**
 ✅ Type-safe - No typos or invalid values possible
@@ -64,15 +59,15 @@ MANAGER  | Managers                             | Has Z_MANAGER role
 
 Scenario: System-wide maintenance notification
   TARGET_USERS = 'ALL'
+  → Visible to all users (no authorization check)
 
 Scenario: Critical security update for admins
   TARGET_USERS = 'ADMIN'
+  → Only users with SAP_ALL role see this notification
 
 Scenario: New feature announcement for developers
   TARGET_USERS = 'DEVELOPER'
-
-Scenario: Month-end closing reminder for finance
-  TARGET_USERS = 'FINANCE'
+  → Only users with SAP_BR_DEVELOPER role see this notification
 
 **Extensibility:**
 To add new audience types:

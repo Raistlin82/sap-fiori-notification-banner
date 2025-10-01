@@ -241,26 +241,28 @@ Long:    Target Audience Filter
 Heading: Target
 ```
 
-**Fixed Values** (from domain):
-- `ALL` - All Users (Public)
-- `AUTH` - All Authenticated Users
-- `ADMIN` - Administrators (SAP_ALL or Z_ADMIN role)
-- `DEVELOPER` - Developers (SAP_DEV or Z_DEVELOPER role)
-- `FINANCE` - Finance Users (Z_FINANCE role)
-- `SALES` - Sales Users (Z_SALES role)
-- `IT` - IT Department (Z_IT role)
-- `MANAGER` - Managers (Z_MANAGER role)
+**Fixed Values** (from domain - SAP Standard Roles Only):
+- `ALL` - All Users
+- `ADMIN` - Administrators (SAP_ALL role - exact match)
+- `DEVELOPER` - Developers (SAP_BR_DEVELOPER role - exact match)
 
 **F4 Help**: Automatic dropdown from ZDOMAIN_TARGET_USERS
 
 **Authorization Logic**: See `zcl_notification_manager=>check_target_audience` method
 
+**Role Matching**:
+- Uses **exact role name matching** (no LIKE patterns)
+- Queries AGR_USERS table for PFCG role assignments
+- SAP_ALL: Standard administrator role
+- SAP_BR_DEVELOPER: Standard business role for developers
+
 **Benefits**:
 - ✅ Type-safe (no typos or invalid values)
 - ✅ F4 help in SM30 (automatic dropdown)
 - ✅ Database validation (invalid values rejected)
-- ✅ Role-based security (PFCG integration via AGR_USERS table)
-- ✅ Secure (no pattern injection vulnerabilities)
+- ✅ SAP standard roles only (no custom Z_* roles)
+- ✅ Exact matching (no LIKE patterns - secure and performant)
+- ✅ PFCG integration via AGR_USERS table
 
 ---
 
@@ -373,7 +375,7 @@ Complete mapping of all fields in ZTNOTIFY_MSGS table:
    Expected: ✅ Dropdown with 4 values (BANNER, TOAST, BOTH, SILENT)
 
 6. Position cursor on TARGET_USERS field → Press F4
-   Expected: ✅ Dropdown with 8 values (ALL, AUTH, ADMIN, DEVELOPER, FINANCE, SALES, IT, MANAGER)
+   Expected: ✅ Dropdown with 3 values (ALL, ADMIN, DEVELOPER)
 ```
 
 **Result**: F4 help should work for MESSAGE_TYPE, SEVERITY, DISPLAY_MODE, and TARGET_USERS.
@@ -408,7 +410,7 @@ Complete mapping of all fields in ZTNOTIFY_MSGS table:
    MESSAGE_TEXT: Long message text (free text, unlimited)
    START_DATE: 20250101 (date picker)
    END_DATE: 20251231 (date picker)
-   TARGET_USERS: ALL (select from F4 - 8 values)
+   TARGET_USERS: ALL (select from F4 - 3 values)
    ACTIVE: X (checkbox)
    DISPLAY_MODE: BANNER (select from F4 - 4 values)
 

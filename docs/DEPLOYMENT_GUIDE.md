@@ -276,26 +276,23 @@ Length: 10
 Output Length: 10
 ```
 
-**Value Range** (Fixed Values tab):
+**Value Range** (Fixed Values tab - SAP Standard Roles Only):
 ```
 Value       Short Description
 ----------- ------------------------------------
-ALL         All Users (Public)
-AUTH        All Authenticated Users
-ADMIN       Administrators
-DEVELOPER   Developers
-FINANCE     Finance Users
-SALES       Sales Users
-IT          IT Department
-MANAGER     Managers
+ALL         All Users
+ADMIN       Administrators (SAP_ALL role)
+DEVELOPER   Developers (SAP_BR_DEVELOPER role)
 ```
 
 **Actions**:
 1. SE11 → Enter "ZDOMAIN_TARGET_USERS" → Create
 2. Enter data type: CHAR, Length: 10
 3. Go to "Value Range" tab
-4. Add 8 fixed values as shown above
+4. Add 3 fixed values as shown above
 5. **Save** → **Activate**
+
+**Note**: Uses SAP standard roles only (SAP_ALL, SAP_BR_DEVELOPER). Custom Z_* roles removed for simplicity and security.
 
 **✅ Verification**: All 4 domains should show "Active" status in SE11.
 
@@ -455,13 +452,13 @@ Delivery Class: A (Application Table)
 - MESSAGE_TYPE uses ZNOTIFY_MSG_TYPE → Automatic F4 help with 6 values
 - SEVERITY uses ZNOTIFY_SEVERITY → Automatic F4 help with 3 values
 - DISPLAY_MODE uses ZNOTIFY_DISP_MODE → Automatic F4 help with 4 values
-- TARGET_USERS uses ZNOTIFY_TARGET_USERS → Automatic F4 help with 8 values (role-based)
+- TARGET_USERS uses ZNOTIFY_TARGET_USERS → Automatic F4 help with 3 values (SAP standard roles only)
 - MESSAGE_TEXT uses DSTRING (dynamic string, no length limit)
 
 **✅ Verification**:
 - SE11 → Display ZTNOTIFY_MSGS → Check all fields exist
 - SM30 → ZTNOTIFY_MSGS → Test F4 help on MESSAGE_TYPE (should show 6 values)
-- SM30 → ZTNOTIFY_MSGS → Test F4 help on TARGET_USERS (should show 8 values)
+- SM30 → ZTNOTIFY_MSGS → Test F4 help on TARGET_USERS (should show 3 values: ALL, ADMIN, DEVELOPER)
 
 ---
 
@@ -570,7 +567,7 @@ TYPES: BEGIN OF ty_notification,
 4. **Save** → **Check** → **Activate**
 
 **🎯 Key Features**:
-- Role-based target audience filtering (8 fixed values: ALL, AUTH, ADMIN, DEVELOPER, FINANCE, SALES, IT, MANAGER)
+- Role-based target audience filtering (3 fixed values: ALL, ADMIN, DEVELOPER - SAP standard roles only)
 - Display mode support (BANNER, TOAST, BOTH, SILENT)
 - Audit trail (automatically sets created_by, created_at, changed_by, changed_at)
 - Statistics calculation for tile counter
@@ -1309,50 +1306,41 @@ Create 3 active notifications:
 
 ---
 
-#### Test 4: Target Audience Filtering
+#### Test 4: Target Audience Filtering (SAP Standard Roles Only)
 
 **Test Case 1: Public Notification**
 ```
 Transaction: SM30 → ZTNOTIFY_MSGS → Create entry
-TARGET_USERS: ALL (select from F4 dropdown)
+TARGET_USERS: ALL (select from F4 dropdown - 3 values available)
 ```
-**Expected**: All users see this notification
+**Expected**: All users see this notification (no role check)
 
 **Test Case 2: Administrators Only**
 ```
 Transaction: SM30 → ZTNOTIFY_MSGS → Create entry
 TARGET_USERS: ADMIN (select from F4 dropdown)
 ```
-**Expected**: Only users with SAP_ALL or Z_ADMIN role see this
-**Verification**: Check AGR_USERS table for user role assignments
+**Expected**: Only users with **SAP_ALL** role see this (exact match)
+**Verification**:
+- Check AGR_USERS table: `SELECT * FROM agr_users WHERE uname = 'USERNAME' AND agr_name = 'SAP_ALL'`
+- SU01 → User → Roles tab → Should have SAP_ALL role
 
 **Test Case 3: Developers Only**
 ```
 Transaction: SM30 → ZTNOTIFY_MSGS → Create entry
 TARGET_USERS: DEVELOPER (select from F4 dropdown)
 ```
-**Expected**: Only users with SAP_DEV or Z_DEVELOPER role see this
-
-**Test Case 4: Finance Users Only**
-```
-Transaction: SM30 → ZTNOTIFY_MSGS → Create entry
-TARGET_USERS: FINANCE (select from F4 dropdown)
-```
-**Expected**: Only users with Z_FINANCE role see this
-
-**Test Case 5: Authenticated Users Only**
-```
-Transaction: SM30 → ZTNOTIFY_MSGS → Create entry
-TARGET_USERS: AUTH (select from F4 dropdown)
-```
-**Expected**: Any logged-in user sees this (sy-uname <> 'ANONYMOUS')
+**Expected**: Only users with **SAP_BR_DEVELOPER** role see this (exact match)
+**Verification**:
+- Check AGR_USERS table: `SELECT * FROM agr_users WHERE uname = 'USERNAME' AND agr_name = 'SAP_BR_DEVELOPER'`
+- SU01 → User → Roles tab → Should have SAP_BR_DEVELOPER role
 
 **Verification Steps**:
 1. Create notification with specific TARGET_USERS value
-2. Check user roles: SU01 → User → Roles tab
+2. Check user roles: SU01 → User → Roles tab (must have exact role name)
 3. Login as user WITH required role → Should see notification
 4. Login as user WITHOUT required role → Should NOT see notification
-5. Check ABAP logic: zcl_notification_manager=>check_target_audience method
+5. Check ABAP logic: zcl_notification_manager=>check_target_audience method (uses exact match, no LIKE patterns)
 
 ---
 

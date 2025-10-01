@@ -88,19 +88,18 @@ data_elements/
 - `SILENT` - Silent (Log Only, no UI)
 
 ### TARGET_USERS (ZDOMAIN_TARGET_USERS)
-**Role-based fixed values** (CHAR 10) with F4 help
+**Role-based fixed values** (CHAR 10) with F4 help - SAP Standard Roles Only
 
 Fixed Values:
-- `ALL` - All Users (Public)
-- `AUTH` - All Authenticated Users
-- `ADMIN` - Administrators (SAP_ALL or Z_ADMIN role)
-- `DEVELOPER` - Developers (SAP_DEV or Z_DEVELOPER role)
-- `FINANCE` - Finance Users (Z_FINANCE role)
-- `SALES` - Sales Users (Z_SALES role)
-- `IT` - IT Department (Z_IT role)
-- `MANAGER` - Managers (Z_MANAGER role)
+- `ALL` - All Users
+- `ADMIN` - Administrators (SAP_ALL role - exact match)
+- `DEVELOPER` - Developers (SAP_BR_DEVELOPER role - exact match)
 
-**Implementation**: Role-based authorization via AGR_USERS table (PFCG integration)
+**Implementation**:
+- Role-based authorization via AGR_USERS table (PFCG integration)
+- Uses exact role name matching (no LIKE patterns)
+- SAP standard roles only (no custom Z_* roles)
+
 **Business Logic**: See `zcl_notification_manager=>check_target_audience()` method
 
 ## Testing F4 Help

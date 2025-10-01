@@ -259,7 +259,11 @@ CLASS zcl_notification_manager IMPLEMENTATION.
   METHOD check_target_audience.
     "*&---------------------------------------------------------------------*
     "*& Check if current user is authorized to see notification
-    "*& based on TARGET_USERS domain fixed value
+    "*& based on TARGET_USERS domain fixed value (3 values: ALL, ADMIN, DEVELOPER)
+    "*&
+    "*& IMPORTANT: Uses exact role name matching (no LIKE patterns)
+    "*& - ADMIN: SAP_ALL (exact match)
+    "*& - DEVELOPER: SAP_BR_DEVELOPER (exact match)
     "*&---------------------------------------------------------------------*
     DATA: lv_has_role TYPE abap_bool.
 
@@ -271,74 +275,24 @@ CLASS zcl_notification_manager IMPLEMENTATION.
         " Public notification - visible to all users
         rv_authorized = abap_true.
 
-      WHEN 'AUTH'.
-        " Any authenticated user (not anonymous)
-        IF sy-uname IS NOT INITIAL AND sy-uname <> 'ANONYMOUS'.
-          rv_authorized = abap_true.
-        ENDIF.
-
       WHEN 'ADMIN'.
-        " Administrators (users with SAP_ALL or Z_ADMIN role)
+        " Administrators (users with SAP_ALL role - exact match)
         SELECT SINGLE @abap_true
           FROM agr_users
           INTO @lv_has_role
           WHERE uname = @sy-uname
-            AND ( agr_name = 'SAP_ALL' OR agr_name LIKE 'Z_ADMIN%' ).
+            AND agr_name = 'SAP_ALL'.
         IF sy-subrc = 0.
           rv_authorized = abap_true.
         ENDIF.
 
       WHEN 'DEVELOPER'.
-        " Developers (users with SAP_DEV or Z_DEVELOPER role)
+        " Developers (users with SAP_BR_DEVELOPER role - exact match)
         SELECT SINGLE @abap_true
           FROM agr_users
           INTO @lv_has_role
           WHERE uname = @sy-uname
-            AND ( agr_name LIKE 'SAP_DEV%' OR agr_name LIKE 'Z_DEVELOPER%' ).
-        IF sy-subrc = 0.
-          rv_authorized = abap_true.
-        ENDIF.
-
-      WHEN 'FINANCE'.
-        " Finance users (users with Z_FINANCE role)
-        SELECT SINGLE @abap_true
-          FROM agr_users
-          INTO @lv_has_role
-          WHERE uname = @sy-uname
-            AND agr_name LIKE 'Z_FINANCE%'.
-        IF sy-subrc = 0.
-          rv_authorized = abap_true.
-        ENDIF.
-
-      WHEN 'SALES'.
-        " Sales users (users with Z_SALES role)
-        SELECT SINGLE @abap_true
-          FROM agr_users
-          INTO @lv_has_role
-          WHERE uname = @sy-uname
-            AND agr_name LIKE 'Z_SALES%'.
-        IF sy-subrc = 0.
-          rv_authorized = abap_true.
-        ENDIF.
-
-      WHEN 'IT'.
-        " IT department users (users with Z_IT role)
-        SELECT SINGLE @abap_true
-          FROM agr_users
-          INTO @lv_has_role
-          WHERE uname = @sy-uname
-            AND agr_name LIKE 'Z_IT%'.
-        IF sy-subrc = 0.
-          rv_authorized = abap_true.
-        ENDIF.
-
-      WHEN 'MANAGER'.
-        " Managers (users with Z_MANAGER role)
-        SELECT SINGLE @abap_true
-          FROM agr_users
-          INTO @lv_has_role
-          WHERE uname = @sy-uname
-            AND agr_name LIKE 'Z_MANAGER%'.
+            AND agr_name = 'SAP_BR_DEVELOPER'.
         IF sy-subrc = 0.
           rv_authorized = abap_true.
         ENDIF.

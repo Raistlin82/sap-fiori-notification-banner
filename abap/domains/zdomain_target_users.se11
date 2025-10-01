@@ -30,14 +30,9 @@ Conversion Routine: (blank)
 *   Value Table (Fixed Values):
 *   Value    | Short Text Description
 *   ---------|-----------------------------------------------
-*   ALL      | All Users (Public)
-*   AUTH     | All Authenticated Users
-*   ADMIN    | Administrators (PFCG role SAP_ALL or Z_ADMIN)
-*   DEVELOPER| Developers (PFCG role SAP_DEV or Z_DEVELOPER)
-*   FINANCE  | Finance Users (PFCG role Z_FINANCE)
-*   SALES    | Sales Users (PFCG role Z_SALES)
-*   IT       | IT Department (PFCG role Z_IT)
-*   MANAGER  | Managers (PFCG role Z_MANAGER)
+*   ALL      | All Users
+*   ADMIN    | Administrators (SAP_ALL role)
+*   DEVELOPER| Developers (SAP_BR_DEVELOPER role)
 *
 *-- Fixed Values Configuration in SE11:
 *   1. Go to "Value Range" tab
@@ -47,36 +42,30 @@ Conversion Routine: (blank)
 
 *-- ABAP Logic Mapping (in ZCL_NOTIFICATION_MANAGER):
 *   ALL       → No filtering, all users see notification
-*   AUTH      → Any authenticated user (SY-UNAME <> 'ANONYMOUS')
-*   ADMIN     → Check user has SAP_ALL or Z_ADMIN role
-*   DEVELOPER → Check user has SAP_DEV or Z_DEVELOPER role
-*   FINANCE   → Check user has Z_FINANCE role
-*   SALES     → Check user has Z_SALES role
-*   IT        → Check user has Z_IT role
-*   MANAGER   → Check user has Z_MANAGER role
+*   ADMIN     → Check user has SAP_ALL role (exact match)
+*   DEVELOPER → Check user has SAP_BR_DEVELOPER role (exact match)
 
 *-- Example ABAP Implementation:
 *   CASE ls_notification-target_users.
 *     WHEN 'ALL'.
 *       " No filtering - show to everyone
 *       lv_authorized = abap_true.
-*     WHEN 'AUTH'.
-*       " Show to authenticated users only
-*       IF sy-uname <> 'ANONYMOUS'.
-*         lv_authorized = abap_true.
-*       ENDIF.
+*
 *     WHEN 'ADMIN'.
-*       " Check if user has administrator role
-*       AUTHORITY-CHECK OBJECT 'S_TCODE' ID 'TCD' FIELD 'PFCG'.
-*       IF sy-subrc = 0.
-*         lv_authorized = abap_true.
-*       ENDIF.
-*     WHEN 'DEVELOPER' OR 'FINANCE' OR 'SALES' OR 'IT' OR 'MANAGER'.
-*       " Check user has corresponding role
-*       SELECT SINGLE @abap_true FROM agr_users
+*       " Check if user has SAP_ALL role (exact match)
+*       SELECT SINGLE @abap_true
+*         FROM agr_users
 *         INTO @lv_authorized
 *         WHERE uname = @sy-uname
-*           AND agr_name LIKE 'Z_%'.  " Replace with specific role pattern
+*           AND agr_name = 'SAP_ALL'.
+*
+*     WHEN 'DEVELOPER'.
+*       " Check if user has SAP_BR_DEVELOPER role (exact match)
+*       SELECT SINGLE @abap_true
+*         FROM agr_users
+*         INTO @lv_authorized
+*         WHERE uname = @sy-uname
+*           AND agr_name = 'SAP_BR_DEVELOPER'.
 *   ENDCASE.
 
 *-- Benefits of Fixed Values Approach:
@@ -88,8 +77,15 @@ Conversion Routine: (blank)
 *   ✅ Secure - No pattern injection vulnerabilities
 
 *-- Extensibility:
-*   To add new audience types:
+*   To add new audience types (custom roles):
 *   1. SE11 → ZDOMAIN_TARGET_USERS → Value Range tab
-*   2. Add new fixed value (e.g., 'WAREHOUSE')
-*   3. Update ZCL_NOTIFICATION_MANAGER logic with new CASE
-*   4. Activate domain and class
+*   2. Add new fixed value (e.g., 'FINANCE' for Z_FINANCE role)
+*   3. Update ZCL_NOTIFICATION_MANAGER=>check_target_audience() with new WHEN clause
+*   4. Use exact match: agr_name = 'Z_FINANCE' (no LIKE patterns)
+*   5. Activate domain and class
+
+*-- Note on Custom Roles:
+*   This domain uses ONLY SAP standard roles (SAP_ALL, SAP_BR_DEVELOPER).
+*   Custom roles (Z_*) can be added as extensions by customers following
+*   extensibility guidelines above. Always use exact role name matching,
+*   NEVER use LIKE patterns (e.g., avoid 'Z_ADMIN%' or 'SAP_BR_%').

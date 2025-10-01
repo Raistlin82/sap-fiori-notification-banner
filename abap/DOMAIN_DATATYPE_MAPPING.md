@@ -126,16 +126,11 @@ Default: BANNER (set in ABAP code)
 ```
 Type: CHAR
 Length: 10
-Fixed Values: 8 predefined values
+Fixed Values: 3 predefined values (SAP Standard Roles Only)
 Values:
-  - ALL       | All Users (Public)
-  - AUTH      | All Authenticated Users
-  - ADMIN     | Administrators (SAP_ALL or Z_ADMIN role)
-  - DEVELOPER | Developers (SAP_DEV or Z_DEVELOPER role)
-  - FINANCE   | Finance Users (Z_FINANCE role)
-  - SALES     | Sales Users (Z_SALES role)
-  - IT        | IT Department (Z_IT role)
-  - MANAGER   | Managers (Z_MANAGER role)
+  - ALL       | All Users
+  - ADMIN     | Administrators (SAP_ALL role - exact match)
+  - DEVELOPER | Developers (SAP_BR_DEVELOPER role - exact match)
 ```
 
 ### Data Element: ZNOTIFY_TARGET_USERS
@@ -152,9 +147,11 @@ Search Help: Automatic from domain fixed values (F4 help enabled)
 ```
 Data Element: ZNOTIFY_TARGET_USERS
 Inherited Type: CHAR 10
-F4 Help: ✅ Automatic dropdown in SM30/SE16
-Validation: Domain fixed values + role-based authorization via AGR_USERS table
+F4 Help: ✅ Automatic dropdown in SM30/SE16 (3 values)
+Validation: Domain fixed values + exact role matching via AGR_USERS table
 Implementation: zcl_notification_manager=>check_target_audience() method
+Role Matching: Exact match only (agr_name = 'SAP_ALL' or 'SAP_BR_DEVELOPER')
+Note: No LIKE patterns used for security and performance
 ```
 
 ---
