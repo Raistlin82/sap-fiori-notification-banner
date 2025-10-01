@@ -561,22 +561,24 @@ Instantiation: Public
 **Key Type Definition**:
 ```abap
 TYPES: BEGIN OF ty_notification,
-         message_id   TYPE string,
-         message_type TYPE string,
-         severity     TYPE string,
-         title        TYPE string,
-         message_text TYPE string,
-         start_date   TYPE dats,
-         end_date     TYPE dats,
-         target_users TYPE string,
-         active       TYPE char1,
-         display_mode TYPE char10,
-         created_by   TYPE syuname,
-         created_at   TYPE timestampl,
-         changed_by   TYPE syuname,
-         changed_at   TYPE timestampl,
+         message_id   TYPE char32,      " UUID in text format
+         message_type TYPE char12,      " MESSAGE_TYPE domain
+         severity     TYPE char8,       " SEVERITY domain
+         title        TYPE char255,     " Notification title
+         message_text TYPE char255,     " Notification text
+         start_date   TYPE dats,        " Valid from date
+         end_date     TYPE dats,        " Valid to date
+         target_users TYPE char10,      " TARGET_USERS domain
+         active       TYPE char1,       " Active flag (X/' ')
+         display_mode TYPE char10,      " DISPLAY_MODE domain
+         created_by   TYPE syuname,     " Created by user
+         created_at   TYPE timestampl,  " Created timestamp
+         changed_by   TYPE syuname,     " Changed by user
+         changed_at   TYPE timestampl,  " Changed timestamp
        END OF ty_notification.
 ```
+
+**Important**: All string types replaced with fixed CHAR types for ABAP compliance
 
 **Actions**:
 1. SE80 → Class Builder → Create class `ZCL_NOTIFICATION_MANAGER`

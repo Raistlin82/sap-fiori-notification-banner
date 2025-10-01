@@ -6,14 +6,14 @@ CLASS zcl_notification_manager DEFINITION
   PUBLIC SECTION.
 
     TYPES: BEGIN OF ty_notification,
-             message_id   TYPE string,
-             message_type TYPE string,
-             severity     TYPE string,
-             title        TYPE string,
-             message_text TYPE string,
+             message_id   TYPE char32,
+             message_type TYPE char12,
+             severity     TYPE char8,
+             title        TYPE char255,
+             message_text TYPE char255,
              start_date   TYPE dats,
              end_date     TYPE dats,
-             target_users TYPE string,
+             target_users TYPE char10,
              active       TYPE char1,
              display_mode TYPE char10,
              created_by   TYPE syuname,
@@ -38,14 +38,14 @@ CLASS zcl_notification_manager DEFINITION
 
                    update_notification
                      IMPORTING
-                       iv_message_id TYPE string
+                       iv_message_id TYPE char32
                        is_notification TYPE ty_notification
                      RETURNING
                        VALUE(rv_success) TYPE abap_bool,
 
                    deactivate_notification
                      IMPORTING
-                       iv_message_id TYPE string
+                       iv_message_id TYPE char32
                      RETURNING
                        VALUE(rv_success) TYPE abap_bool,
 
@@ -58,11 +58,11 @@ CLASS zcl_notification_manager DEFINITION
   PRIVATE SECTION.
     CLASS-METHODS: generate_message_id
                      RETURNING
-                       VALUE(rv_message_id) TYPE string,
+                       VALUE(rv_message_id) TYPE char32,
 
                    check_target_audience
                      IMPORTING
-                       iv_target_users TYPE string
+                       iv_target_users TYPE char10
                      RETURNING
                        VALUE(rv_authorized) TYPE abap_bool.
 
