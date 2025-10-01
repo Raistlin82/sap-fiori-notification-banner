@@ -464,9 +464,14 @@ Delivery Class: A (Application Table)
 
 ### Step 4: Create CDS View
 
-**Transaction**: SE80 → Repository Browser → DDLS (CDS View)
+**Tool Required**: Eclipse ADT (ABAP Development Tools) or SAP HANA Studio
+
+**Alternative**: Use transaction SE38 to run program `RUTDDLSACT` for activation
 
 **File Reference**: `abap/ztnotify_messages.ddls`
+
+> **⚠️ Important**: CDS views **CANNOT** be created in SE80 or SE11 for SAP S/4HANA On-Premise.
+> You must use Eclipse ADT (recommended) or create the DDL source code manually and activate it via SE38.
 
 ```sql
 @AbapCatalog.sqlViewName: 'ZNOTIFY_MSG'
@@ -504,15 +509,24 @@ where active = 'X'
 - **WHERE clause** → Only active notifications within date range
 - **All fields** → Includes display_mode and audit fields
 
-**Actions**:
-1. SE80 → Repository Browser
-2. Create new DDLS object: `ZTNOTIFY_MESSAGES`
-3. Copy the CDS view code above
-4. **Save** → **Check** → **Activate**
+**Actions (Eclipse ADT Method - Recommended)**:
+1. Open Eclipse with ABAP Development Tools (ADT)
+2. Right-click on package → New → Other ABAP Repository Object
+3. Select "Data Definition" (DDL Source)
+4. Enter name: `ZTNOTIFY_MESSAGES`
+5. Copy the CDS view code above into the editor
+6. **Save** (Ctrl+S) → **Activate** (Ctrl+F3)
+
+**Actions (Manual Method - Alternative)**:
+1. Create file `ztnotify_messages.ddls` with the DDL source code above
+2. Upload via SE38 → Program `MASS_UPLOAD` or similar
+3. Activate via SE38 → Program `RUTDDLSACT`
+4. Enter CDS view name: `ZTNOTIFY_MESSAGES`
 
 **✅ Verification**:
-- SE11 → Display ZNOTIFY_MSG (SQL view name)
-- SE80 → ZTNOTIFY_MESSAGES → Check "Active" status
+- SE11 → Display `ZNOTIFY_MSG` (SQL view name, not DDL source name)
+- Transaction SE11 will show the generated database view
+- Eclipse ADT → Check "Active" status for `ZTNOTIFY_MESSAGES`
 
 ---
 
