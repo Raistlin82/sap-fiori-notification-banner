@@ -1266,33 +1266,72 @@ npm run build
 
 1. **Create BSP Application**:
    ```
-   Object Type: BSP Application
-   Application: ZNOTIFY_BANNER
-   Description: Global Notification Banner
+   - SE80 → Repository Browser (first dropdown)
+   - Select: "BSP Application" from object type dropdown
+   - Click "Create" button (F5)
+   - Application Name: ZNOTIFY_BANNER
+   - Description: Global Notification Banner
+   - Package: ZNOTIFY (or $TMP for local)
+   - Save
    ```
 
-2. **Import Resources**:
-   - Right-click on ZNOTIFY_BANNER → Import → File System
-   - Select all files from `dist/` folder
-   - Import the following:
-     ```
-     Component-preload.js
-     manifest.json
-     index.html
-     i18n/i18n.properties
-     css/style.css
-     controller/NotificationBanner.js
-     controller/TileCounter.js
-     view/View1.view.xml
-     ```
+2. **Create MIME Objects folder** (if not exists):
+   ```
+   - SE80 → Display BSP Application: ZNOTIFY_BANNER
+   - Right-click on ZNOTIFY_BANNER
+   - Create → MIME Objects → Folder
+   - Folder name: (leave default or create subfolders like "webapp")
+   ```
 
-3. **Activate All Resources**:
-   - Select all imported files
-   - Right-click → Activate
+3. **Import UI5 Files as MIME Objects**:
+   ```
+   Method A: Import individual files
+   - Expand ZNOTIFY_BANNER in tree
+   - Right-click on "MIME Objects" folder
+   - Create → MIME Object → Import
+   - Select files from dist/ folder one by one:
+     * Component-preload.js
+     * manifest.json
+     * index.html
+     * All files from i18n/, css/, controller/, view/ folders
+
+   Method B: Import entire folder structure
+   - Right-click on "MIME Objects" folder
+   - Import → MIME Objects
+   - Select entire dist/webapp folder
+   - System imports full folder structure
+   ```
+
+4. **Set MIME Type** (auto-detected but verify):
+   ```
+   - .js files: application/javascript
+   - .json files: application/json
+   - .html files: text/html
+   - .css files: text/css
+   - .properties files: text/plain
+   ```
+
+5. **Activate All Resources**:
+   ```
+   - Right-click on ZNOTIFY_BANNER root
+   - Mass Activate → Object List
+   - Select all MIME objects
+   - Activate
+   ```
 
 **✅ Verification**:
-- SE80 → Display ZNOTIFY_BANNER → Check all files are active
-- Test URL: `https://your-system.com/sap/bc/bsp/sap/znotify_banner/index.html`
+```
+SE80 → Display BSP Application: ZNOTIFY_BANNER
+→ Expand "MIME Objects" folder
+→ All files should show green traffic light (active status)
+→ Test URL: https://your-system:port/sap/bc/bsp/sap/znotify_banner/index.html
+```
+
+**📝 Important Notes**:
+- BSP application name must be lowercase in URL: `znotify_banner` (not ZNOTIFY_BANNER)
+- Full URL pattern: `/sap/bc/bsp/sap/<app_name_lowercase>/<file_name>`
+- If files not visible: Check MIME Objects folder, not Pages/Views
+- If 404 error: Check ICF service `/sap/bc/bsp` is active in SICF
 
 ---
 
@@ -1338,69 +1377,144 @@ Transport Request: [Your TR number]
 
 **Transaction**: /UI2/FLPD_CUST (Fiori Launchpad Designer)
 
-#### 1.1 Create Semantic Object
+> **⚠️ Note**: Screen layouts may vary by SAP version (S/4HANA 1809, 1909, 2020, 2021+). Follow the concepts below and adapt field names to your system.
+
+#### 1.1 Create Catalog
 
 ```
-Semantic Object: NotificationBanner
-Description: Global Notification Banner
+Transaction: /UI2/FLPD_CUST
+1. Click tab: "Catalogs"
+2. Click button: "Create" (or "+" icon)
+3. Fill in:
+   - Catalog ID: ZNOTIFY_CATALOG
+   - Title: System Notifications
+   - Description: Global notification management catalog
+4. Save
 ```
 
-#### 1.2 Create Tile
+#### 1.2 Create Target Mapping
 
 ```
-Tile ID: ZNOTIFY_BANNER_TILE
-Title: Notifications
-Subtitle: Active System Messages
-Icon: sap-icon://message-information
-Type: Dynamic
+Still in Catalog ZNOTIFY_CATALOG:
+1. Click tab: "Target Mappings" (bottom section)
+2. Click "Create" or "+"
+3. Fill in:
+   Semantic Object: NotificationBanner
+   Action: display
+
+4. Click "Navigation" section:
+   - Target Type: URL
+   - URL: /sap/bc/bsp/sap/znotify_banner/index.html
+
+   Or if using UI5 repository:
+   - UI5 Component: sap.fiori.notification.banner
+   - Application ID: ZNOTIFY_BANNER
+
+5. Save
 ```
 
-**Dynamic Tile Configuration**:
-```javascript
+#### 1.3 Create Tile
+
+```
+Still in Catalog ZNOTIFY_CATALOG:
+1. Click tab: "Tiles" (bottom section)
+2. Click "Create" or "+"
+3. Fill in:
+
+   General Information:
+   - Tile ID: ZNOTIFY_TILE_01
+   - Title: Notifications
+   - Subtitle: Active System Messages
+   - Icon: sap-icon://message-information
+   - Tile Type: Dynamic
+
+   Configuration (for Dynamic Tile):
+   - Service URL: /sap/bc/rest/zcl_notification_rest/stats
+   - Service Refresh Interval: 60 (seconds)
+   - Number Value: Use ABAP value from service response "total"
+   - Number Unit: Active
+   - Info: Use ABAP value format "3H|5M|2L" from service response
+
+   Target Mapping:
+   - Select: NotificationBanner-display (created in step 1.2)
+
+4. Save
+```
+
+**Dynamic Tile Service Response Format**:
+The REST endpoint `/stats` must return:
+```json
 {
-  "service_url": "/sap/bc/rest/zcl_notification_rest/stats",
-  "service_refresh_interval": 60,
-  "title": "Notifications",
-  "number_unit": "Active",
-  "info": "{{highCount}}H|{{mediumCount}}M|{{lowCount}}L",
-  "info_state": "{{tileColor}}"
+  "total": 10,
+  "high_count": 3,
+  "medium_count": 5,
+  "low_count": 2
 }
 ```
 
-**Tile Color Logic** (based on HIGH count):
-- RED: high_count >= 3
-- ORANGE: high_count 1-2
-- GREEN: high_count = 0
+**Tile Color Logic** (configured in tile settings):
+- Critical (Red): high_count >= 3
+- Warning (Orange): high_count 1-2
+- Success (Green): high_count = 0
 
-#### 1.3 Create Target Mapping
-
-```
-Semantic Object: NotificationBanner
-Action: display
-URL: /sap/bc/ui5_ui5/sap/znotify_banner/index.html
-```
-
-#### 1.4 Assign to Catalog
+#### 1.4 Create Group
 
 ```
-Catalog ID: ZNOTIFY_CATALOG
-Title: System Notifications
-Description: Global notification management
+Transaction: /UI2/FLPD_CUST
+1. Click tab: "Groups"
+2. Click "Create" or "+"
+3. Fill in:
+   - Group ID: ZSYSTEM_ADMIN
+   - Title: System Administration
+   - Description: System administration tools and monitors
+
+4. Click tab: "Assign Catalogs" (bottom section)
+5. Click "Add"
+6. Select: ZNOTIFY_CATALOG
+7. Save
 ```
 
-#### 1.5 Assign to Group
+#### 1.5 Assign to Fiori Launchpad
 
 ```
-Group ID: SYSTEM_ADMIN
-Title: System Administration
-Priority: High
+Transaction: /UI2/FLPD_CUST
+1. Click tab: "Launchpad" or "Content" (top navigation)
+2. Select your Launchpad (usually SAP_FIORI or custom)
+3. Assign:
+   - Add Catalog: ZNOTIFY_CATALOG
+   - Add Group: ZSYSTEM_ADMIN
+4. Save
 ```
 
 **✅ Verification**:
-- Open Fiori Launchpad
-- Check tile appears in System Administration group
-- Click tile → Should open notification management app
-- Tile should update every 60 seconds with real-time statistics
+```
+1. Open Fiori Launchpad: /sap/bc/ui2/flp
+2. Check "System Administration" group appears
+3. Check "Notifications" tile appears in group
+4. Tile should show:
+   - Number: "10 Active" (if 10 notifications exist)
+   - Info: "3H|5M|2L" (high, medium, low breakdown)
+   - Color: Red/Orange/Green based on high_count
+5. Click tile → Should open notification management app
+6. Wait 60 seconds → Tile should auto-refresh
+```
+
+**📝 Alternative: Role-Based Assignment**
+
+If tiles should appear only for specific users:
+```
+Transaction: PFCG (Role Maintenance)
+1. Select role (e.g., Z_NOTIFICATION_ADMIN)
+2. Tab: "Menu"
+3. Add catalog: ZNOTIFY_CATALOG
+4. Save and generate profile
+```
+
+**🔧 Troubleshooting**:
+- **Tile not visible**: Check catalog assigned to group + group assigned to launchpad
+- **Tile shows "0 Active" but data exists**: Check REST endpoint URL in tile configuration
+- **Tile doesn't refresh**: Check "Service Refresh Interval" is set (default: 0 = no refresh)
+- **Wrong color**: Check `/stats` endpoint returns correct `high_count` value
 
 ---
 

@@ -1,0 +1,26 @@
+specVersion: '2.6'
+metadata:
+  name: sap.fiori.notification.banner
+type: application
+builder:
+  customTasks:
+    - name: deploy-to-abap
+      afterTask: generateCachebusterInfo
+      configuration:
+        target:
+          url: https://vhwqtds4ci.sap.windtre.it:44300
+          client: '100'
+          auth: basic
+        app:
+          name: ZNOTIFY_BANNER
+          description: Global Notification Banner
+          package: ZNOTIFY
+          transport: ''
+        excludes:
+          - node_modules/
+          - test/
+          - docs/
+          - abap/
+        credentials:
+          username: env:SAP_USER
+          password: env:SAP_PASSWORD
