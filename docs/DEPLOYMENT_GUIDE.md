@@ -476,13 +476,11 @@ Delivery Class: A (Application Table)
 ```sql
 @AbapCatalog.sqlViewName: 'ZNOTIFY_MSG'
 @AbapCatalog.compiler.compareFilter: true
-@AbapCatalog.preserveKey: true
 @AccessControl.authorizationCheck: #NOT_REQUIRED
 @EndUserText.label: 'Global Notification Messages'
 @OData.publish: true
 
 define view ZTNOTIFY_MESSAGES as select from ztnotify_msgs {
-    key client,
     key message_id,
     message_type,
     severity,
