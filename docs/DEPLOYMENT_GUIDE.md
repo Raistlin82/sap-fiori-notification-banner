@@ -580,15 +580,18 @@ TYPES: BEGIN OF ty_notification,
 TYPES: tt_notifications TYPE STANDARD TABLE OF ty_notification WITH DEFAULT KEY.
 ```
 
-**Important**:
-- All string types replaced with fixed CHAR types for ABAP compliance
-- Table type uses STANDARD TABLE WITH DEFAULT KEY (required for fully-typed parameters)
+**Important - Modern ABAP Compliance**:
+- ✅ All string types replaced with fixed CHAR types (fully-typed parameters)
+- ✅ Table type uses STANDARD TABLE WITH DEFAULT KEY (required for RETURNING)
+- ✅ System variables escaped with @ in SQL: `@sy-datum`, `@sy-uname`
+- ✅ Method parameters escaped with @ in SQL: `@iv_message_id`, `@lv_timestamp`
 
 **Actions**:
 1. SE80 → Class Builder → Create class `ZCL_NOTIFICATION_MANAGER`
 2. Copy definition and implementation from `abap/zcl_notification_manager.clas.abap`
 3. Verify all 5 public static methods are present
 4. **Save** → **Check** → **Activate**
+5. **Important**: Ensure Eclipse ADT is used for activation (modern syntax required)
 
 **🎯 Key Features**:
 - Role-based target audience filtering (3 fixed values: ALL, ADMIN, DEVELOPER - SAP standard roles only)
@@ -628,15 +631,30 @@ Methods Redefined: IF_REST_RESOURCE~GET, ~POST, ~PUT, ~DELETE
 5. **Save** → **Check** → **Activate**
 
 **🎯 Key Features**:
-- JSON serialization/deserialization
+- JSON serialization/deserialization (uses TYPE string for local variables - allowed)
 - Error handling with HTTP status codes
 - CSRF token support
 - CORS headers for cross-origin requests
+- Modern SQL with @ escape (already implemented correctly)
+
+**Modern ABAP Compliance**:
+- ✅ All SQL statements use @ escape: `WHERE active = 'X' AND start_date <= @lv_today`
+- ✅ TYPE string allowed in local variables (DATA: lv_json TYPE string)
+- ✅ Inherits from CL_REST_RESOURCE (standard SAP class)
 
 **✅ Verification**:
 - SE80 → Display both classes → Check "Active" status
 - SE24 → ZCL_NOTIFICATION_MANAGER → Test method `get_active_notifications`
-- SE37 → Test `ZCL_NOTIFICATION_REST` is inheriting from `CL_REST_RESOURCE`
+- Eclipse ADT → Verify no syntax errors or warnings
+
+**⚠️ Common Activation Errors & Solutions**:
+
+| Error | Solution |
+|-------|----------|
+| "A RETURNING parameter must be fully typed" | Use CHAR types (not string), add WITH DEFAULT KEY to table types |
+| "Variable SY-DATUM must be escaped using @" | Add @ prefix: `@sy-datum`, `@sy-uname` |
+| "DDIC-based CDS views are obsolete" | Use `define view entity` instead of `define view` |
+| "Name of entity and DDL source must be identical" | Ensure file name matches entity name (case-sensitive) |
 
 ---
 
