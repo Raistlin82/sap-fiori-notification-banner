@@ -176,10 +176,10 @@ erDiagram
         varchar10 MESSAGE_TYPE "URGENT, INFO, WARNING"
         varchar10 SEVERITY "HIGH, MEDIUM, LOW"
         varchar255 TITLE "INDEXED"
-        varchar1000 MESSAGE_TEXT
+        varchar255 MESSAGE_TEXT "Fixed length CHAR field"
         date START_DATE "INDEXED"
         date END_DATE "INDEXED"
-        varchar10 TARGET_USERS "ALL, AUTH, ADMIN, etc. (F4 help)"
+        varchar10 TARGET_USERS "ALL, ADMIN, DEVELOPER (F4 help - 3 values)"
         char1 ACTIVE "INDEXED - X or blank"
         varchar12 CREATED_BY
         timestamp CREATED_AT
