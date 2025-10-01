@@ -245,14 +245,17 @@ CLASS zcl_notification_manager IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD generate_message_id.
-
+    "*&---------------------------------------------------------------------*
+    "*& Generate UUID in CHAR32 format (compatible with SM30)
+    "*& Returns: 32-char UUID string (e.g., '550e8400e29b41d4a716446655440000')
+    "*&---------------------------------------------------------------------*
     DATA: lv_guid TYPE sysuuid_c32.
 
     CALL FUNCTION 'GUID_CREATE'
       IMPORTING
         ev_guid_32 = lv_guid.
 
-    rv_message_id = |MSG_{ lv_guid }|.
+    rv_message_id = lv_guid.  " Return plain UUID (CHAR32 compatible)
 
   ENDMETHOD.
 

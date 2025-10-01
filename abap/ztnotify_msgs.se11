@@ -34,7 +34,7 @@
 Field Name        Key  Data Element       Data Type  Length  Decimals  Description
 --------------------------------------------------------------------------------
 MANDT             X    MANDT              CLNT       3       0         Client
-MESSAGE_ID        X    SYSUUID_X16        RAW        16      0         Message GUID
+MESSAGE_ID        X    CHAR32             CHAR       32      0         Message UUID (text format)
 MESSAGE_TYPE           ZNOTIFY_MSG_TYPE   CHAR       12      0         Message Type (F4)
 SEVERITY               ZNOTIFY_SEVERITY   CHAR       8       0         Severity Level (F4)
 TITLE                  CHAR255            CHAR       255     0         Notification Title
