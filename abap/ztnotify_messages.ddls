@@ -1,7 +1,7 @@
 @AccessControl.authorizationCheck: #NOT_REQUIRED
 @EndUserText.label: 'Global Notification Messages'
 
-define view entity ZTNOTIFY_MESSAGES
+define view entity ztnotify_messages
   as select from ztnotify_msgs
 {
   key message_id,

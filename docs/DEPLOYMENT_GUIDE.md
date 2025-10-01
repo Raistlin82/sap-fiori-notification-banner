@@ -477,7 +477,7 @@ Delivery Class: A (Application Table)
 @AccessControl.authorizationCheck: #NOT_REQUIRED
 @EndUserText.label: 'Global Notification Messages'
 
-define view entity ZTNOTIFY_MESSAGES
+define view entity ztnotify_messages
   as select from ztnotify_msgs
 {
   key message_id,
@@ -515,7 +515,7 @@ where active = 'X'
 1. Open Eclipse with ABAP Development Tools (ADT)
 2. Right-click on package → New → Other ABAP Repository Object
 3. Select "Data Definition" (DDL Source)
-4. Enter name: `ZTNOTIFY_MESSAGES`
+4. Enter name: `ztnotify_messages` (lowercase, must match entity name)
 5. Copy the CDS view code above into the editor
 6. **Save** (Ctrl+S) → **Activate** (Ctrl+F3)
 
@@ -523,10 +523,12 @@ where active = 'X'
 1. Create file `ztnotify_messages.ddls` with the DDL source code above
 2. Upload via SE38 → Program `MASS_UPLOAD` or similar
 3. Activate via SE38 → Program `RUTDDLSACT`
-4. Enter CDS view name: `ZTNOTIFY_MESSAGES`
+4. Enter CDS view name: `ztnotify_messages`
+
+**Important**: DDL source name and view entity name must be identical (case-sensitive)
 
 **✅ Verification**:
-- Eclipse ADT → Check "Active" status for `ZTNOTIFY_MESSAGES`
+- Eclipse ADT → Check "Active" status for `ztnotify_messages`
 - SE11 → Display table `ZTNOTIFY_MSGS` (base table)
 - Note: Modern view entities don't create SQL views automatically
 
