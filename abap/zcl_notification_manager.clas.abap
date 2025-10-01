@@ -22,7 +22,7 @@ CLASS zcl_notification_manager DEFINITION
              changed_at   TYPE timestampl,
            END OF ty_notification.
 
-    TYPES: tt_notifications TYPE TABLE OF ty_notification.
+    TYPES: tt_notifications TYPE STANDARD TABLE OF ty_notification WITH DEFAULT KEY.
 
     CLASS-METHODS: get_active_notifications
                      IMPORTING

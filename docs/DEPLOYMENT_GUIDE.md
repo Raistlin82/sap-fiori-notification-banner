@@ -576,9 +576,13 @@ TYPES: BEGIN OF ty_notification,
          changed_by   TYPE syuname,     " Changed by user
          changed_at   TYPE timestampl,  " Changed timestamp
        END OF ty_notification.
+
+TYPES: tt_notifications TYPE STANDARD TABLE OF ty_notification WITH DEFAULT KEY.
 ```
 
-**Important**: All string types replaced with fixed CHAR types for ABAP compliance
+**Important**:
+- All string types replaced with fixed CHAR types for ABAP compliance
+- Table type uses STANDARD TABLE WITH DEFAULT KEY (required for fully-typed parameters)
 
 **Actions**:
 1. SE80 → Class Builder → Create class `ZCL_NOTIFICATION_MANAGER`
