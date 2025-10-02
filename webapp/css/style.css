@@ -315,14 +315,12 @@ html[data-sap-ui-theme*="sap_fiori_3"] .notificationBanner {
    ========================================================================== */
 
 /* Ensure admin page takes full height in both standalone and FLP */
-#View1--page,
-.sapMPage {
+#View1--page {
     height: 100% !important;
 }
 
-/* Root container height fix for FLP */
-#container-com\\.sap\\.notifications\\.banner2,
-.sapUiBody > div {
+/* Root container height fix for FLP - only target app container */
+#container-com\\.sap\\.notifications\\.banner2 {
     height: 100% !important;
 }
 
@@ -348,13 +346,12 @@ html[data-sap-ui-theme*="sap_fiori_3"] .notificationBanner {
 }
 
 /* Ensure page content area uses available space in both contexts */
-.sapMPageWithHeader .sapMPageEnableScrolling,
-.sapMPage > section {
+.sapMPageWithHeader .sapMPageEnableScrolling {
     height: auto !important;
     min-height: 500px !important;
 }
 
-/* FLP-specific fixes */
+/* FLP-specific fixes - only within app container */
 .sapUShellApplicationContainer .sapMPage {
     height: 100% !important;
 }
