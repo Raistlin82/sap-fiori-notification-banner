@@ -74,7 +74,12 @@ Before configuring the FLP tile, ensure:
    - App ID: `com.sap.notifications.banner2`
    - Files in correct BSP structure (Pages/Page Fragments)
 
-3. ✅ **Verify application works**:
+3. ✅ **Role Configuration** (read Step 5b for details):
+   - **Regular users**: Will use custom role `Z_NOTIF_ADMIN` (optional, for notification management)
+   - **Basis admins**: Will use `SAP_ALL` + composite role `Z_BASIS_ADMIN` (or direct `Z_NOTIF_ADMIN`)
+   - Both user types can access the admin interface with proper FLP configuration
+
+4. ✅ **Verify application works**:
    ```
    URL: https://your-system:port/sap/bc/ui5_ui5/sap/znotify_banner2/index.html?sap-client=100
 
@@ -534,7 +539,156 @@ Expected: Z_NOTIF_ADMIN_GROUP visible under SAP Fiori Launchpad
 
 ---
 
-## 👤 Step 5: Assign Role to Users
+## 🔓 Step 5b: Enable Access for SAP_ALL Users (Basis Admins)
+
+**Requirement**: Utenti con SAP_ALL (basis admin) devono poter accedere senza il ruolo custom Z_NOTIF_ADMIN.
+
+### Why This is Needed
+
+- **Custom Role** (Z_NOTIF_ADMIN): For users who need notification management but don't have SAP_ALL
+- **SAP_ALL**: Basis admins already have all backend authorizations but need FLP tile access
+
+### Option 1: Assign Group Directly to SAP_ALL Role
+
+**⚠️ WARNING**: Modifying SAP_ALL directly is **NOT recommended** in most organizations.
+
+Skip this option and use Option 2 instead.
+
+---
+
+### Option 2: Create Composite Role (Recommended)
+
+**Concept**: Create a composite role that includes SAP_ALL + FLP group assignment
+
+**Steps**:
+
+1. **Create Composite Role**:
+   ```
+   Transaction: /nPFCG
+
+   Role Name: Z_BASIS_ADMIN
+   Description: Basis Administrator (SAP_ALL + FLP Access)
+   Role Type: Composite Role
+   ```
+
+2. **Add Roles to Composite**:
+   ```
+   Roles tab → Add:
+   - SAP_ALL (already exists)
+   - Z_NOTIF_ADMIN (for FLP group only)
+   ```
+
+3. **Assign to Basis Admin Users**:
+   ```
+   /nSU01 → User → Roles tab
+   Add: Z_BASIS_ADMIN
+   ```
+
+**Advantages**:
+- ✅ SAP_ALL remains unchanged
+- ✅ Easy to manage basis admin users
+- ✅ Clear separation of concerns
+
+---
+
+### Option 3: Direct Group Assignment in FLP (Simplest)
+
+**Best for**: Small teams or when you control FLP configuration directly
+
+**Steps**:
+
+1. **Open FLP Configuration**:
+   ```
+   Transaction: /UI2/FLPD_CUST
+   ```
+
+2. **Go to Groups**:
+   ```
+   Select: Z_NOTIF_ADMIN_GROUP
+   Click: "Change"
+   ```
+
+3. **Manual User Assignment**:
+   ```
+   Some systems allow direct user assignment to groups
+
+   If available:
+   - Click "Assigned Users" or "User Assignment"
+   - Add basis admin users individually
+   - Save
+   ```
+
+   **⚠️ Note**: Not all SAP versions support this feature
+
+---
+
+### Option 4: Use FLP Space Configuration (Latest Systems)
+
+**For S/4HANA 2021+** with Spaces and Pages:
+
+1. **Transaction**: `/n/UI2/FLP_CONF_SPACE`
+
+2. **Assign Catalog to "Everyone"**:
+   ```
+   Spaces → Select space
+   → Catalogs
+   → Assign: Z_NOTIF_ADMIN_CATALOG
+   → User Assignment: "All Users" or specific user list
+   ```
+
+3. **Result**: Catalog available to all users regardless of role
+
+---
+
+### 🎯 Recommended Approach
+
+**For most organizations**:
+
+1. **Create custom role** `Z_NOTIF_ADMIN` (for regular notification managers)
+2. **Create composite role** `Z_BASIS_ADMIN` that includes:
+   - SAP_ALL (for all system authorizations)
+   - Z_NOTIF_ADMIN (for FLP tile access only)
+3. **Assign roles**:
+   - Regular users: `Z_NOTIF_ADMIN`
+   - Basis admins: `Z_BASIS_ADMIN` (or add `Z_NOTIF_ADMIN` to existing basis role)
+
+**Result**:
+- ✅ Custom role Z_NOTIF_ADMIN: Optional for users who need notification management
+- ✅ Basis admins with SAP_ALL: Can access via composite role or direct Z_NOTIF_ADMIN assignment
+- ✅ Backend authorizations: Both covered (SAP_ALL has everything, Z_NOTIF_ADMIN has specific objects)
+
+---
+
+### Backend Authorization Check
+
+Both user types must have these backend authorizations (automatic with SAP_ALL):
+
+```
+S_RFC (RFC Access):
+- RFC_TYPE: Function Module
+- RFC_NAME: ZCL_NOTIF_REST (or * for admins)
+- ACTVT: 16 (Execute)
+
+S_TABU_CLI (Table Maintenance):
+- CLIIDMAINT: X
+- TABLE: ZTNOTIFY_MSGS
+
+S_DEVELOP (Development):
+- DEVCLASS: * (or $TMP)
+- OBJTYPE: BSP (for BSP application access)
+- OBJNAME: ZNOTIFY_BANNER2
+- ACTVT: 03 (Display)
+```
+
+**Verification**:
+```
+Transaction: SU53 (after failed access)
+Check missing authorization objects
+```
+
+---
+
+## 👤 Step 6: Assign Role to Users
 
 ### Transaction: `/nSU01`
 
@@ -566,7 +720,7 @@ Expected: Z_NOTIF_ADMIN_GROUP visible under SAP Fiori Launchpad
 
 ---
 
-## ✅ Step 6: Verification & Testing
+## ✅ Step 7: Verification & Testing
 
 ### 6.1 Verify Tile is Visible
 
@@ -814,21 +968,33 @@ This component works for ALL users, not just admins.
 
 Before going live, verify:
 
+**Backend & Deployment**:
 - [ ] Backend REST service active and tested
-- [ ] Frontend BSP application deployed
+- [ ] Frontend BSP application deployed (ZNOTIFY_BANNER2)
 - [ ] Target Mapping created (NotificationBanner-display)
-- [ ] Catalog created with dynamic tile
-- [ ] Tile configured with correct service URL
-- [ ] Group created and tile assigned
-- [ ] Role created/modified with group
-- [ ] Profile generated for role
-- [ ] Users assigned to role
-- [ ] Tile visible in Launchpad
+
+**FLP Configuration**:
+- [ ] Catalog created with dynamic tile (Z_NOTIF_ADMIN_CATALOG)
+- [ ] Tile configured with correct service URL (/stats endpoint)
+- [ ] Group created and tile assigned (Z_NOTIF_ADMIN_GROUP)
+
+**Role Configuration**:
+- [ ] Custom role created (Z_NOTIF_ADMIN) with FLP group
+- [ ] Profile generated for custom role
+- [ ] Composite role created for SAP_ALL users (Z_BASIS_ADMIN) - if needed
+- [ ] Regular users assigned to Z_NOTIF_ADMIN
+- [ ] Basis admins can access (via Z_BASIS_ADMIN or direct Z_NOTIF_ADMIN)
+
+**Functional Testing**:
+- [ ] Tile visible in Launchpad (for both user types)
 - [ ] Tile shows live data (updates every 60s)
 - [ ] Tile navigation works (opens admin app)
 - [ ] Admin CRUD operations work (Create/Edit/Delete)
 - [ ] Global banner works for all users
-- [ ] Authorization tested (admin vs regular users)
+- [ ] Authorization tested:
+  - [ ] Regular users with Z_NOTIF_ADMIN
+  - [ ] Basis admins with SAP_ALL + composite role
+  - [ ] Backend authorization objects verified (S_RFC, S_TABU_CLI, S_DEVELOP)
 
 ---
 
