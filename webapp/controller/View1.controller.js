@@ -156,8 +156,8 @@ sap.ui.define([
                 message_type: oEditModel.message_type,
                 display_mode: oEditModel.display_mode,
                 target_users: oEditModel.target_audience,  // ABAP expects target_users not target_audience
-                start_date: oEditModel.start_date,
-                end_date: oEditModel.end_date,
+                start_date: this._formatDateForABAP(oEditModel.start_date),  // Convert to YYYYMMDD
+                end_date: this._formatDateForABAP(oEditModel.end_date),      // Convert to YYYYMMDD
                 active: oEditModel.active ? 'X' : ''
             };
 
@@ -392,6 +392,20 @@ sap.ui.define([
             var month = String(date.getMonth() + 1).padStart(2, '0');
             var day = String(date.getDate()).padStart(2, '0');
             return year + '-' + month + '-' + day;
+        },
+
+        /**
+         * Format date to ABAP DATS format (YYYYMMDD)
+         * @param {string} dateString - Date string in ISO format (YYYY-MM-DD)
+         * @returns {string} Date in ABAP format (YYYYMMDD)
+         * @private
+         */
+        _formatDateForABAP: function (dateString) {
+            if (!dateString) {
+                return '';
+            }
+            // Remove hyphens from ISO date format: "2025-10-03" -> "20251003"
+            return dateString.replace(/-/g, '');
         }
     });
 });
