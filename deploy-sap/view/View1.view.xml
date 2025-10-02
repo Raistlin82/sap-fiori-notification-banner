@@ -1,26 +1,327 @@
 <mvc:View
     controllerName="com.sap.notifications.banner2.controller.View1"
     xmlns:mvc="sap.ui.core.mvc"
+    xmlns:core="sap.ui.core"
+    xmlns:f="sap.ui.layout.form"
+    xmlns:l="sap.ui.layout"
     displayBlock="true"
     xmlns="sap.m">
-    <Page id="page" title="{i18n>title}">
-        <content>
-            <MessageStrip
-                text="{i18n>welcomeMessage}"
-                type="Information"
-                showIcon="true"
-                class="sapUiMediumMargin">
-            </MessageStrip>
 
-            <Panel headerText="{i18n>notificationPanelTitle}" class="sapUiMediumMargin">
-                <content>
-                    <Text text="{i18n>notificationDescription}" class="sapUiMediumMarginBottom"/>
-                    <Button
-                        text="{i18n>testNotificationButton}"
-                        type="Emphasized"
-                        press="onTestNotification"/>
-                </content>
-            </Panel>
+    <Page id="page"
+          title="{i18n>adminPageTitle}"
+          showNavButton="false"
+          class="sapUiResponsiveContentPadding">
+
+        <headerContent>
+            <Button
+                id="refreshButton"
+                icon="sap-icon://refresh"
+                text="{i18n>buttonRefresh}"
+                press=".onRefresh"
+                tooltip="{i18n>buttonRefresh}"/>
+            <Button
+                id="createButton"
+                icon="sap-icon://add"
+                text="{i18n>buttonCreate}"
+                type="Emphasized"
+                press=".onCreate"/>
+        </headerContent>
+
+        <subHeader>
+            <Toolbar>
+                <Title text="{i18n>adminPageSubtitle}" level="H2"/>
+                <ToolbarSpacer/>
+                <SearchField
+                    id="searchField"
+                    width="300px"
+                    placeholder="Search notifications..."
+                    search=".onSearch"/>
+            </Toolbar>
+        </subHeader>
+
+        <content>
+
+            <!-- Filter Bar -->
+            <VBox class="sapUiSmallMarginBottom">
+                <Toolbar>
+                    <Title text="{i18n>filterBarTitle}"/>
+                    <ToolbarSpacer/>
+                    <CheckBox
+                        id="filterActiveOnly"
+                        text="{i18n>filterActive}"
+                        selected="true"
+                        select=".onFilterChange"/>
+                    <Select
+                        id="filterSeverity"
+                        width="150px"
+                        change=".onFilterChange">
+                        <items>
+                            <core:Item key="" text="All Severities"/>
+                            <core:Item key="HIGH" text="{i18n>severityHigh}"/>
+                            <core:Item key="MEDIUM" text="{i18n>severityMedium}"/>
+                            <core:Item key="LOW" text="{i18n>severityLow}"/>
+                        </items>
+                    </Select>
+                </Toolbar>
+            </VBox>
+
+            <!-- Messages Table -->
+            <Table
+                id="messagesTable"
+                items="{/messages}"
+                mode="None"
+                growing="true"
+                growingThreshold="20"
+                noDataText="{i18n>msgNoData}"
+                class="sapUiResponsiveMargin">
+
+                <columns>
+                    <Column width="80px">
+                        <Text text="{i18n>columnSeverity}"/>
+                    </Column>
+                    <Column width="200px" minScreenWidth="Tablet" demandPopin="true">
+                        <Text text="{i18n>columnTitle}"/>
+                    </Column>
+                    <Column minScreenWidth="Desktop" demandPopin="true">
+                        <Text text="{i18n>columnMessage}"/>
+                    </Column>
+                    <Column width="180px" minScreenWidth="Tablet" demandPopin="true">
+                        <Text text="{i18n>columnPeriod}"/>
+                    </Column>
+                    <Column width="120px" minScreenWidth="Tablet" demandPopin="true">
+                        <Text text="{i18n>columnDisplayMode}"/>
+                    </Column>
+                    <Column width="100px">
+                        <Text text="{i18n>columnStatus}"/>
+                    </Column>
+                    <Column width="180px">
+                        <Text text="{i18n>columnActions}"/>
+                    </Column>
+                </columns>
+
+                <items>
+                    <ColumnListItem>
+                        <cells>
+                            <!-- Severity -->
+                            <ObjectStatus
+                                text="{severity}"
+                                state="{
+                                    path: 'severity',
+                                    formatter: '.formatter.formatSeverityState'
+                                }"
+                                icon="{
+                                    path: 'severity',
+                                    formatter: '.formatter.formatSeverityIcon'
+                                }"/>
+
+                            <!-- Title -->
+                            <VBox>
+                                <Text text="{title}" class="sapUiTinyMarginBottom"/>
+                                <ObjectStatus
+                                    text="{message_type}"
+                                    state="Information"/>
+                            </VBox>
+
+                            <!-- Message -->
+                            <Text
+                                text="{message_text}"
+                                maxLines="2"/>
+
+                            <!-- Period -->
+                            <VBox>
+                                <Text text="{
+                                    path: 'start_date',
+                                    type: 'sap.ui.model.type.Date',
+                                    formatOptions: {pattern: 'dd/MM/yyyy'}
+                                }"/>
+                                <Text text="to" class="sapUiTinyMarginTop sapUiTinyMarginBottom"/>
+                                <Text text="{
+                                    path: 'end_date',
+                                    type: 'sap.ui.model.type.Date',
+                                    formatOptions: {pattern: 'dd/MM/yyyy'}
+                                }"/>
+                            </VBox>
+
+                            <!-- Display Mode -->
+                            <Text text="{display_mode}"/>
+
+                            <!-- Status -->
+                            <Switch
+                                state="{active}"
+                                customTextOn="Active"
+                                customTextOff="Inactive"
+                                change=".onToggleActive"/>
+
+                            <!-- Actions -->
+                            <HBox>
+                                <Button
+                                    icon="sap-icon://edit"
+                                    type="Transparent"
+                                    press=".onEdit"
+                                    tooltip="{i18n>buttonEdit}"/>
+                                <Button
+                                    icon="sap-icon://delete"
+                                    type="Transparent"
+                                    press=".onDelete"
+                                    tooltip="{i18n>buttonDelete}"/>
+                            </HBox>
+                        </cells>
+                    </ColumnListItem>
+                </items>
+            </Table>
+
         </content>
+
     </Page>
+
+    <!-- Create/Edit Dialog -->
+    <Dialog
+        id="messageDialog"
+        title="{editMode>/dialogTitle}"
+        contentWidth="600px"
+        contentHeight="600px"
+        draggable="true"
+        resizable="true">
+
+        <content>
+            <f:SimpleForm
+                id="messageForm"
+                editable="true"
+                layout="ResponsiveGridLayout"
+                labelSpanXL="4"
+                labelSpanL="4"
+                labelSpanM="12"
+                labelSpanS="12"
+                adjustLabelSpan="false"
+                emptySpanXL="0"
+                emptySpanL="0"
+                emptySpanM="0"
+                emptySpanS="0"
+                columnsXL="1"
+                columnsL="1"
+                columnsM="1"
+                singleContainerFullSize="true">
+
+                <f:content>
+
+                    <!-- Title -->
+                    <Label text="{i18n>fieldTitle}" required="true"/>
+                    <Input
+                        id="inputTitle"
+                        value="{editMode>/title}"
+                        placeholder="Enter notification title"
+                        required="true"
+                        maxLength="100"/>
+
+                    <!-- Message Text -->
+                    <Label text="{i18n>fieldMessage}" required="true"/>
+                    <TextArea
+                        id="inputMessage"
+                        value="{editMode>/message_text}"
+                        rows="4"
+                        placeholder="Enter notification message"
+                        required="true"
+                        maxLength="255"/>
+
+                    <!-- Severity -->
+                    <Label text="{i18n>fieldSeverity}" required="true"/>
+                    <Select
+                        id="selectSeverity"
+                        selectedKey="{editMode>/severity}"
+                        required="true">
+                        <items>
+                            <core:Item key="HIGH" text="{i18n>severityHigh}"/>
+                            <core:Item key="MEDIUM" text="{i18n>severityMedium}"/>
+                            <core:Item key="LOW" text="{i18n>severityLow}"/>
+                        </items>
+                    </Select>
+
+                    <!-- Message Type -->
+                    <Label text="{i18n>fieldMessageType}"/>
+                    <Select
+                        id="selectMessageType"
+                        selectedKey="{editMode>/message_type}">
+                        <items>
+                            <core:Item key="URGENT" text="{i18n>messageTypeUrgent}"/>
+                            <core:Item key="INFO" text="{i18n>messageTypeInfo}"/>
+                            <core:Item key="TIP" text="{i18n>messageTip}"/>
+                            <core:Item key="WARNING" text="{i18n>messageTypeWarning}"/>
+                            <core:Item key="MAINT" text="{i18n>messageTypeMaint}"/>
+                        </items>
+                    </Select>
+
+                    <!-- Display Mode -->
+                    <Label text="{i18n>fieldDisplayMode}" required="true"/>
+                    <Select
+                        id="selectDisplayMode"
+                        selectedKey="{editMode>/display_mode}"
+                        required="true">
+                        <items>
+                            <core:Item key="BANNER" text="{i18n>displayModeBanner}"/>
+                            <core:Item key="TOAST" text="{i18n>displayModeToast}"/>
+                            <core:Item key="BOTH" text="{i18n>displayModeBoth}"/>
+                            <core:Item key="SILENT" text="{i18n>displayModeSilent}"/>
+                        </items>
+                    </Select>
+
+                    <!-- Target Audience -->
+                    <Label text="{i18n>fieldTargetUsers}" required="true"/>
+                    <Select
+                        id="selectTargetUsers"
+                        selectedKey="{editMode>/target_audience}"
+                        required="true">
+                        <items>
+                            <core:Item key="ALL" text="{i18n>targetUsersAll}"/>
+                            <core:Item key="ADMIN" text="{i18n>targetUsersAdmin}"/>
+                            <core:Item key="DEVELOPER" text="{i18n>targetUsersDeveloper}"/>
+                        </items>
+                    </Select>
+
+                    <!-- Start Date -->
+                    <Label text="{i18n>fieldStartDate}" required="true"/>
+                    <DatePicker
+                        id="inputStartDate"
+                        value="{editMode>/start_date}"
+                        valueFormat="yyyy-MM-dd"
+                        displayFormat="dd/MM/yyyy"
+                        required="true"
+                        change=".onDateChange"/>
+
+                    <!-- End Date -->
+                    <Label text="{i18n>fieldEndDate}" required="true"/>
+                    <DatePicker
+                        id="inputEndDate"
+                        value="{editMode>/end_date}"
+                        valueFormat="yyyy-MM-dd"
+                        displayFormat="dd/MM/yyyy"
+                        required="true"
+                        change=".onDateChange"/>
+
+                    <!-- Active Status -->
+                    <Label text="{i18n>fieldActive}"/>
+                    <Switch
+                        id="switchActive"
+                        state="{editMode>/active}"
+                        customTextOn="Active"
+                        customTextOff="Inactive"/>
+
+                </f:content>
+            </f:SimpleForm>
+        </content>
+
+        <beginButton>
+            <Button
+                text="{i18n>buttonSave}"
+                type="Emphasized"
+                press=".onSave"/>
+        </beginButton>
+
+        <endButton>
+            <Button
+                text="{i18n>buttonCancel}"
+                press=".onCancelDialog"/>
+        </endButton>
+
+    </Dialog>
+
 </mvc:View>
