@@ -309,3 +309,37 @@ html[data-sap-ui-theme*="sap_fiori_3"] .notificationBanner {
         display: none !important;
     }
 }
+
+/* ==========================================================================
+   Admin Page Styles
+   ========================================================================== */
+
+/* Ensure admin page takes full height in FLP */
+#View1--page {
+    height: 100% !important;
+}
+
+/* Filter Bar Container - ensure proper visibility and spacing */
+.filterBarContainer,
+.sapUiSmallMarginBottom {
+    min-height: 3.5rem !important;
+    padding: 0.5rem 0 !important;
+}
+
+/* Filter Bar Toolbar spacing */
+.sapUiSmallMarginBottom > .sapMTB {
+    padding: 0.5rem 1rem !important;
+    background-color: var(--sapList_HeaderBackground, #fafafa) !important;
+    border-bottom: 1px solid var(--sapList_BorderColor, #e5e5e5) !important;
+}
+
+/* Admin page responsive content padding */
+.sapUiResponsiveContentPadding {
+    padding: 1rem !important;
+}
+
+/* Ensure page content area uses available space */
+.sapMPageWithHeader .sapMPageEnableScrolling {
+    height: auto !important;
+    min-height: calc(100vh - 8rem) !important;
+}
