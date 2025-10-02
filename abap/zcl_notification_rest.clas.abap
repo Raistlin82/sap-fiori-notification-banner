@@ -208,7 +208,7 @@ CLASS zcl_notification_rest IMPLEMENTATION.
     /ui2/cl_json=>deserialize(
       EXPORTING
         json = iv_json
-        pretty_name = /ui2/cl_json=>pretty_mode-camel_case
+        pretty_name = /ui2/cl_json=>pretty_mode-user  " Match exact field names
       CHANGING
         data = rs_notification ).
 
