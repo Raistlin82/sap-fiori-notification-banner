@@ -487,69 +487,146 @@ _initializeNotificationBanner: function() {
 
 ---
 
-#### Option B: Create Hidden Tile for All Users (Recommended)
+#### Option B: FLP Plugin Configuration (For S/4HANA 1809+)
+
+**⚠️ Important**: Questa opzione funziona **solo per S/4HANA 1809 o superiore**.
 
 **How it works**:
 
-1. Create a **second target mapping** for background loading
-2. Create a **hidden tile** assigned to all users
-3. Tile auto-loads component in background on FLP start
+Il plugin FLP carica automaticamente il componente per TUTTI gli utenti all'avvio del Launchpad, senza bisogno di tile visibili.
+
+**Prerequisites**:
+- SAP S/4HANA versione 1809 o superiore
+- Autorizzazioni admin per FLP Designer
+- Componente UI5 già deployato (ZNOTIFY_BANNER2)
 
 **Steps**:
 
-1. **Create Background Target Mapping**:
+1. **Attivare Plugin in Customizing**:
 
    ```
-   Transaction: /UI2/FLPD_CUST → Catalogs → ZNOTIFY_CATALOG
+   Transaction: SPRO
+   → SAP NetWeaver → UI Technologies → SAP Fiori
+   → Configure SAP Fiori Launchpad → Activating Plug-Ins
 
-   Target Mappings → Create:
-   - Semantic Object: NotificationBanner
-   - Action: background
-   - URL: /sap/bc/ui5_ui5/sap/znotify_banner2/index.html
-   - Parameters: (none)
+   O direttamente: Transaction /UI2/FLPD_CONF_DEF
    ```
 
-2. **Create Hidden Static Tile**:
+2. **Creare Plugin Configuration**:
 
    ```
-   Still in ZNOTIFY_CATALOG → Tiles → Create:
+   Click "New Entry" o "Create"
 
-   - Type: Static Tile
-   - Title: Notification Service (hidden)
-   - Subtitle: Background service
-   - Icon: sap-icon://message-information
-   - Navigation → Use Semantic Object:
-     - Semantic Object: NotificationBanner
-     - Action: background
+   UI5 Component ID: com.sap.notifications.banner2
+   URL: /sap/bc/ui5_ui5/sap/znotify_banner2/index.html
 
-   ⚠️ Make tile HIDDEN:
-   - Technical Settings → Hidden: ✓ (checked)
+   Component Properties (opzionale):
+   - autoStart: true
+   - enabled: true
+
+   Save
    ```
 
-3. **Assign to "ALL USERS" Group**:
+3. **Verificare Attivazione**:
 
    ```
-   /UI2/FLPD_CUST → Groups → Find/Create: "Z_ALL_USERS"
-
-   - Assign tile: "Notification Service (hidden)"
-   - Assign group to role: Z_ALL_EMPLOYEES or similar
-   - Save
+   Transaction: /UI2/FLPD_CONF_DEF
+   → Visualizza lista plugin
+   → com.sap.notifications.banner2 deve apparire come "Active"
    ```
 
-4. **Result**:
-   - Hidden tile loads component in background on FLP startup
-   - All users get NotificationBanner automatically
-   - No visible UI impact
-   - Banner polls every 30s and shows notifications
+4. **Assegnare a Tutti gli Utenti** (opzionale):
+
+   Il plugin si carica automaticamente per tutti gli utenti che accedono al FLP.
+   Non serve assegnazione role-based.
+
+**Result**:
+- ✅ Component caricato in background per TUTTI gli utenti
+- ✅ Nessun tile visibile necessario
+- ✅ Banner polling attivo automaticamente
+- ✅ Funziona anche se utente non ha accesso alla tile admin
 
 **Verification**:
 
-```bash
-# Browser console (F12)
+```javascript
+// Browser console (F12) - dopo login FLP
 [Component.js] NotificationBanner initialized
 [NotificationBanner] Attached to FLP shell
-[NotificationBanner] Polling started
+[NotificationBanner] Polling started every 30s
 ```
+
+**Troubleshooting**:
+
+Se il plugin non si carica:
+1. Verifica che BSP app ZNOTIFY_BANNER2 sia attiva
+2. Controlla URL completo: `/sap/bc/ui5_ui5/sap/znotify_banner2/index.html`
+3. Verifica autorizzazioni utente per accesso BSP
+4. Controlla browser console per errori di caricamento
+
+---
+
+#### Option B-Alternative: Target Mapping Plugin (For S/4HANA < 1809)
+
+**⚠️ Solo per sistemi S/4HANA inferiori a versione 1809**
+
+**Steps**:
+
+1. **Create Catalog** (se non esiste già):
+
+   ```
+   Transaction: /UI2/FLPD_CUST → Catalogs → Create
+
+   Catalog ID: Z_NOTIF_PLUGIN_CATALOG
+   Title: Notification Plugin Catalog
+   Description: Background plugin for notifications
+   ```
+
+2. **Create Target Mapping for Plugin**:
+
+   ```
+   In ZNOTIF_PLUGIN_CATALOG → Target Mappings → Create
+
+   Semantic Object: Shell
+   Action: plugin
+   Application Type: SAPUI5 Component
+   Title: Notification Banner Plugin
+   Subtitle: Background notification service
+
+   SAPUI5 Application:
+   - Application ID: com.sap.notifications.banner2
+   - Component ID: com.sap.notifications.banner2
+
+   URL: /sap/bc/ui5_ui5/sap/znotify_banner2/index.html
+
+   Save
+   ```
+
+3. **Assign Catalog to Role**:
+
+   ```
+   Transaction: PFCG
+   Role: Z_ALL_USERS (o ruolo esistente per tutti)
+
+   Menu tab:
+   - Right-click → Insert → "Fiori Launchpad Catalog"
+   - Catalog ID: Z_NOTIF_PLUGIN_CATALOG
+   - Save and generate
+   ```
+
+4. **Assign Role to All Users**:
+
+   ```
+   SU01 → User → Roles tab
+   Add: Z_ALL_USERS (o ruolo equivalente)
+   ```
+
+**Result**:
+- Component caricato come plugin per utenti con il ruolo
+- Nessun tile visibile nel launchpad
+- Banner attivo in background
+
+**⚠️ Limitation**:
+Questa soluzione richiede che ogni utente abbia il ruolo assegnato. Per S/4HANA 1809+, usare Option B (Plugin Configuration) che è più pulita
 
 ---
 
