@@ -19,6 +19,28 @@
 
 ---
 
+## 🏗️ Architecture: Single App Design
+
+**CRITICAL**: This solution uses **ONE SINGLE SAP Fiori Application** (`ZNOTIFY_BANNER2`) with dual functionality:
+
+1. **Admin Interface** (Visible Dynamic Tile):
+   - CRUD operations for notification management
+   - Visible only to admin users (role: `Z_NOTIF_ADMIN` or `SAP_ALL`)
+   - One dynamic tile showing live statistics
+
+2. **Global Notification Banner** (Background Component):
+   - Displays notifications to ALL users in Fiori Launchpad
+   - Loads automatically via hidden tile or FLP plugin configuration
+   - No separate application or tile needed
+
+**Key Points**:
+- ✅ **Single BSP Application**: ZNOTIFY_BANNER2
+- ✅ **Single Dynamic Tile**: "System Notifications" (for admins only)
+- ✅ **No multiple apps**: Admin UI + Global Banner are in ONE app
+- ✅ **Deployment**: Deploy once, configure FLP for admin tile + global banner activation
+
+---
+
 ## 📋 Table of Contents
 1. [Pre-Deployment Verification](#pre-deployment-verification)
 2. [Prerequisites](#prerequisites)
@@ -1261,7 +1283,216 @@ Expected: Shows Z_NOTIFY check with values used
 
 ## 💻 Frontend Deployment (UI5)
 
-### Option A: Manual Deployment to BSP Application
+### 🎯 Deployment Strategy
+
+The **RECOMMENDED** deployment method is **automated deployment** using Fiori tools (`npm run deploy`). Manual deployment via SE80 is provided as a fallback option for environments where automated deployment is not available.
+
+### Option A: Automated Deployment with Fiori Tools (✅ RECOMMENDED)
+
+This is the **primary and recommended** deployment method. It automates the entire deployment process using SAP Fiori tools.
+
+#### Prerequisites
+
+**Local Environment**:
+
+```bash
+npm install -g @sap/ux-ui5-tooling
+npm install -g @ui5/cli
+```
+
+**SAP System Requirements** ⚠️ **CRITICAL**:
+
+1. **OData Service for UI5 Repository** (must be active):
+
+   ```
+   Transaction: SICF
+   Path: /default_host/sap/opu/odata/UI5/ABAP_REPOSITORY_SRV
+   Status: Must be ACTIVE (green traffic light)
+   ```
+
+   **How to Activate**:
+
+   ```
+   1. SICF → Navigate to /sap/opu/odata/UI5/ABAP_REPOSITORY_SRV
+   2. Right-click on service
+   3. Select "Activate Service"
+   4. Check status shows green traffic light ✅
+   ```
+
+2. **Gateway Service Registration** (CRITICAL - Required for OData deployment):
+
+   ```
+   Transaction: /n/IWFND/MAINT_SERVICE
+   Purpose: Register UI5 Repository service in Gateway
+   ```
+
+   **How to Register** (do this BEFORE attempting deployment):
+
+   ```
+   1. Transaction: /n/IWFND/MAINT_SERVICE
+   2. Click "Add Service" button
+   3. System Alias: LOCAL (or your backend system alias)
+   4. External Service Name: UI5_REPOSITORY_SRV
+   5. Click "Get Services" button
+   6. Select service from list: UI5_REPOSITORY_SRV
+   7. Package Assignment: $TMP (or ZNOTIFY)
+   8. Save
+   9. Verify service appears in service list with status "Active"
+   ```
+
+   **Verification**:
+
+   ```
+   /IWFND/MAINT_SERVICE → Filter by "UI5_REPOSITORY"
+   Expected: Service listed with green status icon
+   ```
+
+   ⚠️ **Without this step, deployment will fail with 403/404 errors even if SICF is active!**
+
+3. **Virus Scan Profile Configuration** (SAP Note 1797736):
+
+   ```
+   Transaction: VSCAN or VSCANPROFILE
+   Purpose: Required for OData file uploads
+   SAP Note: 1797736 - Virus scan at upload via OData service
+   ```
+
+   **How to Configure** (requires BASIS team):
+
+   ```
+   1. Transaction: VSCAN
+   2. Create/activate a default virus scan profile
+   3. Configure virus scan interface (external antivirus software)
+   4. Test profile: Upload a test file via OData
+   ```
+
+   **Alternative**: If virus scan profile cannot be configured, use **Option B: Manual Deployment**
+
+4. **User Authorization**:
+
+   ```
+   Required Authorization Objects:
+   - S_DEVELOP: ACTVT=01,02 (Create/Change repository objects)
+   - S_TABU_NAM: TABLE=TADIR (Repository information system)
+   - S_RFC: Execute OData RFC calls
+   ```
+
+**Verification Before Deployment**:
+
+```bash
+# Test 1: Check OData service accessibility
+curl -u username:password \
+  "https://your-system:port/sap/opu/odata/UI5/ABAP_REPOSITORY_SRV/Repositories?sap-client=100"
+
+# Expected: XML response with repository list (not 404 or 403)
+
+# Test 2: Check virus scan profile (via ABAP report or BASIS team)
+# Execute report: RSVSCAN_CHECK_PROFILE
+# Expected: "Default virus scan profile found" message
+```
+
+#### Deploy Command
+
+```bash
+# Set environment variables for authentication
+export SAP_USER="your-username"
+export SAP_PASSWORD="your-password"
+
+# Run deployment
+npx fiori deploy
+```
+
+**Deployment Configuration** (when prompted):
+
+```
+Target System: [Your S/4HANA system URL]
+Client: [Your client number, e.g., 100]
+BSP Application Name: ZNOTIFY_BANNER2
+Package: $TMP (or your custom package, e.g., ZNOTIFY)
+Transport Request: [Your TR number or leave empty for $TMP]
+```
+
+**Alternative: Use ui5-deploy.yaml Configuration**:
+
+```bash
+# Deployment configuration already exists in ui5-deploy.yaml
+# Uses environment variables: SAP_USER and SAP_PASSWORD
+npx fiori deploy --config ui5-deploy.yaml
+```
+
+**Expected Output (Success)**:
+
+```
+ℹ info Deploying application ZNOTIFY_BANNER2...
+ℹ info Uploading files to /sap/opu/odata/UI5/ABAP_REPOSITORY_SRV...
+✔ Deployment successful
+✔ BSP application ZNOTIFY_BANNER2 created
+✔ All resources uploaded and activated
+✔ Application URL: https://your-system:port/sap/bc/bsp/sap/znotify_banner2/index.html
+```
+
+**Common Deployment Errors**:
+
+| Error Code | Error Message | Root Cause | Solution |
+|------------|--------------|------------|----------|
+| **403** | Request failed with status code 403 | OData service not active OR missing authorization | 1. SICF → Activate `/sap/opu/odata/UI5/ABAP_REPOSITORY_SRV`<br>2. Check user has S_DEVELOP authorization |
+| **400** | No default virus profile active or found | Virus scan profile not configured (SAP Note 1797736) | 1. Contact BASIS team to configure VSCAN profile<br>2. **OR** Use Option B: Manual Deployment |
+| **404** | Service not found | OData service doesn't exist or path incorrect | 1. Verify SAP_GWFND component is installed<br>2. Check service path in SICF |
+| **401** | Unauthorized | Incorrect credentials | 1. Check SAP_USER and SAP_PASSWORD env vars<br>2. Verify user account is not locked (SU01) |
+| **500** | Internal Server Error | ABAP runtime error during upload | 1. Check ST22 dump analysis<br>2. Review SM21 system log<br>3. Check application log in SLG1 |
+
+**✅ Verification After Successful Deployment**:
+
+```bash
+# 1. Check BSP Application created
+# SE80 → Display ZNOTIFY_BANNER2
+# Expected: Application exists with MIME Objects folder populated
+
+# 2. Test application URL
+curl -u username:password \
+  "https://your-system:port/sap/bc/bsp/sap/znotify_banner2/index.html?sap-client=100"
+
+# Expected: HTML content with UI5 bootstrap (not 404)
+
+# 3. Verify MIME Objects count
+# SE80 → ZNOTIFY_BANNER2 → MIME Objects
+# Expected: 23 files in correct folder structure
+```
+
+**⚠️ If Automated Deployment Fails**:
+
+1. Review error message and check table above
+2. If virus scan profile error: **Use Option B: Manual Deployment** (recommended)
+3. If OData service error: Contact BASIS team to activate service
+4. If authorization error: Request required authorizations from security team
+
+**Troubleshooting Steps**:
+
+```bash
+# Enable verbose logging
+npx fiori deploy --config ui5-deploy.yaml --verbose
+
+# Check ui5-deploy.yaml configuration
+cat ui5-deploy.yaml
+
+# Verify environment variables are set
+echo $SAP_USER
+echo $SAP_PASSWORD
+
+# Test SICF service manually
+# SICF → Test Service → /sap/opu/odata/UI5/ABAP_REPOSITORY_SRV
+```
+
+---
+
+### Option B: Manual Deployment to BSP Application (Fallback)
+
+⚠️ **IMPORTANT**: This manual deployment approach is provided as a fallback for environments where automated deployment (Option A) is not available or fails due to system configuration issues.
+
+Use this method when:
+- OData service `/sap/opu/odata/UI5/ABAP_REPOSITORY_SRV` is not available
+- Virus scan profile cannot be configured
+- Automated deployment fails with unresolvable errors
 
 #### Step 1: Build SAP-Compatible Package
 
@@ -1275,6 +1506,7 @@ npm run build:sap
 ```
 
 **What This Does**:
+
 1. Builds the UI5 application (`npm run build`)
 2. Creates `deploy-sap/` folder with SAP-compatible files:
    - ✅ Removes debug files (`*-dbg.js`)
@@ -1283,6 +1515,7 @@ npm run build:sap
    - ✅ Keeps only essential production files (10 files total)
 
 **Expected Output**:
+
 ```
 🚀 Preparing SAP BSP Deployment...
 
@@ -1307,6 +1540,7 @@ npm run build:sap
 **Transaction**: SE80 → Repository Browser
 
 1. **Create BSP Application**:
+
    ```
    - SE80 → Repository Browser (first dropdown)
    - Select: "BSP Application" from object type dropdown
@@ -1321,6 +1555,7 @@ npm run build:sap
    ```
 
 2. **Locate MIME Objects Folder** (already exists):
+
    ```
    - SE80 → Display BSP Application: ZNOTIFY_BANNER2
    - Expand tree: ZNOTIFY_BANNER2
@@ -1342,6 +1577,7 @@ npm run build:sap
    **Complete File List from `dist/` folder**:
 
    **Step 3.1: Import Root Files** (8 files)
+
    ```
    Right-click on "MIME Objects" → "Import" → "MIME Objects"
    Navigate to: dist/ folder
@@ -1360,6 +1596,7 @@ npm run build:sap
    ```
 
    **Step 3.2: Create Subfolder and Import controller/** (9 files)
+
    ```
    Right-click on "MIME Objects" → "Create" → "Folder"
    Folder Name: controller
@@ -1382,6 +1619,7 @@ npm run build:sap
    ```
 
    **Step 3.3: Create Subfolder and Import css/** (1 file)
+
    ```
    Right-click on "MIME Objects" → "Create" → "Folder"
    Folder Name: css
@@ -1396,6 +1634,7 @@ npm run build:sap
    ```
 
    **Step 3.4: Create Subfolder and Import i18n/** (1 file)
+
    ```
    Right-click on "MIME Objects" → "Create" → "Folder"
    Folder Name: i18n
@@ -1410,6 +1649,7 @@ npm run build:sap
    ```
 
    **Step 3.5: Create Subfolder and Import model/** (3 files)
+
    ```
    Right-click on "MIME Objects" → "Create" → "Folder"
    Folder Name: model
@@ -1426,6 +1666,7 @@ npm run build:sap
    ```
 
    **Step 3.6: Create Subfolder and Import view/** (1 file)
+
    ```
    Right-click on "MIME Objects" → "Create" → "Folder"
    Folder Name: view
@@ -1440,6 +1681,7 @@ npm run build:sap
    ```
 
    **📊 Import Summary**:
+
    ```
    Total Files: 23 (excluding .zip)
    Critical Files (⭐): 6
@@ -1483,6 +1725,7 @@ npm run build:sap
    ```
 
 4. **Set MIME Type** (auto-detected but verify):
+
    ```
    - .js files: application/javascript
    - .json files: application/json
@@ -1492,6 +1735,7 @@ npm run build:sap
    ```
 
 5. **Activate All Resources**:
+
    ```
    - Right-click on ZNOTIFY_BANNER2 root
    - Mass Activate → Object List
@@ -1500,6 +1744,7 @@ npm run build:sap
    ```
 
 **✅ Verification**:
+
 ```
 SE80 → Display BSP Application: ZNOTIFY_BANNER2
 → Expand "MIME Objects" folder
@@ -1508,193 +1753,11 @@ SE80 → Display BSP Application: ZNOTIFY_BANNER2
 ```
 
 **📝 Important Notes**:
+
 - BSP application name must be lowercase in URL: `znotify_banner2` (not ZNOTIFY_BANNER2)
 - Full URL pattern: `/sap/bc/bsp/sap/<app_name_lowercase>/<file_name>`
 - If files not visible: Check MIME Objects folder, not Pages/Views
 - If 404 error: Check ICF service `/sap/bc/bsp` is active in SICF
-
----
-
-### Option B: Automated Deployment with Fiori Tools
-
-⚠️ **IMPORTANT**: Automated deployment requires SAP system configuration that may not be available in all environments.
-If automated deployment fails, use **Option A: Manual Deployment** instead.
-
-#### Prerequisites
-
-**Local Environment**:
-```bash
-npm install -g @sap/ux-ui5-tooling
-npm install -g @ui5/cli
-```
-
-**SAP System Requirements** ⚠️ **CRITICAL**:
-
-1. **OData Service for UI5 Repository** (must be active):
-   ```
-   Transaction: SICF
-   Path: /default_host/sap/opu/odata/UI5/ABAP_REPOSITORY_SRV
-   Status: Must be ACTIVE (green traffic light)
-   ```
-
-   **How to Activate**:
-   ```
-   1. SICF → Navigate to /sap/opu/odata/UI5/ABAP_REPOSITORY_SRV
-   2. Right-click on service
-   3. Select "Activate Service"
-   4. Check status shows green traffic light ✅
-   ```
-
-2. **Gateway Service Registration** (CRITICAL - Required for OData deployment):
-   ```
-   Transaction: /n/IWFND/MAINT_SERVICE
-   Purpose: Register UI5 Repository service in Gateway
-   ```
-
-   **How to Register** (do this BEFORE attempting deployment):
-   ```
-   1. Transaction: /n/IWFND/MAINT_SERVICE
-   2. Click "Add Service" button
-   3. System Alias: LOCAL (or your backend system alias)
-   4. External Service Name: UI5_REPOSITORY_SRV
-   5. Click "Get Services" button
-   6. Select service from list: UI5_REPOSITORY_SRV
-   7. Package Assignment: $TMP (or ZNOTIFY)
-   8. Save
-   9. Verify service appears in service list with status "Active"
-   ```
-
-   **Verification**:
-   ```
-   /IWFND/MAINT_SERVICE → Filter by "UI5_REPOSITORY"
-   Expected: Service listed with green status icon
-   ```
-
-   ⚠️ **Without this step, deployment will fail with 403/404 errors even if SICF is active!**
-
-3. **Virus Scan Profile Configuration** (SAP Note 1797736):
-   ```
-   Transaction: VSCAN or VSCANPROFILE
-   Purpose: Required for OData file uploads
-   SAP Note: 1797736 - Virus scan at upload via OData service
-   ```
-
-   **How to Configure** (requires BASIS team):
-   ```
-   1. Transaction: VSCAN
-   2. Create/activate a default virus scan profile
-   3. Configure virus scan interface (external antivirus software)
-   4. Test profile: Upload a test file via OData
-   ```
-
-   **Alternative**: If virus scan profile cannot be configured, use **Option A: Manual Deployment**
-
-4. **User Authorization**:
-   ```
-   Required Authorization Objects:
-   - S_DEVELOP: ACTVT=01,02 (Create/Change repository objects)
-   - S_TABU_NAM: TABLE=TADIR (Repository information system)
-   - S_RFC: Execute OData RFC calls
-   ```
-
-**Verification Before Deployment**:
-```bash
-# Test 1: Check OData service accessibility
-curl -u username:password \
-  "https://your-system:port/sap/opu/odata/UI5/ABAP_REPOSITORY_SRV/Repositories?sap-client=100"
-
-# Expected: XML response with repository list (not 404 or 403)
-
-# Test 2: Check virus scan profile (via ABAP report or BASIS team)
-# Execute report: RSVSCAN_CHECK_PROFILE
-# Expected: "Default virus scan profile found" message
-```
-
-#### Deploy Command
-
-```bash
-# Set environment variables for authentication
-export SAP_USER="your-username"
-export SAP_PASSWORD="your-password"
-
-# Run deployment
-npx fiori deploy
-```
-
-**Deployment Configuration** (when prompted):
-```
-Target System: [Your S/4HANA system URL]
-Client: [Your client number, e.g., 100]
-BSP Application Name: ZNOTIFY_BANNER2
-Package: $TMP (or your custom package, e.g., ZNOTIFY)
-Transport Request: [Your TR number or leave empty for $TMP]
-```
-
-**Alternative: Use ui5-deploy.yaml Configuration**:
-```bash
-# Deployment configuration already exists in ui5-deploy.yaml
-# Uses environment variables: SAP_USER and SAP_PASSWORD
-npx fiori deploy --config ui5-deploy.yaml
-```
-
-**Expected Output (Success)**:
-```
-ℹ info Deploying application ZNOTIFY_BANNER2...
-ℹ info Uploading files to /sap/opu/odata/UI5/ABAP_REPOSITORY_SRV...
-✔ Deployment successful
-✔ BSP application ZNOTIFY_BANNER2 created
-✔ All resources uploaded and activated
-✔ Application URL: https://your-system:port/sap/bc/bsp/sap/znotify_banner2/index.html
-```
-
-**Common Deployment Errors**:
-
-| Error Code | Error Message | Root Cause | Solution |
-|------------|--------------|------------|----------|
-| **403** | Request failed with status code 403 | OData service not active OR missing authorization | 1. SICF → Activate `/sap/opu/odata/UI5/ABAP_REPOSITORY_SRV`<br>2. Check user has S_DEVELOP authorization |
-| **400** | No default virus profile active or found | Virus scan profile not configured (SAP Note 1797736) | 1. Contact BASIS team to configure VSCAN profile<br>2. **OR** Use Option A: Manual Deployment |
-| **404** | Service not found | OData service doesn't exist or path incorrect | 1. Verify SAP_GWFND component is installed<br>2. Check service path in SICF |
-| **401** | Unauthorized | Incorrect credentials | 1. Check SAP_USER and SAP_PASSWORD env vars<br>2. Verify user account is not locked (SU01) |
-| **500** | Internal Server Error | ABAP runtime error during upload | 1. Check ST22 dump analysis<br>2. Review SM21 system log<br>3. Check application log in SLG1 |
-
-**✅ Verification After Successful Deployment**:
-```bash
-# 1. Check BSP Application created
-# SE80 → Display ZNOTIFY_BANNER2
-# Expected: Application exists with MIME Objects folder populated
-
-# 2. Test application URL
-curl -u username:password \
-  "https://your-system:port/sap/bc/bsp/sap/znotify_banner2/index.html?sap-client=100"
-
-# Expected: HTML content with UI5 bootstrap (not 404)
-
-# 3. Verify MIME Objects count
-# SE80 → ZNOTIFY_BANNER2 → MIME Objects
-# Expected: 23 files in correct folder structure
-```
-
-**⚠️ If Automated Deployment Fails**:
-1. Review error message and check table above
-2. If virus scan profile error: **Use Option A: Manual Deployment** (recommended)
-3. If OData service error: Contact BASIS team to activate service
-4. If authorization error: Request required authorizations from security team
-
-**Troubleshooting Steps**:
-```bash
-# Enable verbose logging
-npx fiori deploy --config ui5-deploy.yaml --verbose
-
-# Check ui5-deploy.yaml configuration
-cat ui5-deploy.yaml
-
-# Verify environment variables are set
-echo $SAP_USER
-echo $SAP_PASSWORD
-
-# Test SICF service manually
-# SICF → Test Service → /sap/opu/odata/UI5/ABAP_REPOSITORY_SRV
-```
 
 ---
 

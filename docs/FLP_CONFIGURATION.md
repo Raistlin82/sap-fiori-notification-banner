@@ -8,26 +8,34 @@
 
 ## 🎯 Architecture Overview
 
-### Single Dynamic Tile Design
+### 🏗️ Single App Architecture (CRITICAL)
+
+**Important**: This solution uses **ONE SINGLE SAP Fiori Application** with a dual-purpose design:
+
+1. **Admin Interface** (Visible Tile): CRUD operations for notification management
+2. **Global Banner** (Background): Displays notifications to all users
 
 ```bash
 ╔══════════════════════════════════════════════════════╗
-║  FIORI LAUNCHPAD                                     ║
+║  ONE APPLICATION: ZNOTIFY_BANNER2                    ║
+║  ONE DYNAMIC TILE: "System Notifications"            ║
 ╠══════════════════════════════════════════════════════╣
 ║                                                       ║
+║  FIORI LAUNCHPAD                                     ║
+║                                                       ║
 ║   ╔═══════════════════════════╗                      ║
-║   ║  System Notifications     ║  ← Dynamic Tile      ║
-║   ║                           ║                      ║
-║   ║       🔴 10               ║  Stats updated       ║
-║   ║       Active              ║  every 60s           ║
-║   ║                           ║                      ║
-║   ║    3H | 5M | 2L          ║  Color: Red/Orange   ║
-║   ╚═══════════════════════════╝  based on severity  ║
-║            ↓ CLICK                                    ║
+║   ║  System Notifications     ║  ← ONE Dynamic Tile  ║
+║   ║                           ║    (not two tiles!)  ║
+║   ║       🔴 10               ║                      ║
+║   ║       Active              ║  Stats updated       ║
+║   ║                           ║  every 60s           ║
+║   ║    3H | 5M | 2L          ║                      ║
+║   ╚═══════════════════════════╝  Color: Red/Orange  ║
+║            ↓ CLICK                based on severity  ║
 ║                                                       ║
 ║   ┌────────────────────────────────────────────┐     ║
 ║   │ Notification Management App                │     ║
-║   │ (ZNOTIFY_BANNER2)                          │     ║
+║   │ (ZNOTIFY_BANNER2 - Same app!)             │     ║
 ║   │                                            │     ║
 ║   │ [+ Create] [Refresh] [Search...]          │     ║
 ║   │                                            │     ║
@@ -47,15 +55,23 @@
 
 ╔══════════════════════════════════════════════════════╗
 ║  GLOBAL NOTIFICATION BANNER COMPONENT                ║
+║  (Part of ZNOTIFY_BANNER2 - same app!)               ║
 ╠══════════════════════════════════════════════════════╣
 ║                                                       ║
 ║  • Loads automatically for ALL users in FLP          ║
 ║  • Polls every 30 seconds                            ║
 ║  • Shows banner/toast based on active messages       ║
-║  • No tile needed (background service)               ║
+║  • No separate app needed (background component)     ║
 ║                                                       ║
 ╚══════════════════════════════════════════════════════╝
 ```
+
+**Key Points**:
+
+- ✅ **Single BSP Application**: ZNOTIFY_BANNER2
+- ✅ **Single Dynamic Tile**: "System Notifications" (for admins)
+- ✅ **Dual Functionality**: Admin UI + Global Banner in one app
+- ✅ **Global Banner**: Loads via hidden tile OR plugin configuration (Step 4)
 
 ---
 
@@ -172,13 +188,121 @@ Expected: Target Mapping "NotificationBanner-display" visible
 
 ---
 
-## 🎨 Step 2: Create Catalog
+## 🎨 Step 2: Configure FLP Content (Choose Your Approach)
 
-Catalogs contain tiles that can be assigned to groups.
+SAP Fiori Launchpad offers two configuration approaches:
 
-### Transaction: `/n/UI2/FLPD_CUST`
+### **Option A: Spaces and Pages (Modern - S/4HANA 2020+)** ✅ RECOMMENDED
 
-### Steps
+**Available from**: SAP S/4HANA 2020 onwards
+
+This is the **modern approach** that replaces the legacy Groups and Catalogs method. Spaces and Pages provide:
+
+- ✅ **WYSIWYG editors** for easy visual configuration
+- ✅ **Flexible layout** tailored to user needs
+- ✅ **Better user experience** with organized content
+- ✅ **Future-proof** - SAP's recommended approach going forward
+
+**Transaction**: `/n/UI2/FLPCM_CONF` (Manage Launchpad Spaces and Pages)
+
+#### Create Space and Page
+
+1. **Open Spaces Configuration**:
+
+   ```
+   Transaction: /n/UI2/FLPCM_CONF
+   Or: Fiori App "Manage Launchpad Spaces"
+   ```
+
+2. **Create a New Space**:
+
+   ```
+   Click "Create Space" button
+
+   Space ID: Z_NOTIF_ADMIN_SPACE
+   Title: Administration
+   Description: Administrative tools and system management
+
+   Save
+   ```
+
+3. **Create a Page within the Space**:
+
+   ```
+   Select the space: Z_NOTIF_ADMIN_SPACE
+   Click "Create Page" button
+
+   Page ID: Z_NOTIF_ADMIN_PAGE
+   Title: Notification Management
+   Description: Manage system notifications
+
+   Save
+   ```
+
+4. **Add Tile to Page** (WYSIWYG Editor):
+
+   ```
+   Open the page: Z_NOTIF_ADMIN_PAGE
+   Click "Edit" (pencil icon)
+
+   Visual Editor opens:
+   - Click "+" to add new section
+   - Select "Tile" type
+   - Choose visualization: "Dynamic Tile"
+
+   Configure Tile:
+   - Title: System Notifications
+   - Subtitle: Active Messages
+   - Icon: sap-icon://message-information
+   - Service URL: /sap/bc/rest/zcl_notif_rest/stats
+   - Refresh Interval: 60 seconds
+   - Navigation Target: NotificationBanner-display (from Step 1)
+
+   Save page
+   ```
+
+5. **Assign Space to Role**:
+
+   ```
+   Transaction: PFCG
+   Role: Z_NOTIF_ADMIN
+
+   Menu tab:
+   - Right-click → Insert → "Launchpad Space"
+   - Space ID: Z_NOTIF_ADMIN_SPACE
+   - Save and generate profile
+   ```
+
+6. **Verify**:
+
+   ```
+   Login to Fiori Launchpad
+   Expected: "Administration" space visible with "Notification Management" page
+   ```
+
+**Advantages**:
+
+- ✅ Visual drag-and-drop configuration
+- ✅ No need to create catalogs separately
+- ✅ Better organized content structure
+- ✅ Modern UX aligned with SAP's future direction
+
+---
+
+### **Option B: Groups and Catalogs (Legacy - Deprecated)** ⚠️
+
+**Deprecated since**: SAP S/4HANA 2020 FPS01
+
+> **⚠️ Important**: This approach is **deprecated** and will be removed in future SAP releases. Use **Spaces and Pages** (Option A) instead.
+
+Use this only if:
+- Your system is older than S/4HANA 2020
+- Migration to Spaces and Pages is not yet possible
+- Existing configuration must be maintained
+
+**Transaction**: `/n/UI2/FLPD_CUST`
+
+#### Legacy Step 2a: Create Catalog
 
 1. **Navigate to Catalogs**:
 
@@ -258,15 +382,7 @@ Catalogs contain tiles that can be assigned to groups.
 
 7. **Save** the catalog
 
----
-
-## 👥 Step 3: Create Group
-
-Groups organize tiles visually in the Launchpad.
-
-### Transaction: `/n/UI2/FLPD_CUST`
-
-### Steps
+#### Legacy Step 2b: Create Group
 
 1. **Navigate to Groups**:
 
