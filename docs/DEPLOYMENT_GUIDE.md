@@ -1700,209 +1700,55 @@ echo $SAP_PASSWORD
 
 ## 🚀 Fiori Launchpad Configuration
 
-### Step 1: Create Tile for Notification Management
+After deploying the application to SAP, you need to configure the Fiori Launchpad to display the notification management tile and make it accessible to users.
 
-**Transaction**: /UI2/FLPD_CUST (Fiori Launchpad Designer)
+### 📖 Complete Configuration Guide
 
-> **⚠️ Note**: Screen layouts may vary by SAP version (S/4HANA 1809, 1909, 2020, 2021+). Follow the concepts below and adapt field names to your system.
+For detailed step-by-step instructions, see the dedicated guide:
 
-#### 1.1 Create Catalog
+**➡️ [FLP_CONFIGURATION.md](./FLP_CONFIGURATION.md)**
 
-```
-Transaction: /UI2/FLPD_CUST
-1. Click tab: "Catalogs"
-2. Click button: "Create" (or "+" icon)
-3. Fill in:
-   - Catalog ID: ZNOTIFY_CATALOG
-   - Title: System Notifications
-   - Description: Global notification management catalog
-4. Save
-```
+This comprehensive guide includes:
+- Architecture overview and tile design
+- Prerequisites checklist
+- Step-by-step configuration (Target Mapping, Catalog, Dynamic Tile, Group, Roles)
+- Authorization setup (PFCG, SU01)
+- Troubleshooting and verification procedures
 
-#### 1.2 Create Target Mapping
+### 🎯 Quick Overview
 
-```
-Still in Catalog ZNOTIFY_CATALOG:
-1. Click tab: "Target Mappings" (bottom section)
-2. Click "Create" or "+"
-3. Fill in:
-   Semantic Object: NotificationBanner
-   Action: display
+The FLP configuration creates a **single dynamic tile** that serves two purposes:
 
-4. Click "Navigation" section:
-   - Target Type: URL
-   - URL: /sap/bc/bsp/sap/znotify_banner/index.html
+1. **Visual Feedback** (all users):
+   - Shows active notification statistics
+   - Color-coded by severity (🔴 RED | 🟡 ORANGE | 🟢 GREEN)
+   - Auto-refreshes every 60 seconds
 
-   Or if using UI5 repository:
-   - UI5 Component: sap.fiori.notification.banner
-   - Application ID: ZNOTIFY_BANNER
+2. **Admin Interface** (on click):
+   - Opens full CRUD table for notification management
+   - Only accessible to users with proper authorization
 
-5. Save
-```
+### 📋 Configuration Steps Summary
 
-#### 1.3 Create Dynamic Tile
+1. **Create Target Mapping** (`/UI2/FLPD_CUST`)
+   - Semantic Object: `NotificationBanner`
+   - Action: `display`
 
-⚠️ **IMPORTANT**: Before creating the tile, ensure you have created the **Catalog** (Step 1.1) and **Target Mapping** (Step 1.2).
+2. **Create Dynamic Tile** with service URL:
+   - Service: `/sap/bc/rest/zcl_notif_rest/stats`
+   - Refresh: 60 seconds
 
-```
-Transaction: /UI2/FLPD_CUST
-1. Navigate to tab: "Catalogs"
-2. Select catalog: ZNOTIFY_CATALOG (created in Step 1.1)
-3. Click tab: "Tiles" (bottom section)
-4. Click "Create" button (or "+" icon)
-5. Select Tile Type: "Dynamic Tile"
-```
+3. **Assign to Group** and configure role-based access
 
-**Fill in the following fields** (based on official SAP documentation):
+4. **Test** in Fiori Launchpad (`/sap/bc/ui2/flp`)
 
-**📋 General Section**:
-```
-Title:         System Notifications
-Subtitle:      Active Messages
-Keywords:      notifications, alerts, messages, system (space or comma separated)
-Icon:          sap-icon://message-information (use value help F4 to select)
-Information:   (leave empty - will be filled dynamically from service)
-Number Unit:   Active
-```
+### ⚠️ Prerequisites
 
-**📊 Dynamic Data Section**:
-```
-Service URL:            /sap/bc/rest/zcl_notif_rest/stats
-Refresh Interval:       60
-  (in seconds - 0 = refresh only on load, 10-999 = auto-refresh interval)
-
-  ⚠️ Note: Values 1-9 will be automatically increased to 10 seconds
-           Value 0 = update only once on page load
-```
-
-**🔗 Navigation Section**:
-```
-☑ Use Semantic Object Navigation:  [CHECKED]
-
-Semantic Object:    NotificationBanner
-Action:            display
-Parameters:        (leave empty - no parameters needed)
-
-Target URL:        (auto-generated - do not fill manually)
-  → Will show: #NotificationBanner-display
-```
-
-**Alternative Navigation (if semantic object doesn't work)**:
-```
-☐ Use Semantic Object Navigation:  [UNCHECKED]
-
-Target URL:  /sap/bc/bsp/sap/znotify_banner/index.html
-```
-
-**💾 Save** the tile configuration.
-
----
-
-**📊 Dynamic Tile Service Response Format**:
-
-The REST endpoint `/sap/bc/rest/zcl_notif_rest/stats` **MUST** return JSON in this exact format:
-
-```json
-{
-  "d": {
-    "results": {
-      "number": "10",
-      "numberUnit": "Active",
-      "info": "3H|5M|2L",
-      "infoState": "Error"
-    }
-  }
-}
-```
-
-**Field Mapping** (OData V2 format required):
-- `number`: Total count of active notifications (string)
-- `numberUnit`: Unit text shown below the number (e.g., "Active", "Open", "New")
-- `info`: Additional information line (e.g., "3H|5M|2L" for severity breakdown)
-- `infoState`: Tile color state
-  - `"Success"` → Green (0 high priority)
-  - `"Warning"` → Orange (1-2 high priority)
-  - `"Error"` → Red (3+ high priority)
-
-**Tile Color Logic** (implemented in ABAP REST service):
-```abap
-DATA: lv_info_state TYPE string.
-
-IF lv_high_count >= 3.
-  lv_info_state = 'Error'.        " Red tile
-ELSEIF lv_high_count > 0.
-  lv_info_state = 'Warning'.      " Orange tile
-ELSE.
-  lv_info_state = 'Success'.      " Green tile
-ENDIF.
-```
-
-**Visual Result**:
-- **Title**: "System Notifications"
-- **Subtitle**: "Active Messages"
-- **Number**: "10" (large, center)
-- **Number Unit**: "Active" (below number)
-- **Info**: "3H|5M|2L" (bottom line)
-- **Color**: Red/Orange/Green based on infoState
-
-#### 1.4 Create Group
-
-```
-Transaction: /UI2/FLPD_CUST
-1. Click tab: "Groups"
-2. Click "Create" or "+"
-3. Fill in:
-   - Group ID: ZSYSTEM_ADMIN
-   - Title: System Administration
-   - Description: System administration tools and monitors
-
-4. Click tab: "Assign Catalogs" (bottom section)
-5. Click "Add"
-6. Select: ZNOTIFY_CATALOG
-7. Save
-```
-
-#### 1.5 Assign to Fiori Launchpad
-
-```
-Transaction: /UI2/FLPD_CUST
-1. Click tab: "Launchpad" or "Content" (top navigation)
-2. Select your Launchpad (usually SAP_FIORI or custom)
-3. Assign:
-   - Add Catalog: ZNOTIFY_CATALOG
-   - Add Group: ZSYSTEM_ADMIN
-4. Save
-```
-
-**✅ Verification**:
-```
-1. Open Fiori Launchpad: /sap/bc/ui2/flp
-2. Check "System Administration" group appears
-3. Check "Notifications" tile appears in group
-4. Tile should show:
-   - Number: "10 Active" (if 10 notifications exist)
-   - Info: "3H|5M|2L" (high, medium, low breakdown)
-   - Color: Red/Orange/Green based on high_count
-5. Click tile → Should open notification management app
-6. Wait 60 seconds → Tile should auto-refresh
-```
-
-**📝 Alternative: Role-Based Assignment**
-
-If tiles should appear only for specific users:
-```
-Transaction: PFCG (Role Maintenance)
-1. Select role (e.g., Z_NOTIFICATION_ADMIN)
-2. Tab: "Menu"
-3. Add catalog: ZNOTIFY_CATALOG
-4. Save and generate profile
-```
-
-**🔧 Troubleshooting**:
-- **Tile not visible**: Check catalog assigned to group + group assigned to launchpad
-- **Tile shows "0 Active" but data exists**: Check REST endpoint URL in tile configuration
-- **Tile doesn't refresh**: Check "Service Refresh Interval" is set (default: 0 = no refresh)
-- **Wrong color**: Check `/stats` endpoint returns correct `high_count` value
+Before configuring FLP, ensure:
+- ✅ Backend deployed (database tables, REST service active)
+- ✅ Frontend deployed (BSP application `ZNOTIFY_BANNER2` available)
+- ✅ `/sap/bc/rest/zcl_notif_rest/stats` endpoint returns valid OData V2 format
+- ✅ You have authorization for `/UI2/FLPD_CUST`, `PFCG`, and `SU01`
 
 ---
 
