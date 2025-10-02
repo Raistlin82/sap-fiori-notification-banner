@@ -1149,7 +1149,7 @@ ZDOMAIN_MSG_TYPE (Domain - 6 fixed values)
    **F) S_ICF (SAP Standard - ICF Service Authorization)**
    ```
    Authorization Object: S_ICF
-   ICF_FIELD: /sap/bc/rest/zcl_notification_rest*
+   ICF_FIELD: /sap/bc/rest/zcl_notif_rest*
    ICF_VALUE: *
    ACTVT: 03, 20
    ```
@@ -1310,10 +1310,10 @@ npm run build:sap
    ```
    - SE80 → Repository Browser (first dropdown)
    - Select: "BSP Application" from object type dropdown
-   - Enter name in field: ZNOTIFY_BANNER
+   - Enter name in field: ZNOTIFY_BANNER2
    - Click "Create" button (F5)
    - Popup appears:
-     * Application Name: ZNOTIFY_BANNER
+     * Application Name: ZNOTIFY_BANNER2
      * Description: Global Notification Banner
      * Package: ZNOTIFY (or $TMP for local)
    - Click Save (popup closes)
@@ -1322,10 +1322,10 @@ npm run build:sap
 
 2. **Locate MIME Objects Folder** (already exists):
    ```
-   - SE80 → Display BSP Application: ZNOTIFY_BANNER
-   - Expand tree: ZNOTIFY_BANNER
+   - SE80 → Display BSP Application: ZNOTIFY_BANNER2
+   - Expand tree: ZNOTIFY_BANNER2
    - You should see:
-     ├── ZNOTIFY_BANNER
+     ├── ZNOTIFY_BANNER2
      │   ├── Pages
      │   ├── Page Fragments
      │   └── MIME Objects  ← This folder already exists!
@@ -1451,7 +1451,7 @@ npm run build:sap
    - i18n.properties (translations)
 
    Folder Structure After Import:
-   ZNOTIFY_BANNER/
+   ZNOTIFY_BANNER2/
    └── MIME Objects/
        ├── Component.js
        ├── Component-dbg.js
@@ -1493,7 +1493,7 @@ npm run build:sap
 
 5. **Activate All Resources**:
    ```
-   - Right-click on ZNOTIFY_BANNER root
+   - Right-click on ZNOTIFY_BANNER2 root
    - Mass Activate → Object List
    - Select all MIME objects
    - Activate
@@ -1501,14 +1501,14 @@ npm run build:sap
 
 **✅ Verification**:
 ```
-SE80 → Display BSP Application: ZNOTIFY_BANNER
+SE80 → Display BSP Application: ZNOTIFY_BANNER2
 → Expand "MIME Objects" folder
 → All files should show green traffic light (active status)
-→ Test URL: https://your-system:port/sap/bc/bsp/sap/znotify_banner/index.html
+→ Test URL: https://your-system:port/sap/bc/bsp/sap/znotify_banner2/index.html
 ```
 
 **📝 Important Notes**:
-- BSP application name must be lowercase in URL: `znotify_banner` (not ZNOTIFY_BANNER)
+- BSP application name must be lowercase in URL: `znotify_banner2` (not ZNOTIFY_BANNER2)
 - Full URL pattern: `/sap/bc/bsp/sap/<app_name_lowercase>/<file_name>`
 - If files not visible: Check MIME Objects folder, not Pages/Views
 - If 404 error: Check ICF service `/sap/bc/bsp` is active in SICF
@@ -1639,12 +1639,12 @@ npx fiori deploy --config ui5-deploy.yaml
 
 **Expected Output (Success)**:
 ```
-ℹ info Deploying application ZNOTIFY_BANNER...
+ℹ info Deploying application ZNOTIFY_BANNER2...
 ℹ info Uploading files to /sap/opu/odata/UI5/ABAP_REPOSITORY_SRV...
 ✔ Deployment successful
-✔ BSP application ZNOTIFY_BANNER created
+✔ BSP application ZNOTIFY_BANNER2 created
 ✔ All resources uploaded and activated
-✔ Application URL: https://your-system:port/sap/bc/bsp/sap/znotify_banner/index.html
+✔ Application URL: https://your-system:port/sap/bc/bsp/sap/znotify_banner2/index.html
 ```
 
 **Common Deployment Errors**:
@@ -1660,17 +1660,17 @@ npx fiori deploy --config ui5-deploy.yaml
 **✅ Verification After Successful Deployment**:
 ```bash
 # 1. Check BSP Application created
-# SE80 → Display ZNOTIFY_BANNER
+# SE80 → Display ZNOTIFY_BANNER2
 # Expected: Application exists with MIME Objects folder populated
 
 # 2. Test application URL
 curl -u username:password \
-  "https://your-system:port/sap/bc/bsp/sap/znotify_banner/index.html?sap-client=100"
+  "https://your-system:port/sap/bc/bsp/sap/znotify_banner2/index.html?sap-client=100"
 
 # Expected: HTML content with UI5 bootstrap (not 404)
 
 # 3. Verify MIME Objects count
-# SE80 → ZNOTIFY_BANNER → MIME Objects
+# SE80 → ZNOTIFY_BANNER2 → MIME Objects
 # Expected: 23 files in correct folder structure
 ```
 
@@ -1754,309 +1754,27 @@ Before configuring FLP, ensure:
 
 ## 🧪 Testing
 
+For comprehensive testing procedures, see the dedicated testing guide:
+
+**➡️ [TESTING_GUIDE.md](./TESTING_GUIDE.md)**
+
+This guide includes detailed test cases for:
+
 ### Backend Testing
-
-#### Test 1: Database Table
-
-**Transaction**: SE16 (Data Browser)
-
-```sql
--- View table structure
-Table: ZTNOTIFY_MSGS
-
--- Test F4 help
-1. SM30 → ZTNOTIFY_MSGS → Create new entry
-2. Click on MESSAGE_TYPE field → Press F4
-3. Expected: Dropdown with 6 values (URGENT, INFO, TIP, SUCCESS, MAINT, WARNING)
-4. Click on SEVERITY field → Press F4
-5. Expected: Dropdown with 3 values (HIGH, MEDIUM, LOW)
-6. Click on DISPLAY_MODE field → Press F4
-7. Expected: Dropdown with 4 values (BANNER, TOAST, BOTH, SILENT)
-```
-
-#### Test 2: CDS View
-
-**Transaction**: SE11 (ABAP Dictionary)
-
-```sql
--- Display CDS view
-View: ZTNOTIFY_MESSAGES (DDLS)
-SQL View: ZNOTIFY_MSG
-
--- Test data retrieval
-SE16 → ZNOTIFY_MSG
-Expected: Only active notifications where:
-  - active = 'X'
-  - start_date <= today
-  - end_date >= today
-```
-
-#### Test 3: REST API
-
-**GET /sap/bc/rest/zcl_notification_rest/**
-
-```javascript
-jQuery.ajax({
-    url: "/sap/bc/rest/zcl_notification_rest/",
-    type: "GET",
-    success: function(data) {
-        console.log("Notifications:", data);
-        // Expected: {"notifications": [...]}
-    }
-});
-```
-
-**GET /sap/bc/rest/zcl_notification_rest/stats**
-
-```javascript
-jQuery.ajax({
-    url: "/sap/bc/rest/zcl_notification_rest/stats",
-    type: "GET",
-    success: function(data) {
-        console.log("Statistics:", data);
-        // Expected: {"total": 10, "high_count": 3, "medium_count": 5, "low_count": 2}
-    }
-});
-```
-
-**POST /sap/bc/rest/zcl_notification_rest/**
-
-```javascript
-jQuery.ajax({
-    url: "/sap/bc/rest/zcl_notification_rest/",
-    type: "POST",
-    contentType: "application/json",
-    data: JSON.stringify({
-        message_type: "MAINT",
-        severity: "MEDIUM",
-        title: "Scheduled Maintenance",
-        message_text: "System will be unavailable Sunday 2-4 AM",
-        start_date: "20250401",
-        end_date: "20250430",
-        target_users: "ALL",
-        active: "X",
-        display_mode: "TOAST"
-    }),
-    success: function(data) {
-        console.log("Created:", data);
-    }
-});
-```
-
----
+- [Test 1: Database Table](./TESTING_GUIDE.md#test-1-database-table) - Verify table structure and F4 value helps
+- [Test 2: CDS View](./TESTING_GUIDE.md#test-2-cds-view) - Verify view definition and filtering logic
+- [Test 3: REST API](./TESTING_GUIDE.md#test-3-rest-api) - Test GET, POST endpoints and stats API
 
 ### Frontend Testing
-
-#### Test 1: Display Modes
-
-Create test notifications with different display modes:
-
-**Test Case 1: BANNER Mode**
-```
-Transaction: SM30 → ZTNOTIFY_MSGS
-Create entry:
-- MESSAGE_TYPE: URGENT
-- SEVERITY: HIGH
-- TITLE: Test Banner
-- MESSAGE_TEXT: This is a banner notification
-- DISPLAY_MODE: BANNER
-- ACTIVE: X
-```
-
-**Expected Result**:
-- Fixed banner appears at top of all Fiori apps
-- Red color (HIGH severity)
-- User must click close button to dismiss
-- Banner stays until manually closed
-
-**Test Case 2: TOAST Mode**
-```
-Create entry:
-- MESSAGE_TYPE: INFO
-- SEVERITY: LOW
-- TITLE: Test Toast
-- MESSAGE_TEXT: This is a toast notification
-- DISPLAY_MODE: TOAST
-- ACTIVE: X
-```
-
-**Expected Result**:
-- Toast appears at bottom-right
-- Blue color (LOW severity)
-- Auto-dismisses after 5 seconds
-- Slide-in animation
-
-**Test Case 3: BOTH Mode**
-```
-Create entry:
-- MESSAGE_TYPE: MAINT
-- SEVERITY: MEDIUM
-- TITLE: Test Both
-- MESSAGE_TEXT: This appears as both banner and toast
-- DISPLAY_MODE: BOTH
-- ACTIVE: X
-```
-
-**Expected Result**:
-- Both banner AND toast appear simultaneously
-- Orange color (MEDIUM severity)
-- Banner stays until closed, toast auto-dismisses
-
-**Test Case 4: SILENT Mode**
-```
-Create entry:
-- MESSAGE_TYPE: TIP
-- SEVERITY: LOW
-- TITLE: Test Silent
-- MESSAGE_TEXT: This is logged but not displayed
-- DISPLAY_MODE: SILENT
-- ACTIVE: X
-```
-
-**Expected Result**:
-- No UI display (banner or toast)
-- Check browser console: "Silent notification logged: Test Silent"
-- Verify with: GET /sap/bc/rest/zcl_notification_rest/log
-
----
-
-#### Test 2: Tile Counter
-
-**Setup**:
-Create multiple notifications with different severities:
-```
-3 notifications with SEVERITY: HIGH
-5 notifications with SEVERITY: MEDIUM
-2 notifications with SEVERITY: LOW
-```
-
-**Expected FLP Tile Display**:
-```
-┌─────────────────────────┐
-│   10  Active            │ ← Total count
-│   🔔                    │ ← Icon
-│   3H|5M|2L             │ ← Breakdown
-└─────────────────────────┘
-   RED background          ← Color (≥3 HIGH = RED)
-```
-
-**Color Coding Rules**:
-- **RED**: high_count >= 3
-- **ORANGE**: high_count 1-2
-- **GREEN**: high_count = 0
-
-**Test Steps**:
-1. Open Fiori Launchpad
-2. Locate notification tile
-3. Verify count: "10 Active"
-4. Verify breakdown: "3H|5M|2L"
-5. Verify color: RED
-6. Wait 60 seconds → Verify auto-update
-
-**Dynamic Update Test**:
-1. Delete 2 HIGH notifications (SM30)
-2. Wait 60 seconds
-3. Expected: Tile updates to "8 Active | 1H|5M|2L" with ORANGE color
-
----
-
-#### Test 3: Multi-Notification Navigation
-
-**Setup**:
-Create 3 active notifications:
-```
-1. URGENT - System Downtime - HIGH
-2. MAINT - Scheduled Maintenance - MEDIUM
-3. TIP - New Feature Available - LOW
-```
-
-**Test Steps**:
-1. Open any Fiori app
-2. Banner appears with first notification (System Downtime)
-3. Click **Next** arrow (→)
-4. Expected: Shows "Scheduled Maintenance" (2/3)
-5. Click **Next** arrow (→)
-6. Expected: Shows "New Feature Available" (3/3)
-7. Click **Previous** arrow (←)
-8. Expected: Returns to previous notification
-9. Counter shows: "2 / 3"
-
----
-
-#### Test 4: Target Audience Filtering (SAP Standard Roles Only)
-
-**Test Case 1: Public Notification**
-```
-Transaction: SM30 → ZTNOTIFY_MSGS → Create entry
-TARGET_USERS: ALL (select from F4 dropdown - 3 values available)
-```
-**Expected**: All users see this notification (no role check)
-
-**Test Case 2: Administrators Only**
-```
-Transaction: SM30 → ZTNOTIFY_MSGS → Create entry
-TARGET_USERS: ADMIN (select from F4 dropdown)
-```
-**Expected**: Only users with **SAP_ALL** role see this (exact match)
-**Verification**:
-- Check AGR_USERS table: `SELECT * FROM agr_users WHERE uname = 'USERNAME' AND agr_name = 'SAP_ALL'`
-- SU01 → User → Roles tab → Should have SAP_ALL role
-
-**Test Case 3: Developers Only**
-```
-Transaction: SM30 → ZTNOTIFY_MSGS → Create entry
-TARGET_USERS: DEVELOPER (select from F4 dropdown)
-```
-**Expected**: Only users with **SAP_BR_DEVELOPER** role see this (exact match)
-**Verification**:
-- Check AGR_USERS table: `SELECT * FROM agr_users WHERE uname = 'USERNAME' AND agr_name = 'SAP_BR_DEVELOPER'`
-- SU01 → User → Roles tab → Should have SAP_BR_DEVELOPER role
-
-**Verification Steps**:
-1. Create notification with specific TARGET_USERS value
-2. Check user roles: SU01 → User → Roles tab (must have exact role name)
-3. Login as user WITH required role → Should see notification
-4. Login as user WITHOUT required role → Should NOT see notification
-5. Check ABAP logic: zcl_notification_manager=>check_target_audience method (uses exact match, no LIKE patterns)
-
----
+- [Test 1: Display Modes](./TESTING_GUIDE.md#test-1-display-modes) - BANNER, TOAST, BOTH, SILENT modes
+- [Test 2: Tile Counter](./TESTING_GUIDE.md#test-2-tile-counter) - Dynamic tile updates and color coding
+- [Test 3: Multi-Notification Navigation](./TESTING_GUIDE.md#test-3-multi-notification-navigation) - Navigation arrows and counter
+- [Test 4: Target Audience Filtering](./TESTING_GUIDE.md#test-4-target-audience-filtering-sap-standard-roles-only) - Role-based visibility (ALL, ADMIN, DEVELOPER)
 
 ### Performance Testing
-
-#### Test 1: Polling Performance
-
-**Monitor**:
-- Open Chrome DevTools → Network tab
-- Refresh Fiori app
-- Observe polling requests every 30 seconds
-
-**Expected**:
-- Request URL: `/sap/bc/rest/zcl_notification_rest/`
-- Interval: 30 seconds
-- Response Time: < 500ms
-- Response Size: < 5KB
-
-#### Test 2: Large Data Set
-
-**Setup**:
-Create 50 active notifications
-
-**Expected**:
-- All 50 notifications load successfully
-- Navigation arrows work smoothly
-- No UI freeze or lag
-- Memory usage stable
-
-#### Test 3: Error Recovery
-
-**Simulate Backend Downtime**:
-1. SICF → Deactivate `zcl_notification_rest` service
-2. Open Fiori app
-3. Expected: Silent failure, no error popup
-4. Check console: "Circuit breaker opened after 5 failures"
-5. SICF → Reactivate service
-6. Wait 60 seconds
-7. Expected: Circuit breaker closes, polling resumes
+- [Test 1: Polling Performance](./TESTING_GUIDE.md#test-1-polling-performance) - 30-second polling verification
+- [Test 2: Large Data Set](./TESTING_GUIDE.md#test-2-large-data-set) - 50+ notifications performance
+- [Test 3: Error Recovery](./TESTING_GUIDE.md#test-3-error-recovery) - Circuit breaker and backend failure handling
 
 ---
 
@@ -2085,19 +1803,19 @@ Expected: Dropdown with URGENT, INFO, TIP, SUCCESS, MAINT, WARNING
 
 ### Issue 2: REST API Returns 404
 
-**Symptom**: GET request to `/sap/bc/rest/zcl_notification_rest/` returns 404 Not Found
+**Symptom**: GET request to `/sap/bc/rest/zcl_notif_rest/` returns 404 Not Found
 
 **Cause**: SICF service not activated
 
 **Solution**:
-1. SICF → Navigate to `/default_host/sap/bc/rest/zcl_notification_rest`
+1. SICF → Navigate to `/default_host/sap/bc/rest/zcl_notif_rest`
 2. Check service status (should have green traffic light)
 3. If inactive: Right-click → Activate Service
 4. Check Handler List contains `ZCL_NOTIFICATION_REST`
 
 **Verification**:
-```
-curl https://your-system.com/sap/bc/rest/zcl_notification_rest/
+```bash
+curl https://your-system.com/sap/bc/rest/zcl_notif_rest/
 Expected: {"notifications": [...]}
 ```
 
@@ -2113,7 +1831,7 @@ Expected: {"notifications": [...]}
 1. Test endpoint directly:
    ```javascript
    jQuery.ajax({
-       url: "/sap/bc/rest/zcl_notification_rest/stats",
+       url: "/sap/bc/rest/zcl_notif_rest/stats",
        type: "GET",
        success: console.log
    });

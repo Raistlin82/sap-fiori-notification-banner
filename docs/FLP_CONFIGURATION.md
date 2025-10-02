@@ -10,7 +10,7 @@
 
 ### Single Dynamic Tile Design
 
-```
+```bash
 ╔══════════════════════════════════════════════════════╗
 ║  FIORI LAUNCHPAD                                     ║
 ╠══════════════════════════════════════════════════════╣
@@ -80,6 +80,7 @@ Before configuring the FLP tile, ensure:
    - Role `Z_NOTIF_ADMIN` is **optional** if user already has SAP_ALL
 
 4. ✅ **Verify application works**:
+
    ```
    URL: https://your-system:port/sap/bc/ui5_ui5/sap/znotify_banner2/index.html?sap-client=100
 
@@ -87,6 +88,7 @@ Before configuring the FLP tile, ensure:
    ```
 
 4. ✅ **Test REST endpoints**:
+
    ```bash
    # Test stats endpoint (required for dynamic tile)
    curl -u username:password \
@@ -113,9 +115,10 @@ Target Mapping connects the Semantic Object to the actual application.
 
 ### Transaction: `/n/UI2/FLPD_CUST`
 
-### Steps:
+### Steps
 
 1. **Navigate to Target Mappings**:
+
    ```
    /UI2/FLPD_CUST → Target Mappings (left menu)
    ```
@@ -125,12 +128,14 @@ Target Mapping connects the Semantic Object to the actual application.
 3. **Fill Target Mapping Details**:
 
    **Identification**:
+
    ```
    Semantic Object: NotificationBanner
    Action: display
    ```
 
    **Application Details**:
+
    ```
    Application Type: SAPUI5 Component
 
@@ -144,12 +149,14 @@ Target Mapping connects the Semantic Object to the actual application.
    **URL Configuration** (Alternative - use ONE of these):
 
    **Option A - Repository Path** (Recommended):
+
    ```
    SAP UI5 Repository: ZNOTIFY_BANNER2
    Component Name: com.sap.notifications.banner2
    ```
 
    **Option B - Direct URL**:
+
    ```
    Application URL: /sap/bc/ui5_ui5/sap/znotify_banner2/index.html
    ```
@@ -157,6 +164,7 @@ Target Mapping connects the Semantic Object to the actual application.
 4. **Save** the Target Mapping
 
 **Verification**:
+
 ```
 /UI2/FLPD_CUST → Target Mappings → Search: "NotificationBanner"
 Expected: Target Mapping "NotificationBanner-display" visible
@@ -170,9 +178,10 @@ Catalogs contain tiles that can be assigned to groups.
 
 ### Transaction: `/n/UI2/FLPD_CUST`
 
-### Steps:
+### Steps
 
 1. **Navigate to Catalogs**:
+
    ```
    /UI2/FLPD_CUST → Catalogs (left menu)
    ```
@@ -180,6 +189,7 @@ Catalogs contain tiles that can be assigned to groups.
 2. **Click "+" (Create)**
 
 3. **Fill Catalog Details**:
+
    ```
    Catalog ID: Z_NOTIF_ADMIN_CATALOG
    Title: Notification Administration
@@ -201,6 +211,7 @@ Catalogs contain tiles that can be assigned to groups.
    e. **Fill Tile Details**:
 
    **General**:
+
    ```
    Title: System Notifications
    Subtitle: Active Messages
@@ -209,6 +220,7 @@ Catalogs contain tiles that can be assigned to groups.
    ```
 
    **Dynamic Data** (CRITICAL):
+
    ```
    Service URL: /sap/bc/rest/zcl_notif_rest/stats
 
@@ -222,6 +234,7 @@ Catalogs contain tiles that can be assigned to groups.
    ```
 
    **Navigation** (Connect to Target Mapping):
+
    ```
    ☑ Use Semantic Object Navigation  [CHECKED]
 
@@ -234,6 +247,7 @@ Catalogs contain tiles that can be assigned to groups.
    ```
 
    **Information** (optional):
+
    ```
    Number Unit: Active
    Information: (leave empty - comes from service)
@@ -252,9 +266,10 @@ Groups organize tiles visually in the Launchpad.
 
 ### Transaction: `/n/UI2/FLPD_CUST`
 
-### Steps:
+### Steps
 
 1. **Navigate to Groups**:
+
    ```
    /UI2/FLPD_CUST → Groups (left menu)
    ```
@@ -262,6 +277,7 @@ Groups organize tiles visually in the Launchpad.
 2. **Click "+" (Create)**
 
 3. **Fill Group Details**:
+
    ```
    Group ID: Z_NOTIF_ADMIN_GROUP
    Title: Administration
@@ -324,6 +340,7 @@ _initializeNotificationBanner: function() {
 ### ⚠️ Important: Banner Behavior
 
 **Current Implementation**:
+
 - NotificationBanner loads **when admin opens the tile** (ZNOTIFY_BANNER2)
 - Once loaded, it continues to poll and show notifications for that session
 - Regular users **will NOT** see the banner unless the app component is loaded
@@ -333,17 +350,20 @@ _initializeNotificationBanner: function() {
 #### Option A: Admin-Triggered (Current - Simplest)
 
 **How it works**:
+
 1. Admin user opens "Notification Management" tile once
 2. NotificationBanner component initializes in background
 3. Banner continues to work for admin session
 4. Admin sees both: management UI + active banner polling
 
 **Advantages**:
+
 - ✅ No additional FLP configuration needed
 - ✅ Works immediately after deployment
 - ✅ Admin can test and verify instantly
 
 **Limitation**:
+
 - ❌ Regular users don't get the banner
 - ❌ Requires admin to have tile open
 
@@ -354,6 +374,7 @@ _initializeNotificationBanner: function() {
 #### Option B: Create Hidden Tile for All Users (Recommended)
 
 **How it works**:
+
 1. Create a **second target mapping** for background loading
 2. Create a **hidden tile** assigned to all users
 3. Tile auto-loads component in background on FLP start
@@ -361,6 +382,7 @@ _initializeNotificationBanner: function() {
 **Steps**:
 
 1. **Create Background Target Mapping**:
+
    ```
    Transaction: /UI2/FLPD_CUST → Catalogs → ZNOTIFY_CATALOG
 
@@ -372,6 +394,7 @@ _initializeNotificationBanner: function() {
    ```
 
 2. **Create Hidden Static Tile**:
+
    ```
    Still in ZNOTIFY_CATALOG → Tiles → Create:
 
@@ -388,6 +411,7 @@ _initializeNotificationBanner: function() {
    ```
 
 3. **Assign to "ALL USERS" Group**:
+
    ```
    /UI2/FLPD_CUST → Groups → Find/Create: "Z_ALL_USERS"
 
@@ -403,6 +427,7 @@ _initializeNotificationBanner: function() {
    - Banner polls every 30s and shows notifications
 
 **Verification**:
+
 ```bash
 # Browser console (F12)
 [Component.js] NotificationBanner initialized
@@ -426,6 +451,7 @@ Site:             SAP_FIORI (your site name)
 ```
 
 **Limitations**:
+
 - Not available in all S/4HANA versions
 - Configuration varies by release (1809, 1909, 2020, 2021+)
 - May require specific SAP Notes/patches
@@ -445,6 +471,7 @@ For S/4HANA On-Premise systems:
 5. **Test** with regular user login
 
 This ensures:
+
 - ✅ All users get banner automatically
 - ✅ Only admins see management interface
 - ✅ Works across SAP versions
@@ -455,12 +482,14 @@ This ensures:
 ### Troubleshooting
 
 **Banner not showing for users**:
+
 1. Check hidden tile is assigned to user's role
 2. Verify user has authorization for BSP app (S_DEVELOP or similar)
 3. Check browser console for component load errors
 4. Verify REST endpoint `/sap/bc/rest/zcl_notif_rest/` is accessible
 
 **Component not loading**:
+
 ```bash
 # Check BSP application exists
 SE80 → BSP Application → ZNOTIFY_BANNER2
@@ -477,9 +506,10 @@ Roles control who can see the group and tile.
 
 ### Transaction: `/nPFCG`
 
-### Steps:
+### Steps
 
 1. **Create or Modify Role**:
+
    ```
    Transaction: /nPFCG
 
@@ -517,6 +547,7 @@ Roles control who can see the group and tile.
    d. Template selection: Choose appropriate template or generate as-is
 
    e. **Review authorizations** (especially if new role):
+
       ```
       Required Authorization Objects:
       - S_RFC: Execute REST service calls
@@ -527,11 +558,13 @@ Roles control who can see the group and tile.
    f. Save
 
 5. **Activate Role**:
+
    ```
    Back button → Save role
    ```
 
 **Verification**:
+
 ```
 PFCG → Display role Z_NOTIF_ADMIN → Menu tab
 Expected: Z_NOTIF_ADMIN_GROUP visible under SAP Fiori Launchpad
@@ -546,12 +579,14 @@ Expected: Z_NOTIF_ADMIN_GROUP visible under SAP Fiori Launchpad
 ### How It Works
 
 **Users with SAP_ALL**:
+
 - ✅ Already have all backend authorizations (S_RFC, S_TABU_CLI, S_DEVELOP)
 - ✅ Can access BSP application ZNOTIFY_BANNER2
 - ✅ Can execute REST service operations
 - ⚠️ Need only FLP tile visibility (group assignment)
 
 **Regular users (without SAP_ALL)**:
+
 - ❌ Don't have backend authorizations
 - ✅ Need custom role `Z_NOTIF_ADMIN` with:
   - Backend authorization objects
@@ -564,6 +599,7 @@ Expected: Z_NOTIF_ADMIN_GROUP visible under SAP Fiori Launchpad
 Assign the FLP group `Z_NOTIF_ADMIN_GROUP` to multiple roles:
 
 1. **For regular users**:
+
    ```
    Role: Z_NOTIF_ADMIN (created in Step 5)
    - Contains: Backend authorizations + FLP group
@@ -572,6 +608,7 @@ Assign the FLP group `Z_NOTIF_ADMIN_GROUP` to multiple roles:
 2. **For SAP_ALL users** - Choose one:
 
    a. **Add FLP group to existing SAP_ALL-based role**:
+
       ```
       Transaction: /nPFCG
       Select: Existing role that includes SAP_ALL (e.g., Z_BASIS_ADMIN)
@@ -580,6 +617,7 @@ Assign the FLP group `Z_NOTIF_ADMIN_GROUP` to multiple roles:
       ```
 
    b. **Or directly assign Z_NOTIF_ADMIN** to SAP_ALL users:
+
       ```
       /nSU01 → User → Roles tab
       Add: Z_NOTIF_ADMIN (they'll ignore backend auth, use SAP_ALL)
@@ -611,6 +649,7 @@ SAP_ALL users already have these authorizations:
 Custom role Z_NOTIF_ADMIN provides same authorizations for non-SAP_ALL users.
 
 **Verification**:
+
 ```
 Transaction: SU53 (check after failed access)
 Transaction: SU53 (check missing authorization objects)
@@ -621,12 +660,14 @@ Transaction: SU53 (check missing authorization objects)
 ### 🎯 Summary
 
 **Simple approach**:
+
 1. Create `Z_NOTIF_ADMIN` role for regular users (Step 5)
 2. SAP_ALL users: Just need FLP tile visibility
    - Either add them to `Z_NOTIF_ADMIN` (they ignore duplicate backend auth)
    - Or add FLP group to their existing SAP_ALL-based role
 
 **Result**:
+
 - ✅ Z_NOTIF_ADMIN: **Optional** if user has SAP_ALL
 - ✅ SAP_ALL users: Can access with minimal FLP configuration
 - ✅ No need for composite roles or complex setup
@@ -640,6 +681,7 @@ Transaction: SU53 (check missing authorization objects)
 **Transaction**: `/nSU01`
 
 1. **Open User**:
+
    ```
    Transaction: /nSU01
    Username: [username]
@@ -650,6 +692,7 @@ Transaction: SU53 (check missing authorization objects)
 3. **Go to "Roles" Tab**
 
 4. **Add Role**:
+
    ```
    Click in empty role field
    Enter: Z_NOTIF_ADMIN
@@ -663,12 +706,15 @@ Transaction: SU53 (check missing authorization objects)
 ### For SAP_ALL Users (Basis Admins)
 
 **Option A: Add Z_NOTIF_ADMIN directly** (simplest):
+
 ```
 /nSU01 → User → Roles tab → Add: Z_NOTIF_ADMIN
 ```
+
 They'll use SAP_ALL for backend auth, Z_NOTIF_ADMIN only for FLP tile visibility.
 
 **Option B: Add FLP group to existing role**:
+
 ```
 /nPFCG → Select user's existing role (with SAP_ALL)
 → Menu tab → Add: Z_NOTIF_ADMIN_GROUP
@@ -688,6 +734,7 @@ They'll use SAP_ALL for backend auth, Z_NOTIF_ADMIN only for FLP tile visibility
 2. **Login** again with admin user
 
 3. **Open Fiori Launchpad**:
+
    ```
    URL: https://your-system:port/sap/bc/ui5_ui5/ui2/ushell/shells/abap/FioriLaunchpad.html?sap-client=100
    ```
@@ -697,6 +744,7 @@ They'll use SAP_ALL for backend auth, Z_NOTIF_ADMIN only for FLP tile visibility
 5. **Check Tile "System Notifications"** is present
 
 6. **Verify Tile Data Updates**:
+
    ```
    Tile should show:
    - Number: "X" (total active notifications)
@@ -710,6 +758,7 @@ They'll use SAP_ALL for backend auth, Z_NOTIF_ADMIN only for FLP tile visibility
 1. **Click on "System Notifications" tile**
 
 2. **Expected Behavior**:
+
    ```
    ✅ Opens: Notification Management app
    ✅ Shows: Table with columns (Severity, Title, Message, etc.)
@@ -730,6 +779,7 @@ They'll use SAP_ALL for backend auth, Z_NOTIF_ADMIN only for FLP tile visibility
    Expected: Dialog opens with form
 
 2. **Fill form**:
+
    ```
    Title: Test Notification
    Message: This is a test message
@@ -744,6 +794,7 @@ They'll use SAP_ALL for backend auth, Z_NOTIF_ADMIN only for FLP tile visibility
 3. **Click "Save"**
 
    Expected:
+
    ```
    ✅ Success message: "Notification created successfully"
    ✅ Table refreshes
@@ -774,6 +825,7 @@ This component works for ALL users, not just admins.
 2. **Open Fiori Launchpad**
 
 3. **Expected**:
+
    ```
    ✅ NO tile visible (regular users don't see admin tile)
    ✅ Banner appears at top if active notifications exist
@@ -781,6 +833,7 @@ This component works for ALL users, not just admins.
    ```
 
 4. **Create active notification as admin**:
+
    ```
    Title: System Maintenance
    Message: Scheduled maintenance tonight 10 PM
@@ -793,6 +846,7 @@ This component works for ALL users, not just admins.
    ```
 
 5. **Verify as regular user**:
+
    ```
    ✅ Red banner appears at top of Launchpad
    ✅ Shows: "System Maintenance: Scheduled maintenance tonight 10 PM"
@@ -809,6 +863,7 @@ This component works for ALL users, not just admins.
 **Problem**: Tile doesn't appear in Launchpad
 
 **Checks**:
+
 1. ✅ Catalog assigned to Group? (`/UI2/FLPD_CUST` → Groups → Check "Assigned Catalogs")
 2. ✅ Tile added to Group? (Groups → Tiles section should show tile)
 3. ✅ Group assigned to Role? (`PFCG` → Role → Menu tab)
@@ -821,13 +876,17 @@ This component works for ALL users, not just admins.
 **Problem**: Tile visible but shows "0 Active" or no stats
 
 **Checks**:
+
 1. ✅ Stats endpoint working?
+
    ```bash
    curl -u user:pass "https://system:port/sap/bc/rest/zcl_notif_rest/stats?sap-client=100"
    ```
+
    Expected: JSON with `number`, `numberUnit`, `info`, `infoState`
 
 2. ✅ SICF service active?
+
    ```
    Transaction: SICF
    Path: /sap/bc/rest/zcl_notif_rest
@@ -835,6 +894,7 @@ This component works for ALL users, not just admins.
    ```
 
 3. ✅ Active notifications exist in table?
+
    ```
    Transaction: SE16N
    Table: ZTNOTIFY_MSGS
@@ -843,6 +903,7 @@ This component works for ALL users, not just admins.
    ```
 
 4. ✅ Refresh interval configured?
+
    ```
    /UI2/FLPD_CUST → Catalogs → Tile → Dynamic Data
    Refresh Interval: 60 (not 0!)
@@ -853,19 +914,23 @@ This component works for ALL users, not just admins.
 **Problem**: Click tile but nothing happens or error
 
 **Checks**:
+
 1. ✅ Target Mapping exists?
+
    ```
    /UI2/FLPD_CUST → Target Mappings → Search: "NotificationBanner"
    Expected: NotificationBanner-display found
    ```
 
 2. ✅ Semantic Object name matches exactly?
+
    ```
    Target Mapping: NotificationBanner
    Tile Navigation: NotificationBanner (must match case-sensitive)
    ```
 
 3. ✅ BSP application deployed?
+
    ```
    Transaction: SE80
    BSP Application: ZNOTIFY_BANNER2
@@ -873,6 +938,7 @@ This component works for ALL users, not just admins.
    ```
 
 4. ✅ Application index updated?
+
    ```
    Transaction: SA38
    Report: /UI5/APP_INDEX_CALCULATE
@@ -880,6 +946,7 @@ This component works for ALL users, not just admins.
    ```
 
 5. ✅ Test URL directly?
+
    ```
    https://system:port/sap/bc/ui5_ui5/sap/znotify_banner2/index.html?sap-client=100
    Expected: Admin table opens
@@ -890,7 +957,9 @@ This component works for ALL users, not just admins.
 **Problem**: App loads but REST calls fail
 
 **Checks**:
+
 1. ✅ REST service active and accessible?
+
    ```
    Transaction: SICF
    Path: /sap/bc/rest/zcl_notif_rest
@@ -899,6 +968,7 @@ This component works for ALL users, not just admins.
    ```
 
 2. ✅ CORS headers configured?
+
    ```
    ZCL_NOTIFICATION_REST should set:
    - Access-Control-Allow-Origin: *
@@ -906,6 +976,7 @@ This component works for ALL users, not just admins.
    ```
 
 3. ✅ User has authorizations?
+
    ```
    Required:
    - S_RFC: Execute REST calls
@@ -913,6 +984,7 @@ This component works for ALL users, not just admins.
    ```
 
 4. ✅ Check browser console (F12)?
+
    ```
    Look for:
    - 401 Unauthorized → Missing auth
@@ -928,16 +1000,19 @@ This component works for ALL users, not just admins.
 Before going live, verify:
 
 **Backend & Deployment**:
+
 - [ ] Backend REST service active and tested
 - [ ] Frontend BSP application deployed (ZNOTIFY_BANNER2)
 - [ ] Target Mapping created (NotificationBanner-display)
 
 **FLP Configuration**:
+
 - [ ] Catalog created with dynamic tile (Z_NOTIF_ADMIN_CATALOG)
 - [ ] Tile configured with correct service URL (/stats endpoint)
 - [ ] Group created and tile assigned (Z_NOTIF_ADMIN_GROUP)
 
 **Role Configuration**:
+
 - [ ] Custom role created (Z_NOTIF_ADMIN) for regular users
 - [ ] Profile generated for Z_NOTIF_ADMIN
 - [ ] Regular users (without SAP_ALL) assigned to Z_NOTIF_ADMIN
@@ -946,6 +1021,7 @@ Before going live, verify:
   - [ ] Or: FLP group added to their existing role
 
 **Functional Testing**:
+
 - [ ] Tile visible in Launchpad (both user types)
 - [ ] Tile shows live data (updates every 60s)
 - [ ] Tile navigation works (opens admin app)
