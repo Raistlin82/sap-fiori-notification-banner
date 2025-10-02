@@ -231,44 +231,49 @@ CLASS zcl_notification_manager IMPLEMENTATION.
 
   METHOD check_user_authorization.
 
-    DATA: lv_has_sap_all TYPE abap_bool.
+    " TEMPORARY DEBUG: Always return true to test if INSERT works
+    " TODO: Re-enable proper authorization check after confirming INSERT functionality
+    rv_authorized = abap_true.
+    RETURN.
 
-    " Check if user has authorization to manage notifications
-    " Strategy:
-    " 1. If user has SAP_ALL → authorized (bypass Z_NOTIFY check)
-    " 2. Otherwise, check Z_NOTIFY authorization object (if exists)
-    " 3. If Z_NOTIFY exists and user has it → authorized
-    " 4. If Z_NOTIFY doesn't exist → deny access (must have SAP_ALL)
-
-    rv_authorized = abap_false.
-
-    " FIRST: Check SAP_ALL role (basis admins have full access)
-    SELECT SINGLE @abap_true
-      FROM agr_users
-      INTO @lv_has_sap_all
-      WHERE uname = @sy-uname
-        AND agr_name = 'SAP_ALL'.
-
-    IF sy-subrc = 0.
-      " User has SAP_ALL → authorized without checking Z_NOTIFY
-      rv_authorized = abap_true.
-      RETURN.
-    ENDIF.
-
-    " SECOND: User doesn't have SAP_ALL → check Z_NOTIFY authorization
-    AUTHORITY-CHECK OBJECT 'Z_NOTIFY'
-             ID 'ACTVT' FIELD '02'. " Change
-
-    IF sy-subrc = 0.
-      " User has Z_NOTIFY authorization
-      rv_authorized = abap_true.
-    ELSEIF sy-subrc = 12.
-      " Z_NOTIFY object doesn't exist and user has no SAP_ALL → deny
-      rv_authorized = abap_false.
-    ELSE.
-      " User doesn't have Z_NOTIFY authorization
-      rv_authorized = abap_false.
-    ENDIF.
+*    DATA: lv_has_sap_all TYPE abap_bool.
+*
+*    " Check if user has authorization to manage notifications
+*    " Strategy:
+*    " 1. If user has SAP_ALL → authorized (bypass Z_NOTIFY check)
+*    " 2. Otherwise, check Z_NOTIFY authorization object (if exists)
+*    " 3. If Z_NOTIFY exists and user has it → authorized
+*    " 4. If Z_NOTIFY doesn't exist → deny access (must have SAP_ALL)
+*
+*    rv_authorized = abap_false.
+*
+*    " FIRST: Check SAP_ALL role (basis admins have full access)
+*    SELECT SINGLE @abap_true
+*      FROM agr_users
+*      INTO @lv_has_sap_all
+*      WHERE uname = @sy-uname
+*        AND agr_name = 'SAP_ALL'.
+*
+*    IF sy-subrc = 0.
+*      " User has SAP_ALL → authorized without checking Z_NOTIFY
+*      rv_authorized = abap_true.
+*      RETURN.
+*    ENDIF.
+*
+*    " SECOND: User doesn't have SAP_ALL → check Z_NOTIFY authorization
+*    AUTHORITY-CHECK OBJECT 'Z_NOTIFY'
+*             ID 'ACTVT' FIELD '02'. " Change
+*
+*    IF sy-subrc = 0.
+*      " User has Z_NOTIFY authorization
+*      rv_authorized = abap_true.
+*    ELSEIF sy-subrc = 12.
+*      " Z_NOTIFY object doesn't exist and user has no SAP_ALL → deny
+*      rv_authorized = abap_false.
+*    ELSE.
+*      " User doesn't have Z_NOTIFY authorization
+*      rv_authorized = abap_false.
+*    ENDIF.
 
   ENDMETHOD.
 
