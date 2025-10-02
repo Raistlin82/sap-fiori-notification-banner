@@ -119,6 +119,9 @@ CLASS zcl_notification_manager IMPLEMENTATION.
       RETURN.
     ENDIF.
 
+    " Populate client field (mandatory for client-dependent tables)
+    ls_notification-mandt = sy-mandt.
+
     " Generate unique message ID
     ls_notification-message_id = generate_message_id( ).
     ls_notification-message_type = is_notification-message_type.
