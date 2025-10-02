@@ -369,16 +369,19 @@ sap.ui.define([
         },
 
         /**
-         * Generate UUID v4
-         * @returns {string} UUID
+         * Generate UUID v4 for ABAP char32 format (without hyphens)
+         * @returns {string} UUID (32 characters, no hyphens)
          * @private
          */
         _generateUUID: function () {
-            return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+            // Generate UUID and remove hyphens to fit ABAP char32 (32 characters max)
+            var uuid = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
                 var r = Math.random() * 16 | 0;
                 var v = c === 'x' ? r : (r & 0x3 | 0x8);
                 return v.toString(16);
             });
+            // Remove hyphens: "fc4b1a3e-fa30-442b-956e-52a0aafa67d5" → "fc4b1a3efa30442b956e52a0aafa67d5"
+            return uuid.replace(/-/g, '');
         },
 
         /**
