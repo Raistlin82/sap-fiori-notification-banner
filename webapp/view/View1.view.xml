@@ -244,7 +244,7 @@
                         <items>
                             <core:Item key="URGENT" text="{i18n>messageTypeUrgent}"/>
                             <core:Item key="INFO" text="{i18n>messageTypeInfo}"/>
-                            <core:Item key="TIP" text="{i18n>messageTip}"/>
+                            <core:Item key="TIP" text="{i18n>messageTypeTip}"/>
                             <core:Item key="WARNING" text="{i18n>messageTypeWarning}"/>
                             <core:Item key="MAINT" text="{i18n>messageTypeMaint}"/>
                         </items>
