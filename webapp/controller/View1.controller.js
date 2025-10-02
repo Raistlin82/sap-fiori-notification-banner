@@ -155,7 +155,7 @@ sap.ui.define([
                 severity: oEditModel.severity,
                 message_type: oEditModel.message_type,
                 display_mode: oEditModel.display_mode,
-                target_audience: oEditModel.target_audience,
+                target_users: oEditModel.target_audience,  // ABAP expects target_users not target_audience
                 start_date: oEditModel.start_date,
                 end_date: oEditModel.end_date,
                 active: oEditModel.active ? 'X' : ''
