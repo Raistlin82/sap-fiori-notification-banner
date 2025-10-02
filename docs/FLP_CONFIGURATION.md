@@ -74,10 +74,10 @@ Before configuring the FLP tile, ensure:
    - App ID: `com.sap.notifications.banner2`
    - Files in correct BSP structure (Pages/Page Fragments)
 
-3. ✅ **Role Configuration** (read Step 5b for details):
-   - **Regular users**: Will use custom role `Z_NOTIF_ADMIN` (optional, for notification management)
-   - **Basis admins**: Will use `SAP_ALL` + composite role `Z_BASIS_ADMIN` (or direct `Z_NOTIF_ADMIN`)
-   - Both user types can access the admin interface with proper FLP configuration
+3. ✅ **Role Configuration**:
+   - **Users with SAP_ALL**: Can access directly (no custom role needed)
+   - **Regular users (without SAP_ALL)**: Need custom role `Z_NOTIF_ADMIN`
+   - Role `Z_NOTIF_ADMIN` is **optional** if user already has SAP_ALL
 
 4. ✅ **Verify application works**:
    ```
@@ -539,165 +539,110 @@ Expected: Z_NOTIF_ADMIN_GROUP visible under SAP Fiori Launchpad
 
 ---
 
-## 🔓 Step 5b: Enable Access for SAP_ALL Users (Basis Admins)
+## 🔓 Step 5b: SAP_ALL Users (Optional Custom Role)
 
-**Requirement**: Utenti con SAP_ALL (basis admin) devono poter accedere senza il ruolo custom Z_NOTIF_ADMIN.
+**Important**: The custom role `Z_NOTIF_ADMIN` is **OPTIONAL** for users who already have `SAP_ALL`.
 
-### Why This is Needed
+### How It Works
 
-- **Custom Role** (Z_NOTIF_ADMIN): For users who need notification management but don't have SAP_ALL
-- **SAP_ALL**: Basis admins already have all backend authorizations but need FLP tile access
+**Users with SAP_ALL**:
+- ✅ Already have all backend authorizations (S_RFC, S_TABU_CLI, S_DEVELOP)
+- ✅ Can access BSP application ZNOTIFY_BANNER2
+- ✅ Can execute REST service operations
+- ⚠️ Need only FLP tile visibility (group assignment)
 
-### Option 1: Assign Group Directly to SAP_ALL Role
+**Regular users (without SAP_ALL)**:
+- ❌ Don't have backend authorizations
+- ✅ Need custom role `Z_NOTIF_ADMIN` with:
+  - Backend authorization objects
+  - FLP group assignment
 
-**⚠️ WARNING**: Modifying SAP_ALL directly is **NOT recommended** in most organizations.
+### Configuration Options
 
-Skip this option and use Option 2 instead.
+#### Option A: Assign Group to Both Roles (Simplest)
 
----
+Assign the FLP group `Z_NOTIF_ADMIN_GROUP` to multiple roles:
 
-### Option 2: Create Composite Role (Recommended)
-
-**Concept**: Create a composite role that includes SAP_ALL + FLP group assignment
-
-**Steps**:
-
-1. **Create Composite Role**:
+1. **For regular users**:
    ```
-   Transaction: /nPFCG
-
-   Role Name: Z_BASIS_ADMIN
-   Description: Basis Administrator (SAP_ALL + FLP Access)
-   Role Type: Composite Role
+   Role: Z_NOTIF_ADMIN (created in Step 5)
+   - Contains: Backend authorizations + FLP group
    ```
 
-2. **Add Roles to Composite**:
-   ```
-   Roles tab → Add:
-   - SAP_ALL (already exists)
-   - Z_NOTIF_ADMIN (for FLP group only)
-   ```
+2. **For SAP_ALL users** - Choose one:
 
-3. **Assign to Basis Admin Users**:
-   ```
-   /nSU01 → User → Roles tab
-   Add: Z_BASIS_ADMIN
-   ```
+   a. **Add FLP group to existing SAP_ALL-based role**:
+      ```
+      Transaction: /nPFCG
+      Select: Existing role that includes SAP_ALL (e.g., Z_BASIS_ADMIN)
+      Menu tab → Add: Z_NOTIF_ADMIN_GROUP
+      Save and regenerate profile
+      ```
 
-**Advantages**:
-- ✅ SAP_ALL remains unchanged
-- ✅ Easy to manage basis admin users
-- ✅ Clear separation of concerns
+   b. **Or directly assign Z_NOTIF_ADMIN** to SAP_ALL users:
+      ```
+      /nSU01 → User → Roles tab
+      Add: Z_NOTIF_ADMIN (they'll ignore backend auth, use SAP_ALL)
+      ```
 
----
+#### Option B: Direct User Assignment (If Available)
 
-### Option 3: Direct Group Assignment in FLP (Simplest)
-
-**Best for**: Small teams or when you control FLP configuration directly
-
-**Steps**:
-
-1. **Open FLP Configuration**:
-   ```
-   Transaction: /UI2/FLPD_CUST
-   ```
-
-2. **Go to Groups**:
-   ```
-   Select: Z_NOTIF_ADMIN_GROUP
-   Click: "Change"
-   ```
-
-3. **Manual User Assignment**:
-   ```
-   Some systems allow direct user assignment to groups
-
-   If available:
-   - Click "Assigned Users" or "User Assignment"
-   - Add basis admin users individually
-   - Save
-   ```
-
-   **⚠️ Note**: Not all SAP versions support this feature
-
----
-
-### Option 4: Use FLP Space Configuration (Latest Systems)
-
-**For S/4HANA 2021+** with Spaces and Pages:
-
-1. **Transaction**: `/n/UI2/FLP_CONF_SPACE`
-
-2. **Assign Catalog to "Everyone"**:
-   ```
-   Spaces → Select space
-   → Catalogs
-   → Assign: Z_NOTIF_ADMIN_CATALOG
-   → User Assignment: "All Users" or specific user list
-   ```
-
-3. **Result**: Catalog available to all users regardless of role
-
----
-
-### 🎯 Recommended Approach
-
-**For most organizations**:
-
-1. **Create custom role** `Z_NOTIF_ADMIN` (for regular notification managers)
-2. **Create composite role** `Z_BASIS_ADMIN` that includes:
-   - SAP_ALL (for all system authorizations)
-   - Z_NOTIF_ADMIN (for FLP tile access only)
-3. **Assign roles**:
-   - Regular users: `Z_NOTIF_ADMIN`
-   - Basis admins: `Z_BASIS_ADMIN` (or add `Z_NOTIF_ADMIN` to existing basis role)
-
-**Result**:
-- ✅ Custom role Z_NOTIF_ADMIN: Optional for users who need notification management
-- ✅ Basis admins with SAP_ALL: Can access via composite role or direct Z_NOTIF_ADMIN assignment
-- ✅ Backend authorizations: Both covered (SAP_ALL has everything, Z_NOTIF_ADMIN has specific objects)
-
----
-
-### Backend Authorization Check
-
-Both user types must have these backend authorizations (automatic with SAP_ALL):
+Some SAP systems allow direct user assignment to FLP groups:
 
 ```
-S_RFC (RFC Access):
-- RFC_TYPE: Function Module
-- RFC_NAME: ZCL_NOTIF_REST (or * for admins)
-- ACTVT: 16 (Execute)
-
-S_TABU_CLI (Table Maintenance):
-- CLIIDMAINT: X
-- TABLE: ZTNOTIFY_MSGS
-
-S_DEVELOP (Development):
-- DEVCLASS: * (or $TMP)
-- OBJTYPE: BSP (for BSP application access)
-- OBJNAME: ZNOTIFY_BANNER2
-- ACTVT: 03 (Display)
+/UI2/FLPD_CUST → Groups → Z_NOTIF_ADMIN_GROUP → "User Assignment"
+Add SAP_ALL users directly
 ```
+
+**⚠️ Note**: Not available in all SAP versions
+
+---
+
+### Backend Authorization (Automatic with SAP_ALL)
+
+SAP_ALL users already have these authorizations:
+
+```
+✅ S_RFC: Execute REST calls (ZCL_NOTIF_REST)
+✅ S_TABU_CLI: Read/Write ZTNOTIFY_MSGS table
+✅ S_DEVELOP: Access BSP application ZNOTIFY_BANNER2
+```
+
+Custom role Z_NOTIF_ADMIN provides same authorizations for non-SAP_ALL users.
 
 **Verification**:
 ```
-Transaction: SU53 (after failed access)
-Check missing authorization objects
+Transaction: SU53 (check after failed access)
+Transaction: SU53 (check missing authorization objects)
 ```
+
+---
+
+### 🎯 Summary
+
+**Simple approach**:
+1. Create `Z_NOTIF_ADMIN` role for regular users (Step 5)
+2. SAP_ALL users: Just need FLP tile visibility
+   - Either add them to `Z_NOTIF_ADMIN` (they ignore duplicate backend auth)
+   - Or add FLP group to their existing SAP_ALL-based role
+
+**Result**:
+- ✅ Z_NOTIF_ADMIN: **Optional** if user has SAP_ALL
+- ✅ SAP_ALL users: Can access with minimal FLP configuration
+- ✅ No need for composite roles or complex setup
 
 ---
 
 ## 👤 Step 6: Assign Role to Users
 
-### Transaction: `/nSU01`
+### For Regular Users (without SAP_ALL)
 
-### Steps:
+**Transaction**: `/nSU01`
 
 1. **Open User**:
    ```
    Transaction: /nSU01
-   Username: [admin-username]
+   Username: [username]
    ```
 
 2. **Click "Change"**
@@ -711,12 +656,26 @@ Check missing authorization objects
    Press Enter
    ```
 
-5. **Save**
+5. **Save** and execute user comparison if prompted
 
-6. **Comparison** (if prompted):
-   ```
-   Execute user comparison (Utilities → User comparison)
-   ```
+---
+
+### For SAP_ALL Users (Basis Admins)
+
+**Option A: Add Z_NOTIF_ADMIN directly** (simplest):
+```
+/nSU01 → User → Roles tab → Add: Z_NOTIF_ADMIN
+```
+They'll use SAP_ALL for backend auth, Z_NOTIF_ADMIN only for FLP tile visibility.
+
+**Option B: Add FLP group to existing role**:
+```
+/nPFCG → Select user's existing role (with SAP_ALL)
+→ Menu tab → Add: Z_NOTIF_ADMIN_GROUP
+→ Save and regenerate
+```
+
+**⚠️ Important**: SAP_ALL users don't strictly need Z_NOTIF_ADMIN role if their role already includes the FLP group.
 
 ---
 
@@ -979,22 +938,23 @@ Before going live, verify:
 - [ ] Group created and tile assigned (Z_NOTIF_ADMIN_GROUP)
 
 **Role Configuration**:
-- [ ] Custom role created (Z_NOTIF_ADMIN) with FLP group
-- [ ] Profile generated for custom role
-- [ ] Composite role created for SAP_ALL users (Z_BASIS_ADMIN) - if needed
-- [ ] Regular users assigned to Z_NOTIF_ADMIN
-- [ ] Basis admins can access (via Z_BASIS_ADMIN or direct Z_NOTIF_ADMIN)
+- [ ] Custom role created (Z_NOTIF_ADMIN) for regular users
+- [ ] Profile generated for Z_NOTIF_ADMIN
+- [ ] Regular users (without SAP_ALL) assigned to Z_NOTIF_ADMIN
+- [ ] SAP_ALL users configured:
+  - [ ] Either: Assigned Z_NOTIF_ADMIN directly (simplest)
+  - [ ] Or: FLP group added to their existing role
 
 **Functional Testing**:
-- [ ] Tile visible in Launchpad (for both user types)
+- [ ] Tile visible in Launchpad (both user types)
 - [ ] Tile shows live data (updates every 60s)
 - [ ] Tile navigation works (opens admin app)
 - [ ] Admin CRUD operations work (Create/Edit/Delete)
 - [ ] Global banner works for all users
 - [ ] Authorization tested:
-  - [ ] Regular users with Z_NOTIF_ADMIN
-  - [ ] Basis admins with SAP_ALL + composite role
-  - [ ] Backend authorization objects verified (S_RFC, S_TABU_CLI, S_DEVELOP)
+  - [ ] Regular users with Z_NOTIF_ADMIN only
+  - [ ] Basis admins with SAP_ALL (Z_NOTIF_ADMIN optional)
+  - [ ] Backend authorization objects work (S_RFC, S_TABU_CLI, S_DEVELOP)
 
 ---
 
