@@ -291,7 +291,182 @@ Groups organize tiles visually in the Launchpad.
 
 ---
 
-## 🔐 Step 4: Assign Group to Role
+## 🔌 Step 4: Enable Global Notification Banner
+
+**CRITICAL**: This step configures how the NotificationBanner loads automatically for ALL users.
+
+### Current Architecture
+
+The `Component.js` already initializes the NotificationBanner automatically when the app loads:
+
+```javascript
+_initializeNotificationBanner: function() {
+    // Create notification banner instance
+    this._notificationBanner = new NotificationBanner();
+
+    // Auto-polls every 30 seconds
+    this._startNotificationPolling();
+
+    // Attach to FLP shell
+    if (sap.ushell && sap.ushell.Container) {
+        sap.ushell.Container.attachRendererCreatedEvent(function() {
+            that._notificationBanner.attachToShell();
+        });
+    }
+}
+```
+
+### ⚠️ Important: Banner Behavior
+
+**Current Implementation**:
+- NotificationBanner loads **when admin opens the tile** (ZNOTIFY_BANNER2)
+- Once loaded, it continues to poll and show notifications for that session
+- Regular users **will NOT** see the banner unless the app component is loaded
+
+### Options for Global Banner Activation
+
+#### Option A: Admin-Triggered (Current - Simplest)
+
+**How it works**:
+1. Admin user opens "Notification Management" tile once
+2. NotificationBanner component initializes in background
+3. Banner continues to work for admin session
+4. Admin sees both: management UI + active banner polling
+
+**Advantages**:
+- ✅ No additional FLP configuration needed
+- ✅ Works immediately after deployment
+- ✅ Admin can test and verify instantly
+
+**Limitation**:
+- ❌ Regular users don't get the banner
+- ❌ Requires admin to have tile open
+
+**Use case**: Suitable if notifications are primarily for admins or if banner is supplementary
+
+---
+
+#### Option B: Create Hidden Tile for All Users (Recommended)
+
+**How it works**:
+1. Create a **second target mapping** for background loading
+2. Create a **hidden tile** assigned to all users
+3. Tile auto-loads component in background on FLP start
+
+**Steps**:
+
+1. **Create Background Target Mapping**:
+   ```
+   Transaction: /UI2/FLPD_CUST → Catalogs → ZNOTIFY_CATALOG
+
+   Target Mappings → Create:
+   - Semantic Object: NotificationBanner
+   - Action: background
+   - URL: /sap/bc/ui5_ui5/sap/znotify_banner2/index.html
+   - Parameters: (none)
+   ```
+
+2. **Create Hidden Static Tile**:
+   ```
+   Still in ZNOTIFY_CATALOG → Tiles → Create:
+
+   - Type: Static Tile
+   - Title: Notification Service (hidden)
+   - Subtitle: Background service
+   - Icon: sap-icon://message-information
+   - Navigation → Use Semantic Object:
+     - Semantic Object: NotificationBanner
+     - Action: background
+
+   ⚠️ Make tile HIDDEN:
+   - Technical Settings → Hidden: ✓ (checked)
+   ```
+
+3. **Assign to "ALL USERS" Group**:
+   ```
+   /UI2/FLPD_CUST → Groups → Find/Create: "Z_ALL_USERS"
+
+   - Assign tile: "Notification Service (hidden)"
+   - Assign group to role: Z_ALL_EMPLOYEES or similar
+   - Save
+   ```
+
+4. **Result**:
+   - Hidden tile loads component in background on FLP startup
+   - All users get NotificationBanner automatically
+   - No visible UI impact
+   - Banner polls every 30s and shows notifications
+
+**Verification**:
+```bash
+# Browser console (F12)
+[Component.js] NotificationBanner initialized
+[NotificationBanner] Attached to FLP shell
+[NotificationBanner] Polling started
+```
+
+---
+
+#### Option C: FLP Site Plugin (Advanced - System Dependent)
+
+**⚠️ WARNING**: This method is **system-specific** and may not work in all SAP versions.
+
+Some SAP systems support plugins via `/UI2/FLPD_CUST → Plugins` tab:
+
+```
+Plugin ID:        com.sap.notifications.banner2
+Component:        com.sap.notifications.banner2
+Enabled:          ✓
+Site:             SAP_FIORI (your site name)
+```
+
+**Limitations**:
+- Not available in all S/4HANA versions
+- Configuration varies by release (1809, 1909, 2020, 2021+)
+- May require specific SAP Notes/patches
+
+**When to use**: Only if confirmed available in your SAP system
+
+---
+
+### 🎯 Recommended Approach
+
+For S/4HANA On-Premise systems:
+
+1. **Deploy app** (ZNOTIFY_BANNER2)
+2. **Create admin tile** (visible, for CRUD operations)
+3. **Create hidden tile** (background, for all users)
+4. **Assign hidden tile** to all-users group/role
+5. **Test** with regular user login
+
+This ensures:
+- ✅ All users get banner automatically
+- ✅ Only admins see management interface
+- ✅ Works across SAP versions
+- ✅ No complex plugin configuration
+
+---
+
+### Troubleshooting
+
+**Banner not showing for users**:
+1. Check hidden tile is assigned to user's role
+2. Verify user has authorization for BSP app (S_DEVELOP or similar)
+3. Check browser console for component load errors
+4. Verify REST endpoint `/sap/bc/rest/zcl_notif_rest/` is accessible
+
+**Component not loading**:
+```bash
+# Check BSP application exists
+SE80 → BSP Application → ZNOTIFY_BANNER2
+
+# Check ICF service active
+SICF → /sap/bc/ui5_ui5/sap/znotify_banner2 → Status: Active
+```
+
+---
+
+## 🔐 Step 5: Assign Group to Role
 
 Roles control who can see the group and tile.
 
