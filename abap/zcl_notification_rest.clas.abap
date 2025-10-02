@@ -108,27 +108,37 @@ CLASS zcl_notification_rest IMPLEMENTATION.
 
     DATA: lv_json TYPE string,
           ls_notification TYPE zcl_notification_manager=>ty_notification,
-          lv_success TYPE abap_bool.
+          lv_success TYPE abap_bool,
+          lv_error_msg TYPE string.
 
-    " Get JSON from request body
-    lv_json = mo_server->request->get_cdata( ).
+    TRY.
+        " Get JSON from request body
+        lv_json = mo_server->request->get_cdata( ).
 
-    " Deserialize JSON to notification structure
-    ls_notification = deserialize_notification( lv_json ).
+        " Deserialize JSON to notification structure
+        ls_notification = deserialize_notification( lv_json ).
 
-    " Create notification
-    lv_success = zcl_notification_manager=>create_notification( ls_notification ).
+        " Create notification
+        lv_success = zcl_notification_manager=>create_notification( ls_notification ).
 
-    " Set response
-    mo_server->response->set_header_field( name = 'Content-Type' value = 'application/json' ).
+        " Set response
+        mo_server->response->set_header_field( name = 'Content-Type' value = 'application/json' ).
 
-    IF lv_success = abap_true.
-      mo_server->response->set_status( code = 201 reason = 'Created' ).
-      mo_server->response->set_cdata( data = '{"success": true, "message": "Notification created"}' ).
-    ELSE.
-      mo_server->response->set_status( code = 500 reason = 'Internal Server Error' ).
-      mo_server->response->set_cdata( data = '{"success": false, "message": "Failed to create notification"}' ).
-    ENDIF.
+        IF lv_success = abap_true.
+          mo_server->response->set_status( code = 201 reason = 'Created' ).
+          mo_server->response->set_cdata( data = '{"success": true, "message": "Notification created"}' ).
+        ELSE.
+          mo_server->response->set_status( code = 500 reason = 'Internal Server Error' ).
+          mo_server->response->set_cdata( data = '{"success": false, "message": "Failed to create notification - check authorization"}' ).
+        ENDIF.
+
+      CATCH cx_root INTO DATA(lx_error).
+        " Catch any exception and return detailed error message
+        lv_error_msg = lx_error->get_text( ).
+        mo_server->response->set_header_field( name = 'Content-Type' value = 'application/json' ).
+        mo_server->response->set_status( code = 500 reason = 'Internal Server Error' ).
+        mo_server->response->set_cdata( data = '{"success": false, "message": "Exception: ' && lv_error_msg && '"}' ).
+    ENDTRY.
 
   ENDMETHOD.
 
