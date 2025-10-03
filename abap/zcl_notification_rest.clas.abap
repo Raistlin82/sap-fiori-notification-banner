@@ -246,49 +246,62 @@ CLASS zcl_notification_rest IMPLEMENTATION.
 
   METHOD handle_get_stats.
     " Provides statistics for the dynamic tile counter
-    " Response format: { total: N, high_count: N, medium_count: N, low_count: N }
+    " Response format: OData format for SAP Fiori dynamic tile
 
-    DATA: BEGIN OF ls_stats,
-            total        TYPE i,
-            high_count   TYPE i,
-            medium_count TYPE i,
-            low_count    TYPE i,
-          END OF ls_stats.
-
-    DATA: lv_json TYPE string,
-          lv_today TYPE sy-datum.
+    DATA: lv_high_count   TYPE i,
+          lv_medium_count TYPE i,
+          lv_low_count    TYPE i,
+          lv_total        TYPE i,
+          lv_info         TYPE string,
+          lv_info_state   TYPE string,
+          lv_number       TYPE string,
+          lv_json         TYPE string,
+          lv_today        TYPE sy-datum.
 
     lv_today = sy-datum.
 
     " Count active notifications by severity
     SELECT COUNT(*) FROM ztnotify_msgs
-      INTO @ls_stats-high_count
+      INTO @lv_high_count
       WHERE active = 'X'
         AND start_date <= @lv_today
         AND end_date >= @lv_today
         AND severity = 'HIGH'.
 
     SELECT COUNT(*) FROM ztnotify_msgs
-      INTO @ls_stats-medium_count
+      INTO @lv_medium_count
       WHERE active = 'X'
         AND start_date <= @lv_today
         AND end_date >= @lv_today
         AND severity = 'MEDIUM'.
 
     SELECT COUNT(*) FROM ztnotify_msgs
-      INTO @ls_stats-low_count
+      INTO @lv_low_count
       WHERE active = 'X'
         AND start_date <= @lv_today
         AND end_date >= @lv_today
         AND severity = 'LOW'.
 
-    ls_stats-total = ls_stats-high_count + ls_stats-medium_count + ls_stats-low_count.
+    lv_total = lv_high_count + lv_medium_count + lv_low_count.
 
-    " Build JSON response using /ui2/cl_json
-    lv_json = /ui2/cl_json=>serialize(
-      data = ls_stats
-      compress = abap_true
-      pretty_name = /ui2/cl_json=>pretty_mode-low_case ).
+    " Build info string (format: "XH|XM|XL")
+    lv_info = lv_high_count && 'H|' && lv_medium_count && 'M|' && lv_low_count && 'L'.
+
+    " Determine info state based on severity (HIGH = Error, MEDIUM = Warning, LOW = Success)
+    IF lv_high_count > 0.
+      lv_info_state = 'Error'.      " Red
+    ELSEIF lv_medium_count > 0.
+      lv_info_state = 'Warning'.    " Orange
+    ELSE.
+      lv_info_state = 'Success'.    " Green
+    ENDIF.
+
+    " Convert total to string
+    lv_number = lv_total.
+
+    " Build OData-compatible JSON response for dynamic tile
+    " Format: { "d": { "number": "X", "numberUnit": "Active", "info": "XH|XM|XL", "infoState": "Error" } }
+    lv_json = '{"d":{"number":"' && lv_number && '","numberUnit":"Active","info":"' && lv_info && '","infoState":"' && lv_info_state && '"}}'.
 
     " Set response
     mo_server->response->set_status( code = 200 reason = 'OK' ).
