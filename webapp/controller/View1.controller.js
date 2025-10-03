@@ -69,11 +69,16 @@ sap.ui.define([
                     messages.forEach(function(msg) {
                         // Handle ABAP 'X', boolean true, or string 'true'
                         // Convert anything else (empty string, space, null) to false
-                        msg.active = !!(msg.active === 'X' || msg.active === true || msg.active === 'true');
+                        // Trim spaces to handle ABAP space padding
+                        var activeValue = typeof msg.active === 'string' ? msg.active.trim() : msg.active;
+                        msg.active = !!(activeValue === 'X' || activeValue === true || activeValue === 'true');
                     });
 
                     oModel.setProperty("/messages", messages);
                     MessageToast.show("Loaded " + messages.length + " notifications");
+
+                    // Reapply current filter after refresh
+                    that.onFilterChange();
                 },
                 error: function (xhr, status, error) {
                     oModel.setProperty("/busy", false);
