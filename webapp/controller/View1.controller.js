@@ -233,9 +233,12 @@ sap.ui.define([
             var oMessage = oContext.getObject();
             var oI18n = this.getView().getModel("i18n");
 
-            // Prepare data for backend (ABAP expects 'X' or '')
+            // Prepare data for backend (ABAP expects 'X' or '' and YYYYMMDD dates)
             var oData = Object.assign({}, oMessage);
             oData.active = bNewState ? 'X' : '';
+            // Convert dates from ISO to ABAP format if needed
+            oData.start_date = this._formatDateForABAP(oData.start_date);
+            oData.end_date = this._formatDateForABAP(oData.end_date);
 
             jQuery.ajax({
                 url: "/sap/bc/rest/zcl_notif_rest/?message_id=" + encodeURIComponent(oMessage.message_id),
