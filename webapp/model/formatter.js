@@ -1,6 +1,38 @@
 sap.ui.define([], function () {
     "use strict";
 
+    /**
+     * Private helper function to format a single date
+     * @private
+     */
+    var _formatSingleDate = function (date) {
+        if (!date) {
+            return "";
+        }
+
+        // Convert to string if number
+        var dateStr = String(date);
+
+        var year, month, day;
+
+        if (dateStr.length === 10 && dateStr.indexOf('-') !== -1) {
+            // ISO format: "2025-10-03"
+            var parts = dateStr.split('-');
+            year = parts[0];
+            month = parts[1];
+            day = parts[2];
+        } else if (dateStr.length === 8) {
+            // ABAP DATS format: "20251003"
+            year = dateStr.substring(0, 4);
+            month = dateStr.substring(4, 6);
+            day = dateStr.substring(6, 8);
+        } else {
+            return "";
+        }
+
+        return day + "/" + month + "/" + year;
+    };
+
     return {
         /**
          * Format severity to UI5 state
@@ -63,31 +95,7 @@ sap.ui.define([], function () {
          * @returns {string} Formatted date (e.g., "03/10/2025")
          */
         formatAbapDate: function (date) {
-            if (!date) {
-                return "";
-            }
-
-            // Convert to string if number
-            var dateStr = String(date);
-
-            var year, month, day;
-
-            if (dateStr.length === 10 && dateStr.indexOf('-') !== -1) {
-                // ISO format: "2025-10-03"
-                var parts = dateStr.split('-');
-                year = parts[0];
-                month = parts[1];
-                day = parts[2];
-            } else if (dateStr.length === 8) {
-                // ABAP DATS format: "20251003"
-                year = dateStr.substring(0, 4);
-                month = dateStr.substring(4, 6);
-                day = dateStr.substring(6, 8);
-            } else {
-                return "";
-            }
-
-            return day + "/" + month + "/" + year;
+            return _formatSingleDate(date);
         },
 
         /**
@@ -97,8 +105,8 @@ sap.ui.define([], function () {
          * @returns {string} Formatted date range (e.g., "01/10/2025 → 31/10/2025")
          */
         formatDateRange: function (startDate, endDate) {
-            var start = this.formatAbapDate(startDate);
-            var end = this.formatAbapDate(endDate);
+            var start = _formatSingleDate(startDate);
+            var end = _formatSingleDate(endDate);
 
             if (!start && !end) {
                 return "";

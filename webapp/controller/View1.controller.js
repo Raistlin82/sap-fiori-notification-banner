@@ -34,7 +34,8 @@ sap.ui.define([
                 target_audience: "ALL",
                 start_date: this._getFormattedDate(new Date()),
                 end_date: this._getFormattedDate(new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)), // +30 days
-                active: true
+                active: true,
+                isViewMode: false
             });
             this.getView().setModel(oEditModel, "editMode");
 
@@ -101,7 +102,8 @@ sap.ui.define([
                 target_audience: "ALL",
                 start_date: this._getFormattedDate(new Date()),
                 end_date: this._getFormattedDate(new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)),
-                active: true
+                active: true,
+                isViewMode: false
             });
 
             this._getDialog().open();
@@ -129,7 +131,36 @@ sap.ui.define([
                 target_audience: oMessage.target_audience,
                 start_date: oMessage.start_date,
                 end_date: oMessage.end_date,
-                active: oMessage.active
+                active: oMessage.active,
+                isViewMode: false
+            });
+
+            this._getDialog().open();
+        },
+
+        /**
+         * Open view dialog (read-only)
+         * @param {sap.ui.base.Event} oEvent - Button press event
+         */
+        onView: function (oEvent) {
+            var oContext = oEvent.getSource().getBindingContext();
+            var oMessage = oContext.getObject();
+            var oEditModel = this.getView().getModel("editMode");
+
+            // Load message data into edit model in view mode
+            oEditModel.setData({
+                dialogTitle: "View Notification",
+                message_id: oMessage.message_id,
+                title: oMessage.title,
+                message_text: oMessage.message_text,
+                severity: oMessage.severity,
+                message_type: oMessage.message_type,
+                display_mode: oMessage.display_mode,
+                target_audience: oMessage.target_audience,
+                start_date: oMessage.start_date,
+                end_date: oMessage.end_date,
+                active: oMessage.active,
+                isViewMode: true
             });
 
             this._getDialog().open();

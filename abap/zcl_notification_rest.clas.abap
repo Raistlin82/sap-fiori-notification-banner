@@ -85,11 +85,30 @@ CLASS zcl_notification_rest IMPLEMENTATION.
     DATA: lt_notifications TYPE zcl_notification_manager=>tt_notifications,
           lv_json TYPE string,
           lv_user_id_str TYPE string,
-          lv_user_id TYPE sy-uname.
+          lv_user_id TYPE sy-uname,
+          lv_today TYPE sy-datum,
+          lv_expired_count TYPE i.
 
     " Get user ID from query parameter
     lv_user_id_str = mo_server->request->get_form_field( 'user_id' ).
     lv_user_id = lv_user_id_str.
+
+    " Auto-expire notifications: Deactivate notifications where end_date has passed
+    lv_today = sy-datum.
+    UPDATE ztnotify_msgs
+      SET active = ''
+          changed_by = sy-uname
+          changed_at = sy-datum
+      WHERE end_date < lv_today
+        AND active = 'X'.
+
+    lv_expired_count = sy-dbcnt.
+
+    " Log expired notifications count (optional - for monitoring)
+    IF lv_expired_count > 0.
+      " Could write to application log here if needed
+      " MESSAGE s001(00) WITH 'Auto-expired' lv_expired_count 'notifications'.
+    ENDIF.
 
     " Get active notifications
     lt_notifications = zcl_notification_manager=>get_active_notifications( lv_user_id ).

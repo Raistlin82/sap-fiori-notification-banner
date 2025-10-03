@@ -49,7 +49,7 @@
                     <Select
                         id="filterActive"
                         width="150px"
-                        selectedKey="active"
+                        selectedKey=""
                         change=".onFilterChange">
                         <items>
                             <core:Item key="" text="All Notifications"/>
@@ -85,13 +85,13 @@
                     <Column width="80px">
                         <Text text="{i18n>columnSeverity}"/>
                     </Column>
-                    <Column width="250px" minScreenWidth="Tablet" demandPopin="true">
+                    <Column width="200px" minScreenWidth="Tablet" demandPopin="true">
                         <Text text="{i18n>columnTitle}"/>
                     </Column>
-                    <Column minScreenWidth="Desktop" demandPopin="true" hAlign="Begin">
+                    <Column width="35%" minScreenWidth="Desktop" demandPopin="true" hAlign="Begin">
                         <Text text="{i18n>columnMessage}"/>
                     </Column>
-                    <Column width="220px" minScreenWidth="Desktop" demandPopin="true">
+                    <Column width="200px" minScreenWidth="Desktop" demandPopin="true">
                         <Text text="{i18n>columnPeriod}"/>
                     </Column>
                     <Column width="130px" minScreenWidth="Desktop" demandPopin="true">
@@ -161,6 +161,11 @@
                             <!-- Actions -->
                             <HBox>
                                 <Button
+                                    icon="sap-icon://display"
+                                    type="Transparent"
+                                    press=".onView"
+                                    tooltip="View"/>
+                                <Button
                                     icon="sap-icon://edit"
                                     type="Transparent"
                                     press=".onEdit"
@@ -180,7 +185,7 @@
 
     </Page>
 
-    <!-- Create/Edit Dialog -->
+    <!-- Create/Edit/View Dialog -->
     <Dialog
         id="messageDialog"
         title="{editMode>/dialogTitle}"
@@ -192,7 +197,7 @@
         <content>
             <f:SimpleForm
                 id="messageForm"
-                editable="true"
+                editable="{= !${editMode>/isViewMode} }"
                 layout="ResponsiveGridLayout"
                 labelSpanXL="4"
                 labelSpanL="4"
@@ -319,12 +324,13 @@
             <Button
                 text="{i18n>buttonSave}"
                 type="Emphasized"
-                press=".onSave"/>
+                press=".onSave"
+                visible="{= !${editMode>/isViewMode} }"/>
         </beginButton>
 
         <endButton>
             <Button
-                text="{i18n>buttonCancel}"
+                text="{= ${editMode>/isViewMode} ? 'Close' : ${i18n>buttonCancel} }"
                 press=".onCancelDialog"/>
         </endButton>
 
