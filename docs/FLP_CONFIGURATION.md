@@ -2,7 +2,7 @@
 
 **Application**: Notification Management (ZNOTIFY_BANNER2)
 **Version**: 1.2.0
-**Last Updated**: January 2025
+**Last Updated**: October 2025
 
 ---
 
@@ -447,5 +447,5 @@ Se il plugin non si carica:
 **Configuration Complete!** ✅
 
 **Document Version**: 1.2.0
-**Last Updated**: January 2025
+**Last Updated**: October 2025
 **Application**: ZNOTIFY_BANNER2

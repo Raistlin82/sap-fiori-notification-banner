@@ -2,8 +2,8 @@
 
 ## 📋 Table of Contents
 
-1. [Version 1.2.0 - January 2025](#version-120---january-2025)
-2. [Version 1.1.1 - January 2025](#version-111---january-2025)
+1. [Version 1.2.0 - October 2025](#version-120---october-2025)
+2. [Version 1.1.1 - October 2025](#version-111---october-2025)
 3. [Changes & Fixes](#-changes--fixes)
 4. [Technical Details](#-technical-details)
 5. [Documentation Updates](#-documentation-updates)
@@ -14,7 +14,7 @@
 
 ---
 
-## Version 1.2.0 - January 2025
+## Version 1.2.0 - October 2025
 
 ### 🎯 Summary
 **Complete transformation into admin CRUD interface**. Single app with dual purpose: admin management + global notification delivery.
@@ -186,7 +186,7 @@ npx fiori deploy --config ui5-deploy.yaml --verbose -y
 
 ---
 
-## Version 1.1.1 - January 2025
+## Version 1.1.1 - October 2025
 
 ### 🎯 Summary
 Critical fixes for deployment and UI rendering issues. Application successfully deployed and tested on production system.
@@ -450,6 +450,6 @@ For issues or questions:
 
 ---
 
-**Generated**: January 2025
+**Generated**: October 2025
 **Version**: 1.1.1
 **Status**: ✅ Deployed and Tested

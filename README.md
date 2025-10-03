@@ -335,7 +335,7 @@ Developed with ❤️ by the SAP Development Team
 - [x] **Audit Trail** - CREATED_BY, CREATED_AT, CHANGED_BY, CHANGED_AT
 - [x] **REST Endpoints** - /stats and /log for monitoring
 
-### ✅ v1.2.0 (January 2025) - RELEASED
+### ✅ v1.2.0 (October 2025) - RELEASED
 - [x] **SAP Logging Standard** - Replaced console.log with sap/base/Log
 - [x] **Memory Leak Fix** - Proper cleanup of setInterval
 - [x] **Code Quality** - ESLint compliant, SAP best practices

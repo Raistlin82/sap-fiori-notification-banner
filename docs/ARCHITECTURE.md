@@ -1,7 +1,7 @@
 # 🏗️ System Architecture - SAP Fiori Global Notification Banner
 
 **Version**: 1.2.0
-**Last Updated**: January 2025
+**Last Updated**: October 2025
 **Architects**: Gabriele Rendina & Ileana Scaglia
 
 ---
@@ -461,4 +461,4 @@ exit: function() {
 
 **Architecture v1.2.0 - Production Ready**
 *Designed by Gabriele Rendina and Ileana Scaglia*
-*Last updated: January 2025*
+*Last updated: October 2025*
