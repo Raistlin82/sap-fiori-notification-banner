@@ -6,6 +6,22 @@
 
 ---
 
+## 📋 Table of Contents
+
+1. [High-Level Architectural Diagram](#-high-level-architectural-diagram)
+2. [Data Flow - Notification Display](#-data-flow---notification-display)
+3. [Security and Authorization](#-security-and-authorization)
+4. [Data Model](#-data-model)
+5. [Component Structure](#-component-structure)
+6. [Deployment Architecture](#-deployment-architecture)
+7. [Performance Optimization (v1.2.0)](#-performance-optimization-v120)
+8. [API Endpoints](#-api-endpoints)
+9. [What's New in v1.2.0](#-whats-new-in-v120)
+10. [Stakeholders](#-stakeholders)
+11. [Technical References](#-technical-references)
+
+---
+
 ## 📊 High-Level Architectural Diagram
 
 ```mermaid

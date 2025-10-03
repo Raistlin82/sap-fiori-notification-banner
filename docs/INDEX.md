@@ -6,6 +6,23 @@ Welcome to the complete documentation for the SAP Fiori Global Notification Bann
 
 ---
 
+## 📋 Table of Contents
+
+1. [Documentation Map](#️-documentation-map)
+2. [Choose Your Role](#-choose-your-role)
+3. [Quick Guides for Common Tasks](#-quick-guides-for-common-tasks)
+4. [Guided Paths](#-guided-paths)
+5. [Project Structure](#-project-structure)
+6. [Quick Search](#-quick-search)
+7. [Documentation Conventions](#-documentation-conventions)
+8. [Support](#-support)
+9. [Documentation Updates](#-documentation-updates)
+10. [Useful Links](#-useful-links)
+11. [Contribute to Documentation](#-contribute-to-documentation)
+12. [Training and Education](#-training-and-education)
+
+---
+
 ## 🗺️ Documentation Map
 
 ```

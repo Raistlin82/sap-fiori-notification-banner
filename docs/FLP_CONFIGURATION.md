@@ -6,6 +6,16 @@
 
 ---
 
+## 📋 Table of Contents
+
+1. [Architecture Overview](#-architecture-overview)
+2. [Prerequisites](#-prerequisites)
+3. [Step 1: Create Target Mapping](#-step-1-create-target-mapping)
+4. [Step 2: Configure FLP Content](#-step-2-configure-flp-content-choose-your-approach)
+5. [Step 4: Enable Global Notification Banner](#-step-4-enable-global-notification-banner)
+
+---
+
 ## 🎯 Architecture Overview
 
 ### 🏗️ Single App Architecture (CRITICAL)

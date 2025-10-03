@@ -1,5 +1,19 @@
 # 📝 Release Notes - SAP Fiori Global Notification Banner
 
+## 📋 Table of Contents
+
+1. [Version 1.2.0 - January 2025](#version-120---january-2025)
+2. [Version 1.1.1 - January 2025](#version-111---january-2025)
+3. [Changes & Fixes](#-changes--fixes)
+4. [Technical Details](#-technical-details)
+5. [Documentation Updates](#-documentation-updates)
+6. [Next Steps](#-next-steps)
+7. [Known Issues](#-known-issues)
+8. [Lessons Learned](#-lessons-learned)
+9. [Support](#-support)
+
+---
+
 ## Version 1.2.0 - January 2025
 
 ### 🎯 Summary

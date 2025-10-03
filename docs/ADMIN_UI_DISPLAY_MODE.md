@@ -1,5 +1,22 @@
 # Admin UI - Display Mode Selector Implementation Guide
 
+## 📋 Table of Contents
+
+1. [Overview](#overview)
+2. [Display Modes](#display-modes)
+3. [Option 1: SM30 Table Maintenance (Simplest)](#option-1-sm30-table-maintenance-simplest)
+4. [Option 2: Custom SAP Fiori Admin App](#option-2-custom-sap-fiori-admin-app)
+5. [Option 3: Web Dynpro ABAP](#option-3-web-dynpro-abap)
+6. [Recommendations by Message Type](#recommendations-by-message-type)
+7. [Preview Functionality (Optional Enhancement)](#preview-functionality-optional-enhancement)
+8. [Validation Rules](#validation-rules)
+9. [REST API Usage](#rest-api-usage)
+10. [Migration from v1.0.0](#migration-from-v100)
+11. [Testing Checklist](#testing-checklist)
+12. [See Also](#see-also)
+
+---
+
 ## Overview
 
 This guide explains how to add the **Display Mode** selector to your notification admin application (e.g., SM30, custom Fiori app, or Web Dynpro).
