@@ -319,44 +319,6 @@ Developed with ❤️ by the SAP Development Team
 
 ---
 
-## 🗺️ Roadmap
-
-### ✅ v1.0.0 (August 2024) - RELEASED
-- [x] Core notification banner system
-- [x] REST API for CRUD operations
-- [x] Real-time polling (30s intervals)
-- [x] Multi-device responsive design
-- [x] Security hardening (XSS, CSRF protection)
-
-### ✅ v1.1.0 (October 2024) - RELEASED
-- [x] **Display Modes** - BANNER, TOAST, BOTH, SILENT
-- [x] **Dynamic Tile Counter** - Real-time statistics with color coding
-- [x] **Custom Domains** - Fixed value validation (MESSAGE_TYPE, SEVERITY, DISPLAY_MODE, TARGET_USERS)
-- [x] **Audit Trail** - CREATED_BY, CREATED_AT, CHANGED_BY, CHANGED_AT
-- [x] **REST Endpoints** - /stats and /log for monitoring
-
-### ✅ v1.2.0 (October 2025) - RELEASED
-- [x] **SAP Logging Standard** - Replaced console.log with sap/base/Log
-- [x] **Memory Leak Fix** - Proper cleanup of setInterval
-- [x] **Code Quality** - ESLint compliant, SAP best practices
-- [x] **Documentation Restructure** - Separated backend/frontend guides
-- [x] **3-State Filters** - All/Active/Inactive in admin UI
-- [x] **Code Cleanup** - Removed ~3,000 lines of obsolete code
-
-### v1.3.0 (Q2 2025)
-- [ ] Enhanced analytics dashboard
-- [ ] Push notification support
-- [ ] Advanced user targeting
-- [ ] Integration with SAP BTP
-
-### v2.0.0 (Q4 2025)
-- [ ] Machine learning insights
-- [ ] Advanced personalization
-- [ ] Integration with Teams/Slack
-- [ ] Multi-tenancy support
-
----
-
 **🚀 Ready to deploy?** Follow our [complete deployment guide](docs/DEPLOYMENT_GUIDE.md) to get started!
 
 ---
