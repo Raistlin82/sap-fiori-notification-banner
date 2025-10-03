@@ -13,13 +13,16 @@ Welcome to the complete documentation for the SAP Fiori Global Notification Bann
 ├── 👤 End Users
 │   └── USER_GUIDE.md - How to use notifications
 ├── 👨‍💼 Administrators
-│   └── ADMIN_GUIDE.md - How to manage notifications
+│   ├── ADMIN_GUIDE.md - How to manage notifications
+│   └── ADMIN_UI_DISPLAY_MODE.md - Display mode guide
 ├── 🔧 Technical Team
-│   └── DEPLOYMENT_GUIDE.md - How to install the system
-├── 🏗️ Architecture
-│   └── ARCHITECTURE.md - System architecture diagrams
-└── 🧪 Quality Assurance
-    └── TEST_REPORT.md - Test reports and validations
+│   ├── DEPLOYMENT_GUIDE.md - Frontend deployment guide
+│   ├── BACKEND_DEPLOYMENT.md - Backend (ABAP) deployment
+│   ├── FLP_CONFIGURATION.md - Fiori Launchpad configuration
+│   ├── AUTHORIZATION_OBJECTS.md - Authorization setup
+│   └── DATA_ELEMENTS_REFERENCE.md - Data model reference
+└── 🏗️ Architecture
+    └── ARCHITECTURE.md - System architecture diagrams
 ```
 
 ---

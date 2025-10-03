@@ -23,18 +23,17 @@
   ],
   "author": "SAP Development Team",
   "license": "PROPRIETARY",
-  "dependencies": {},
   "devDependencies": {
-    "@ui5/cli": "^3.0.0",
-    "@ui5/fs": "^3.0.0",
+    "@sap/ux-ui5-tooling": "^1.12.0",
     "@ui5/builder": "^3.0.0",
+    "@ui5/cli": "^3.11.11",
+    "@ui5/fs": "^3.0.0",
     "@ui5/logger": "^3.0.0",
     "@ui5/project": "^3.0.0",
     "@ui5/server": "^3.0.0",
-    "@sap/ux-ui5-tooling": "^1.12.0",
-    "ui5-task-zipper": "^0.5.0",
     "eslint": "^8.50.0",
-    "rimraf": "^5.0.0"
+    "rimraf": "^5.0.0",
+    "ui5-task-zipper": "^0.5.0"
   },
   "ui5": {
     "dependencies": [

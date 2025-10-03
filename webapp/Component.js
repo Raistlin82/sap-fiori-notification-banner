@@ -3,24 +3,15 @@ sap.ui.define([
     "sap/ui/Device",
     "com/sap/notifications/banner2/model/models",
     "com/sap/notifications/banner2/controller/NotificationBanner",
-    "com/sap/notifications/banner2/controller/TileCounter"
-], function (UIComponent, Device, models, NotificationBanner, TileCounter) {
+    "com/sap/notifications/banner2/controller/TileCounter",
+    "sap/base/Log"
+], function (UIComponent, Device, models, NotificationBanner, TileCounter, Log) {
     "use strict";
 
     return UIComponent.extend("com.sap.notifications.banner2.Component", {
 
         metadata: {
-            manifest: "json",
-            config: {
-                sample: {
-                    stretch: true,
-                    files: [
-                        "index.html",
-                        "localService/mockserver.js",
-                        "localService/mockdata/notifications.json"
-                    ]
-                }
-            }
+            manifest: "json"
         },
 
         /**
@@ -31,7 +22,7 @@ sap.ui.define([
         init: function () {
             var that = this;
 
-            console.log("[Component.js] ========== COMPONENT INIT START ==========");
+            Log.info("[Component.js] ========== COMPONENT INIT START ==========");
 
             // call the base component's init function
             UIComponent.prototype.init.apply(this, arguments);
@@ -42,7 +33,7 @@ sap.ui.define([
                               window.location.hostname === "localhost" ||
                               window.location.hostname === "127.0.0.1";
 
-            console.log("[Component.js] Mock data mode:", bUseMockData);
+            Log.info("[Component.js] Mock data mode: " + bUseMockData);
 
             if (bUseMockData) {
                 // Initialize mock server for local testing
@@ -64,7 +55,7 @@ sap.ui.define([
                 sap.ui.require(["com/sap/notifications/banner2/localService/mockserver"], function(mockserver) {
                     mockserver.init();
                     resolve();
-                }, function(error) {
+                }, function(_error) {
                     // Mockserver not available - continue without it
                     resolve();
                 });
@@ -90,40 +81,40 @@ sap.ui.define([
         _initializeNotificationBanner: function() {
             var that = this;
 
-            console.log("[Component.js] Initializing NotificationBanner...");
+            Log.info("[Component.js] Initializing NotificationBanner...");
 
             // Create notification banner instance
             this._notificationBanner = new NotificationBanner();
-            console.log("[Component.js] NotificationBanner instance created");
+            Log.info("[Component.js] NotificationBanner instance created");
 
             // Create tile counter instance
             this._tileCounter = new TileCounter();
-            console.log("[Component.js] TileCounter instance created");
+            Log.info("[Component.js] TileCounter instance created");
 
             // Start polling for notifications every 30 seconds
             this._startNotificationPolling();
 
             // Listen for shell container ready event or attach immediately in standalone mode
             if (typeof sap !== "undefined" && sap.ushell && sap.ushell.Container) {
-                console.log("[Component.js] FLP mode detected");
+                Log.info("[Component.js] FLP mode detected");
 
                 // Check if renderer is already created
                 var oRenderer = sap.ushell.Container.getRenderer();
                 if (oRenderer) {
-                    console.log("[Component.js] Shell renderer already exists - attaching banner immediately");
+                    Log.info("[Component.js] Shell renderer already exists - attaching banner immediately");
                     that._notificationBanner.attachToShell();
                     that._tileCounter.start();
                 } else {
-                    console.log("[Component.js] Shell renderer not ready - waiting for RendererCreatedEvent");
+                    Log.info("[Component.js] Shell renderer not ready - waiting for RendererCreatedEvent");
                     // FLP mode - wait for shell to be ready
                     sap.ushell.Container.attachRendererCreatedEvent(function() {
-                        console.log("[Component.js] Shell renderer created - attaching banner");
+                        Log.info("[Component.js] Shell renderer created - attaching banner");
                         that._notificationBanner.attachToShell();
                         that._tileCounter.start();
                     });
                 }
             } else {
-                console.log("[Component.js] Standalone mode - attaching banner immediately");
+                Log.info("[Component.js] Standalone mode - attaching banner immediately");
                 // Standalone mode - attach immediately
                 setTimeout(function() {
                     that._notificationBanner.attachToShell();
@@ -142,10 +133,12 @@ sap.ui.define([
             // Poll immediately on start
             this._notificationBanner.loadNotifications();
 
-            // Set up periodic polling
-            setInterval(function() {
+            // Set up periodic polling and store interval ID for cleanup
+            this._pollingInterval = setInterval(function() {
                 that._notificationBanner.loadNotifications();
             }, 30000); // 30 seconds
+
+            Log.info("[Component.js] Notification polling started (30s interval)");
         },
 
         /**
@@ -171,12 +164,26 @@ sap.ui.define([
          * @public
          */
         exit: function() {
+            // Clear polling interval to prevent memory leaks
+            if (this._pollingInterval) {
+                clearInterval(this._pollingInterval);
+                this._pollingInterval = null;
+                Log.info("[Component.js] Notification polling stopped");
+            }
+
+            // Destroy notification banner
             if (this._notificationBanner) {
                 this._notificationBanner.destroy();
+                this._notificationBanner = null;
             }
+
+            // Destroy tile counter
             if (this._tileCounter) {
                 this._tileCounter.destroy();
+                this._tileCounter = null;
             }
+
+            Log.info("[Component.js] Component cleanup completed");
         }
     });
 });

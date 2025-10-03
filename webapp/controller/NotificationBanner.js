@@ -372,7 +372,7 @@ sap.ui.define([
             }
 
             console.log("[NotificationBanner] Grouped notifications - BANNER:", bannerNotifications.length,
-                       "TOAST:", toastNotifications.length, "BOTH:", bothNotifications.length, "SILENT:", silentNotifications.length);
+                "TOAST:", toastNotifications.length, "BOTH:", bothNotifications.length, "SILENT:", silentNotifications.length);
 
             // Store banner notifications for navigation (BANNER + BOTH)
             this._bannerNotifications = bannerNotifications.concat(bothNotifications);
