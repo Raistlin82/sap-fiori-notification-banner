@@ -325,6 +325,15 @@ html[data-sap-ui-theme*="sap_fiori_3"] .notificationBanner {
 /* Ensure admin page takes full height in both standalone and FLP */
 #View1--page {
     height: 100% !important;
+    display: flex !important;
+    flex-direction: column !important;
+}
+
+#View1--page .sapMPageEnableScrolling {
+    flex: 1 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    overflow: auto !important;
 }
 
 /* Root container height fix for FLP - only target app container */
@@ -434,11 +443,19 @@ html[data-sap-ui-theme*="sap_fiori_3"] .notificationBanner {
     background-color: var(--sapList_Background, #ffffff) !important;
 }
 
-/* Maximize table visible area */
+/* Maximize table visible area - force full height usage */
 #View1--messagesTable {
-    min-height: calc(100vh - 20rem) !important;
+    flex: 1 !important;
+    height: auto !important;
 }
 
+/* Remove height restrictions on table scroll container */
 #View1--messagesTable .sapMListScr {
-    max-height: calc(100vh - 22rem) !important;
+    max-height: none !important;
+    height: 100% !important;
+}
+
+/* Remove fixed growing height */
+#View1--messagesTable .sapMGrowingList {
+    max-height: none !important;
 }

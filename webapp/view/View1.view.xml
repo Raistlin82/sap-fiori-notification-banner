@@ -76,11 +76,9 @@
                 id="messagesTable"
                 items="{/messages}"
                 mode="None"
-                growing="true"
-                growingThreshold="100"
-                growingScrollToLoad="false"
                 noDataText="{i18n>msgNoData}"
-                class="sapUiResponsiveMargin">
+                class="sapUiResponsiveMargin"
+                fixedLayout="false">
 
                 <columns>
                     <Column width="80px">
