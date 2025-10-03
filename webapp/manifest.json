@@ -37,6 +37,12 @@
       "phone": true
     }
   },
+  "sap.flp": {
+    "type": "plugin",
+    "config": {
+      "enabled": true
+    }
+  },
   "sap.ui5": {
     "flexEnabled": false,
     "dependencies": {
