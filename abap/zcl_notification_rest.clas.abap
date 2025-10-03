@@ -352,8 +352,8 @@ CLASS zcl_notification_rest IMPLEMENTATION.
 
     lv_total = lv_high_count + lv_medium_count + lv_low_count.
 
-    " Build info string (format: "XH|XM|XL")
-    lv_info = lv_high_count && 'H|' && lv_medium_count && 'M|' && lv_low_count && 'L'.
+    " Build info string with colored emoji (format: "🔴 High: X  🟠 Med: X  🟢 Low: X")
+    lv_info = '🔴 High: ' && lv_high_count && '  🟠 Med: ' && lv_medium_count && '  🟢 Low: ' && lv_low_count.
 
     " Determine info state based on severity (HIGH = Error, MEDIUM = Warning, LOW = Success)
     IF lv_high_count > 0.
@@ -368,7 +368,7 @@ CLASS zcl_notification_rest IMPLEMENTATION.
     lv_number = lv_total.
 
     " Build OData-compatible JSON response for dynamic tile
-    " Format: { "d": { "number": "X", "numberUnit": "Active", "info": "XH|XM|XL", "infoState": "Error" } }
+    " Format: { "d": { "number": "X", "numberUnit": "Active", "info": "🔴 High: X  🟠 Med: X  🟢 Low: X", "infoState": "Error" } }
     lv_json = '{"d":{"number":"' && lv_number && '","numberUnit":"Active","info":"' && lv_info && '","infoState":"' && lv_info_state && '"}}'.
 
     " Set response
