@@ -32,6 +32,9 @@ sap.ui.define([
             this._maxConsecutiveErrors = 5;
             this._isCircuitOpen = false;
             this._circuitResetTimeout = null;
+
+            // Dismissed notifications (1 hour timeout)
+            this._dismissedTimeout = 60 * 60 * 1000; // 1 hour in milliseconds
         },
 
         /**
@@ -212,22 +215,97 @@ sap.ui.define([
         },
 
         /**
+         * Get dismissed notifications from localStorage
+         * @private
+         * @returns {Object} Map of message_id -> timestamp
+         */
+        _getDismissedNotifications: function() {
+            try {
+                var dismissed = localStorage.getItem("notificationBanner.dismissed");
+                return dismissed ? JSON.parse(dismissed) : {};
+            } catch (e) {
+                Log.warning("Failed to read dismissed notifications from localStorage: " + e.message);
+                return {};
+            }
+        },
+
+        /**
+         * Save dismissed notification to localStorage
+         * @private
+         * @param {string} messageId - Notification message ID
+         */
+        _dismissNotification: function(messageId) {
+            try {
+                var dismissed = this._getDismissedNotifications();
+                dismissed[messageId] = Date.now();
+                localStorage.setItem("notificationBanner.dismissed", JSON.stringify(dismissed));
+                Log.info("Notification dismissed: " + messageId);
+            } catch (e) {
+                Log.warning("Failed to save dismissed notification to localStorage: " + e.message);
+            }
+        },
+
+        /**
+         * Clean up expired dismissed notifications
+         * @private
+         */
+        _cleanupDismissed: function() {
+            try {
+                var dismissed = this._getDismissedNotifications();
+                var now = Date.now();
+                var cleaned = {};
+                var expiredCount = 0;
+
+                for (var messageId in dismissed) {
+                    if (now - dismissed[messageId] < this._dismissedTimeout) {
+                        cleaned[messageId] = dismissed[messageId];
+                    } else {
+                        expiredCount++;
+                    }
+                }
+
+                if (expiredCount > 0) {
+                    localStorage.setItem("notificationBanner.dismissed", JSON.stringify(cleaned));
+                    Log.info("Cleaned up " + expiredCount + " expired dismissed notifications");
+                }
+            } catch (e) {
+                Log.warning("Failed to cleanup dismissed notifications: " + e.message);
+            }
+        },
+
+        /**
          * Process received notifications
          * @private
          * @param {Array} notifications - array of notifications
          */
         _processNotifications: function(notifications) {
+            // Clean up expired dismissed notifications
+            this._cleanupDismissed();
+
+            // Filter out dismissed notifications
+            var dismissed = this._getDismissedNotifications();
+            var now = Date.now();
+            var filteredNotifications = notifications.filter(function(notification) {
+                var dismissedTime = dismissed[notification.message_id];
+                if (dismissedTime && (now - dismissedTime) < this._dismissedTimeout) {
+                    return false; // Skip dismissed notification
+                }
+                return true;
+            }.bind(this));
+
+            console.log("[NotificationBanner] Filtered notifications:", filteredNotifications.length, "of", notifications.length);
+
             var hasNewNotifications = false;
 
             // Check for new or updated notifications
-            if (notifications.length !== this._notifications.length) {
+            if (filteredNotifications.length !== this._notifications.length) {
                 hasNewNotifications = true;
             } else {
-                for (var i = 0; i < notifications.length; i++) {
+                for (var i = 0; i < filteredNotifications.length; i++) {
                     var found = this._notifications.find(function(n) {
-                        return n.message_id === notifications[i].message_id;
+                        return n.message_id === filteredNotifications[i].message_id;
                     });
-                    if (!found || found.changed_at !== notifications[i].changed_at) {
+                    if (!found || found.changed_at !== filteredNotifications[i].changed_at) {
                         hasNewNotifications = true;
                         break;
                     }
@@ -235,7 +313,7 @@ sap.ui.define([
             }
 
             if (hasNewNotifications) {
-                this._notifications = notifications;
+                this._notifications = filteredNotifications;
                 this._displayNotifications();
             }
         },
@@ -326,17 +404,37 @@ sap.ui.define([
          * @param {object} notification - Notification object
          */
         _showToast: function(notification) {
-            var message = notification.title + ": " + notification.message_text;
+            // Add severity prefix to differentiate visually (MessageToast doesn't support colors)
+            var severityPrefix = "";
+            switch (notification.severity.toUpperCase()) {
+            case "HIGH":
+                severityPrefix = "[CRITICAL] ";
+                break;
+            case "MEDIUM":
+                severityPrefix = "[WARNING] ";
+                break;
+            case "LOW":
+                severityPrefix = "[INFO] ";
+                break;
+            }
+
+            var message = severityPrefix + notification.title + ": " + notification.message_text;
 
             MessageToast.show(message, {
                 duration: 5000, // 5 seconds
-                width: "25em",
+                width: "30em",
                 my: "center bottom",
                 at: "center bottom",
                 of: window,
                 offset: "0 -50",
                 autoClose: true
             });
+
+            // Dismiss toast automatically after showing (prevent re-showing on next poll)
+            if (notification.message_id) {
+                this._dismissNotification(notification.message_id);
+                console.log("[NotificationBanner] Toast auto-dismissed:", notification.message_id);
+            }
         },
 
         /**
@@ -422,7 +520,6 @@ sap.ui.define([
                     press: this._showPreviousNotification.bind(this),
                     tooltip: "Previous notification"
                 });
-                prevButton.addStyleClass("sapUiTinyMarginEnd");
 
                 var nextButton = new Button({
                     icon: "sap-icon://navigation-right-arrow",
@@ -430,16 +527,21 @@ sap.ui.define([
                     press: this._showNextNotification.bind(this),
                     tooltip: "Next notification"
                 });
-                nextButton.addStyleClass("sapUiTinyMarginBegin");
+
+                // Set explicit width for MessageStrip to fill available space
+                messageStrip.setWidth("100%");
 
                 this._currentBanner = new HBox({
+                    width: "100%",
                     alignItems: "Center",
+                    justifyContent: "SpaceBetween",
                     items: [
                         prevButton,
                         messageStrip,
                         nextButton
                     ]
                 });
+                this._currentBanner.addStyleClass("sapUiMediumMargin");
             } else {
                 this._currentBanner = messageStrip;
             }
@@ -502,6 +604,13 @@ sap.ui.define([
          * @private
          */
         _onBannerClose: function() {
+            // Save dismissed notification
+            var notification = this._notifications[this._currentBannerIndex];
+            if (notification && notification.message_id) {
+                this._dismissNotification(notification.message_id);
+                console.log("[NotificationBanner] Notification dismissed:", notification.message_id);
+            }
+
             // Remove current notification from display
             this._notifications.splice(this._currentBannerIndex, 1);
 
