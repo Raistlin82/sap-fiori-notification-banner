@@ -119,20 +119,7 @@ CLASS zcl_notification_rest IMPLEMENTATION.
 
     " Admin app: Return ALL notifications (active + inactive + expired)
     IF lv_all_str = 'X'.
-      SELECT message_id,
-             message_type,
-             severity,
-             title,
-             message_text,
-             start_date,
-             end_date,
-             target_users,
-             active,
-             display_mode,
-             created_by,
-             created_at,
-             changed_by,
-             changed_at
+      SELECT *
         FROM ztnotify_msgs
         INTO TABLE @lt_db_notifications
         ORDER BY changed_at DESCENDING.
