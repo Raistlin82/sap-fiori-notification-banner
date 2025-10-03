@@ -66,7 +66,9 @@ sap.ui.define([
 
                     // Convert active from 'X'/'' to boolean
                     messages.forEach(function(msg) {
-                        msg.active = (msg.active === 'X' || msg.active === true);
+                        // Handle ABAP 'X', boolean true, or string 'true'
+                        // Convert anything else (empty string, space, null) to false
+                        msg.active = !!(msg.active === 'X' || msg.active === true || msg.active === 'true');
                     });
 
                     oModel.setProperty("/messages", messages);
