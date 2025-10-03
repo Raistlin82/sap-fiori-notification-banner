@@ -5,10 +5,12 @@ sap.ui.define([
     "sap/m/Button",
     "sap/m/Text",
     "sap/m/HBox",
+    "sap/m/VBox",
+    "sap/m/FormattedText",
     "sap/ui/core/library",
     "sap/ui/model/json/JSONModel",
     "sap/base/Log"
-], function(BaseObject, MessageStrip, MessageToast, Button, Text, HBox, coreLibrary, JSONModel, Log) {
+], function(BaseObject, MessageStrip, MessageToast, Button, Text, HBox, VBox, FormattedText, coreLibrary, JSONModel, Log) {
     "use strict";
 
     var MessageType = coreLibrary.MessageType;
@@ -402,25 +404,36 @@ sap.ui.define([
          * @param {object} notification - Notification object
          */
         _showToast: function(notification) {
+            // Check if already shown in this session to prevent duplicates
+            if (!this._shownToasts) {
+                this._shownToasts = {};
+            }
+
+            // Skip if already shown in current session
+            if (this._shownToasts[notification.message_id]) {
+                console.log("[NotificationBanner] Toast already shown in this session:", notification.message_id);
+                return;
+            }
+
             // Add severity prefix to differentiate visually (MessageToast doesn't support colors)
             var severityPrefix = "";
             switch (notification.severity.toUpperCase()) {
             case "HIGH":
-                severityPrefix = "[CRITICAL] ";
+                severityPrefix = "🔴 CRITICAL: ";
                 break;
             case "MEDIUM":
-                severityPrefix = "[WARNING] ";
+                severityPrefix = "🟠 WARNING: ";
                 break;
             case "LOW":
-                severityPrefix = "[INFO] ";
+                severityPrefix = "🔵 INFO: ";
                 break;
             }
 
-            var message = severityPrefix + notification.title + ": " + notification.message_text;
+            var message = severityPrefix + notification.title + "\n" + notification.message_text;
 
             MessageToast.show(message, {
-                duration: 5000, // 5 seconds
-                width: "30em",
+                duration: 6000, // 6 seconds
+                width: "35em",
                 my: "center bottom",
                 at: "center bottom",
                 of: window,
@@ -428,11 +441,9 @@ sap.ui.define([
                 autoClose: true
             });
 
-            // Dismiss toast automatically after showing (prevent re-showing on next poll)
-            if (notification.message_id) {
-                this._dismissNotification(notification.message_id);
-                console.log("[NotificationBanner] Toast auto-dismissed:", notification.message_id);
-            }
+            // Mark as shown in this session (not localStorage - let user see it on page refresh)
+            this._shownToasts[notification.message_id] = true;
+            console.log("[NotificationBanner] Toast shown:", notification.message_id, notification.title);
         },
 
         /**
@@ -484,26 +495,42 @@ sap.ui.define([
             console.log("[NotificationBanner] Message text:", notification.message_text);
             console.log("[NotificationBanner] Message type:", messageType);
 
-            var bannerText = notification.title;
+            // Create formatted text with bold title
+            var htmlText = "<strong style='font-size: 1rem;'>" +
+                          this._escapeHtml(notification.title) +
+                          "</strong>";
+
             if (notification.message_text) {
-                bannerText += ": " + notification.message_text;
+                htmlText += "<span style='font-size: 0.95rem; margin-left: 0.5rem;'>– " +
+                           this._escapeHtml(notification.message_text) +
+                           "</span>";
             }
 
             // Add navigation counter if multiple notifications
             if (this._bannerNotifications.length > 1) {
-                bannerText += " (" + (this._currentBannerIndex + 1) + " of " + this._bannerNotifications.length + ")";
+                htmlText += "<span style='font-size: 0.875rem; margin-left: 1rem; opacity: 0.8;'>" +
+                           "(" + (this._currentBannerIndex + 1) + " of " + this._bannerNotifications.length + ")" +
+                           "</span>";
             }
 
-            console.log("[NotificationBanner] Final banner text:", bannerText);
+            console.log("[NotificationBanner] Final banner HTML:", htmlText);
 
-            // Create banner without styleClass (not supported in constructor)
+            // Create FormattedText control
+            var formattedText = new FormattedText({
+                htmlText: htmlText
+            });
+            formattedText.addStyleClass("sapUiTinyMarginTop");
+
+            // Create banner with custom content
             var messageStrip = new MessageStrip({
-                text: bannerText,
                 type: messageType,
                 showIcon: true,
                 showCloseButton: true,
                 close: this._onBannerClose.bind(this)
             });
+
+            // Add formatted text as custom content
+            messageStrip.addAggregation("_formattedText", formattedText);
 
             // Add CSS classes after creation
             messageStrip.addStyleClass("sapUiMediumMargin");
@@ -601,23 +628,43 @@ sap.ui.define([
          * Handle banner close
          * @private
          */
-        _onBannerClose: function() {
+        _onBannerClose: function(oEvent) {
+            console.log("[NotificationBanner] ========== BANNER CLOSE CLICKED ==========");
+            console.log("[NotificationBanner] Event:", oEvent);
+            console.log("[NotificationBanner] Current banner index:", this._currentBannerIndex);
+            console.log("[NotificationBanner] Banner notifications count:", this._bannerNotifications.length);
+
+            // Prevent duplicate close events
+            if (this._isClosing) {
+                console.log("[NotificationBanner] Already closing, ignoring duplicate event");
+                return;
+            }
+            this._isClosing = true;
+
             // Save dismissed notification
             var notification = this._bannerNotifications[this._currentBannerIndex];
             if (notification && notification.message_id) {
+                console.log("[NotificationBanner] Dismissing notification:", notification.message_id, notification.title);
                 this._dismissNotification(notification.message_id);
-                console.log("[NotificationBanner] Notification dismissed:", notification.message_id, notification.title);
+
+                // Verify it was saved
+                var dismissed = this._getDismissedNotifications();
+                console.log("[NotificationBanner] Dismissed saved in localStorage:", dismissed[notification.message_id] ? "YES" : "NO");
             }
 
             // Remove current notification from display
             this._bannerNotifications.splice(this._currentBannerIndex, 1);
+            console.log("[NotificationBanner] Removed from bannerNotifications, new count:", this._bannerNotifications.length);
 
             // Also remove from all notifications
-            var index = this._allNotifications.findIndex(function(n) {
-                return n.message_id === notification.message_id;
-            });
-            if (index !== -1) {
-                this._allNotifications.splice(index, 1);
+            if (notification) {
+                var index = this._allNotifications.findIndex(function(n) {
+                    return n.message_id === notification.message_id;
+                });
+                if (index !== -1) {
+                    this._allNotifications.splice(index, 1);
+                    console.log("[NotificationBanner] Removed from allNotifications, new count:", this._allNotifications.length);
+                }
             }
 
             // Adjust index if needed
@@ -626,7 +673,15 @@ sap.ui.define([
             }
 
             // Update display
+            console.log("[NotificationBanner] Calling _updateBanner...");
             this._updateBanner();
+
+            // Reset closing flag after a short delay
+            setTimeout(function() {
+                this._isClosing = false;
+            }.bind(this), 500);
+
+            console.log("[NotificationBanner] ========== BANNER CLOSE COMPLETED ==========");
         },
 
         /**
@@ -661,6 +716,21 @@ sap.ui.define([
             }
 
             this._updateBanner();
+        },
+
+        /**
+         * Escape HTML special characters
+         * @private
+         * @param {string} text - Text to escape
+         * @returns {string} Escaped text
+         */
+        _escapeHtml: function(text) {
+            if (!text) {
+                return "";
+            }
+            var div = document.createElement("div");
+            div.textContent = text;
+            return div.innerHTML;
         },
 
         /**
