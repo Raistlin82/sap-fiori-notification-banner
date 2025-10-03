@@ -384,44 +384,25 @@ sap.ui.define([
 
             console.log("[NotificationBanner] Creating banner for notification:", notification.title, "- Type:", messageType);
 
+            var bannerText = notification.title + ": " + notification.message_text;
+
+            // Add navigation counter if multiple notifications
+            if (this._notifications.length > 1) {
+                bannerText += " (" + (this._currentBannerIndex + 1) + " of " + this._notifications.length + ")";
+            }
+
             // Create banner
             this._currentBanner = new MessageStrip({
-                text: notification.title + ": " + notification.message_text,
+                text: bannerText,
                 type: messageType,
                 showIcon: true,
                 showCloseButton: true,
-                class: "sapUiMediumMargin notificationBanner " +
-                       "notificationBanner--" + notification.severity.toLowerCase(),
+                styleClass: "sapUiMediumMargin notificationBanner " +
+                           "notificationBanner--" + notification.severity.toLowerCase(),
                 close: this._onBannerClose.bind(this)
             });
 
             console.log("[NotificationBanner] Banner created, inserting into shell...");
-
-            // Add navigation buttons if multiple notifications
-            if (this._notifications.length > 1) {
-                var prevButton = new Button({
-                    icon: "sap-icon://navigation-left-arrow",
-                    type: "Transparent",
-                    press: this._showPreviousNotification.bind(this),
-                    tooltip: "Previous notification"
-                });
-
-                var nextButton = new Button({
-                    icon: "sap-icon://navigation-right-arrow",
-                    type: "Transparent",
-                    press: this._showNextNotification.bind(this),
-                    tooltip: "Next notification"
-                });
-
-                var counterText = new Text({
-                    text: (this._currentBannerIndex + 1) + " of " + this._notifications.length
-                });
-
-                // Add custom content
-                this._currentBanner.addAggregation("_formattedText", prevButton);
-                this._currentBanner.addAggregation("_formattedText", counterText);
-                this._currentBanner.addAggregation("_formattedText", nextButton);
-            }
 
             // Insert banner at the top of the page
             this._insertBannerInShell();
