@@ -81,7 +81,7 @@
                 fixedLayout="false">
 
                 <columns>
-                    <Column width="80px">
+                    <Column width="60px">
                         <Text text="{i18n>columnSeverity}"/>
                     </Column>
                     <Column width="200px" minScreenWidth="Tablet" demandPopin="true">
@@ -112,7 +112,6 @@
                         <cells>
                             <!-- Severity -->
                             <ObjectStatus
-                                text="{severity}"
                                 state="{
                                     path: 'severity',
                                     formatter: '.formatter.formatSeverityState'
