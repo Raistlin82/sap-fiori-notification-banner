@@ -31,6 +31,8 @@ sap.ui.define([
         init: function () {
             var that = this;
 
+            console.log("[Component.js] ========== COMPONENT INIT START ==========");
+
             // call the base component's init function
             UIComponent.prototype.init.apply(this, arguments);
 
@@ -39,6 +41,8 @@ sap.ui.define([
             var bUseMockData = oUriParams.get("sap-ui-xx-mockserver") === "true" ||
                               window.location.hostname === "localhost" ||
                               window.location.hostname === "127.0.0.1";
+
+            console.log("[Component.js] Mock data mode:", bUseMockData);
 
             if (bUseMockData) {
                 // Initialize mock server for local testing
@@ -86,23 +90,30 @@ sap.ui.define([
         _initializeNotificationBanner: function() {
             var that = this;
 
+            console.log("[Component.js] Initializing NotificationBanner...");
+
             // Create notification banner instance
             this._notificationBanner = new NotificationBanner();
+            console.log("[Component.js] NotificationBanner instance created");
 
             // Create tile counter instance
             this._tileCounter = new TileCounter();
+            console.log("[Component.js] TileCounter instance created");
 
             // Start polling for notifications every 30 seconds
             this._startNotificationPolling();
 
             // Listen for shell container ready event or attach immediately in standalone mode
             if (typeof sap !== "undefined" && sap.ushell && sap.ushell.Container) {
+                console.log("[Component.js] FLP mode detected - waiting for shell renderer");
                 // FLP mode - wait for shell to be ready
                 sap.ushell.Container.attachRendererCreatedEvent(function() {
+                    console.log("[Component.js] Shell renderer created - attaching banner");
                     that._notificationBanner.attachToShell();
                     that._tileCounter.start();
                 });
             } else {
+                console.log("[Component.js] Standalone mode - attaching banner immediately");
                 // Standalone mode - attach immediately
                 setTimeout(function() {
                     that._notificationBanner.attachToShell();

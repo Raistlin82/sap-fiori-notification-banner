@@ -40,8 +40,11 @@ sap.ui.define([
         loadNotifications: function() {
             var that = this;
 
+            console.log("[NotificationBanner] Loading notifications...");
+
             // Check circuit breaker state
             if (this._isCircuitOpen) {
+                console.warn("[NotificationBanner] Circuit breaker is open, skipping notification load");
                 Log.warning("Circuit breaker is open, skipping notification load");
                 return;
             }
@@ -56,6 +59,8 @@ sap.ui.define([
                 Log.warning("Could not retrieve user ID from FLP, using ANONYMOUS: " + e.message);
             }
 
+            console.log("[NotificationBanner] User ID:", sUserId);
+
             jQuery.ajax({
                 url: "/sap/bc/rest/zcl_notif_rest/",
                 type: "GET",
@@ -64,6 +69,8 @@ sap.ui.define([
                 },
                 timeout: 10000, // 10 second timeout
                 success: function(data) {
+                    console.log("[NotificationBanner] Notifications loaded successfully:", data);
+
                     // Reset error counters on success
                     that._retryCount = 0;
                     that._consecutiveErrors = 0;
@@ -72,6 +79,7 @@ sap.ui.define([
                     that._processNotifications(data);
                 },
                 error: function(xhr, status, error) {
+                    console.error("[NotificationBanner] Failed to load notifications:", error, "Status:", xhr.status);
                     that._handleLoadError(xhr, status, error);
                 }
             });
@@ -236,7 +244,10 @@ sap.ui.define([
          * @private
          */
         _displayNotifications: function() {
+            console.log("[NotificationBanner] _displayNotifications called. isAttachedToShell:", this._isAttachedToShell);
+
             if (!this._isAttachedToShell) {
+                console.warn("[NotificationBanner] Not attached to shell - cannot display notifications");
                 return;
             }
 
@@ -252,6 +263,8 @@ sap.ui.define([
             for (var i = 0; i < this._notifications.length; i++) {
                 var notification = this._notifications[i];
                 var displayMode = (notification.display_mode || "BANNER").toUpperCase();
+
+                console.log("[NotificationBanner] Notification", i, "- Mode:", displayMode, "Title:", notification.title);
 
                 switch(displayMode) {
                 case "BANNER":
@@ -270,6 +283,9 @@ sap.ui.define([
                     bannerNotifications.push(notification); // Default to banner
                 }
             }
+
+            console.log("[NotificationBanner] Grouped notifications - BANNER:", bannerNotifications.length,
+                       "TOAST:", toastNotifications.length, "BOTH:", bothNotifications.length, "SILENT:", silentNotifications.length);
 
             // Display BANNER notifications
             if (bannerNotifications.length > 0) {
@@ -356,12 +372,17 @@ sap.ui.define([
          * @private
          */
         _showBanner: function() {
+            console.log("[NotificationBanner] _showBanner called. Notifications count:", this._notifications.length);
+
             if (this._notifications.length === 0) {
+                console.log("[NotificationBanner] No notifications to show - exiting");
                 return;
             }
 
             var notification = this._notifications[this._currentBannerIndex];
             var messageType = this._getMessageType(notification.severity);
+
+            console.log("[NotificationBanner] Creating banner for notification:", notification.title, "- Type:", messageType);
 
             // Create banner
             this._currentBanner = new MessageStrip({
@@ -373,6 +394,8 @@ sap.ui.define([
                        "notificationBanner--" + notification.severity.toLowerCase(),
                 close: this._onBannerClose.bind(this)
             });
+
+            console.log("[NotificationBanner] Banner created, inserting into shell...");
 
             // Add navigation buttons if multiple notifications
             if (this._notifications.length > 1) {
@@ -413,17 +436,25 @@ sap.ui.define([
                                jQuery(".sapUshellShellHeader")[0] ||
                                jQuery("body")[0];
 
+            console.log("[NotificationBanner] Looking for shell container...");
+            console.log("[NotificationBanner] Found container:", shellContainer ? shellContainer.tagName : "NONE");
+
             if (shellContainer) {
                 var bannerContainer = jQuery("<div id='globalNotificationBanner'></div>");
 
                 if (shellContainer.tagName === "BODY") {
+                    console.log("[NotificationBanner] Prepending to BODY");
                     bannerContainer.prependTo(jQuery(shellContainer));
                 } else {
+                    console.log("[NotificationBanner] Inserting after shell header");
                     bannerContainer.insertAfter(jQuery(shellContainer));
                 }
 
                 this._currentBanner.placeAt("globalNotificationBanner");
                 this._bannerContainer = bannerContainer[0];
+                console.log("[NotificationBanner] ========== BANNER DISPLAYED ==========");
+            } else {
+                console.error("[NotificationBanner] No shell container found - cannot display banner!");
             }
         },
 
@@ -518,6 +549,7 @@ sap.ui.define([
          * @public
          */
         attachToShell: function() {
+            console.log("[NotificationBanner] ========== ATTACHING TO SHELL ==========");
             this._isAttachedToShell = true;
 
             // Load and display notifications
