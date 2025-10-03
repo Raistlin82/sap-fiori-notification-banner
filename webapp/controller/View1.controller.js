@@ -233,16 +233,19 @@ sap.ui.define([
             var oMessage = oContext.getObject();
             var oI18n = this.getView().getModel("i18n");
 
-            // Update message
-            oMessage.active = bNewState ? 'X' : '';
+            // Prepare data for backend (ABAP expects 'X' or '')
+            var oData = Object.assign({}, oMessage);
+            oData.active = bNewState ? 'X' : '';
 
             jQuery.ajax({
                 url: "/sap/bc/rest/zcl_notif_rest/?message_id=" + encodeURIComponent(oMessage.message_id),
                 type: "PUT",
                 contentType: "application/json",
-                data: JSON.stringify(oMessage),
+                data: JSON.stringify(oData),
                 timeout: 10000,
                 success: function () {
+                    // Update model with boolean value (not string)
+                    oMessage.active = bNewState;
                     MessageToast.show(bNewState ?
                         oI18n.getProperty("msgActivateSuccess") :
                         oI18n.getProperty("msgDeactivateSuccess"));
