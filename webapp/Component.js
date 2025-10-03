@@ -105,13 +105,23 @@ sap.ui.define([
 
             // Listen for shell container ready event or attach immediately in standalone mode
             if (typeof sap !== "undefined" && sap.ushell && sap.ushell.Container) {
-                console.log("[Component.js] FLP mode detected - waiting for shell renderer");
-                // FLP mode - wait for shell to be ready
-                sap.ushell.Container.attachRendererCreatedEvent(function() {
-                    console.log("[Component.js] Shell renderer created - attaching banner");
+                console.log("[Component.js] FLP mode detected");
+
+                // Check if renderer is already created
+                var oRenderer = sap.ushell.Container.getRenderer();
+                if (oRenderer) {
+                    console.log("[Component.js] Shell renderer already exists - attaching banner immediately");
                     that._notificationBanner.attachToShell();
                     that._tileCounter.start();
-                });
+                } else {
+                    console.log("[Component.js] Shell renderer not ready - waiting for RendererCreatedEvent");
+                    // FLP mode - wait for shell to be ready
+                    sap.ushell.Container.attachRendererCreatedEvent(function() {
+                        console.log("[Component.js] Shell renderer created - attaching banner");
+                        that._notificationBanner.attachToShell();
+                        that._tileCounter.start();
+                    });
+                }
             } else {
                 console.log("[Component.js] Standalone mode - attaching banner immediately");
                 // Standalone mode - attach immediately
