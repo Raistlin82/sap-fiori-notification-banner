@@ -57,18 +57,35 @@ sap.ui.define([], function () {
         },
 
         /**
-         * Format ABAP DATS date (YYYYMMDD) to readable format
-         * @param {string} abapDate - Date in ABAP DATS format (e.g., "20251003")
+         * Format date to readable format
+         * Handles both ISO format (YYYY-MM-DD) and ABAP DATS format (YYYYMMDD)
+         * @param {string} date - Date in ISO or ABAP format
          * @returns {string} Formatted date (e.g., "03/10/2025")
          */
-        formatAbapDate: function (abapDate) {
-            if (!abapDate || abapDate.length !== 8) {
+        formatAbapDate: function (date) {
+            if (!date) {
                 return "";
             }
-            // Parse YYYYMMDD
-            var year = abapDate.substring(0, 4);
-            var month = abapDate.substring(4, 6);
-            var day = abapDate.substring(6, 8);
+
+            // Convert to string if number
+            var dateStr = String(date);
+
+            var year, month, day;
+
+            if (dateStr.length === 10 && dateStr.indexOf('-') !== -1) {
+                // ISO format: "2025-10-03"
+                var parts = dateStr.split('-');
+                year = parts[0];
+                month = parts[1];
+                day = parts[2];
+            } else if (dateStr.length === 8) {
+                // ABAP DATS format: "20251003"
+                year = dateStr.substring(0, 4);
+                month = dateStr.substring(4, 6);
+                day = dateStr.substring(6, 8);
+            } else {
+                return "";
+            }
 
             return day + "/" + month + "/" + year;
         }
