@@ -7,6 +7,9 @@
 
 A comprehensive global notification banner system for SAP Fiori applications on S/4HANA. Display urgent system messages, maintenance notifications, and alerts across all Fiori apps with a unified, responsive, and accessible banner component.
 
+![SAP Fiori Notification Banner](docs/img/flp-tile-multiple-notifications.png)
+*Dynamic tile in Fiori Launchpad with real-time notification breakdown by severity*
+
 ---
 
 ## 🚀 Features

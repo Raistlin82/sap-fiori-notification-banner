@@ -25,6 +25,9 @@ The **Global Notification Banner** is a system that automatically displays impor
 - Buttons to navigate and close
 - Responsive design on all devices
 
+![FLP Dynamic Tile](img/flp-tile-multiple-notifications.png)
+*Dynamic tile in Fiori Launchpad showing active notifications breakdown*
+
 ---
 
 ## 🔄 How It Works
@@ -78,12 +81,18 @@ The banner appears automatically when:
 
 ### Basic Display
 
+![Banner Notification Example](img/admin-table-with-banner.png)
+*Example of a banner notification displayed at the top of the page*
+
 **Single Notification Banner:**
 
 | ⚠️ **NOTIFICATION TITLE**: Important message text | **❌** |
 |---------------------------------------------------|--------|
 
 ### With Multiple Notifications
+
+![Toast Notification Example](img/admin-table-with-toast.png)
+*Example of a toast notification appearing at the bottom-right*
 
 **Multiple Notifications Banner (with navigation):**
 

@@ -53,6 +53,9 @@ You will immediately see:
 - 🔍 **Search**: Field to filter notifications
 - ➕ **Buttons**: Create new, Refresh
 
+![Admin Table Empty](img/admin-table-empty.png)
+*Initial admin dashboard with empty notification table*
+
 ```mermaid
 graph TD
     subgraph Dashboard["📊 Notification Administration Dashboard"]
@@ -90,6 +93,9 @@ For complete architectural information about the notification system, see the [A
 ### Step 1: Open the Creation Dialog
 1. Click the **"Create Notification"** button in the top right
 2. A dialog opens with an empty form
+
+![Create Notification Dialog](img/admin-create-dialog-maintenance.png)
+*Create notification dialog with all required fields*
 
 ### Step 2: Fill in the Fields
 
@@ -179,6 +185,9 @@ Duration: Entire year
 - Notification appears in the table
 - Status = "Active" (if within period)
 - Users see it within 30 seconds
+
+![Admin Table with Notifications](img/admin-table-multiple-notifications.png)
+*Admin table showing multiple active notifications with different severities*
 
 ---
 
@@ -361,6 +370,9 @@ Deletion is **PERMANENT** and **NOT REVERSIBLE**!
 3. Confirm in the dialog: "Are you sure you want to delete this notification?"
 4. Click **"OK"** to confirm or **"Cancel"** to abort
 
+![Delete Confirmation Dialog](img/admin-delete-confirmation.png)
+*Delete confirmation dialog preventing accidental deletions*
+
 ### What Happens
 - ✅ Notification removed from database
 - ✅ Disappears from admin table
@@ -375,6 +387,9 @@ Instead of deleting, you can **deactivate**:
 2. Uncheck **"Active"**
 3. Save
 4. **Result**: Notification hidden but recoverable
+
+![Admin Table Inactive Status](img/admin-table-inactive-status.png)
+*Table showing both active and inactive notifications with status toggle*
 
 #### Option 2: Reduce Validity
 Shorten the validity:
@@ -494,6 +509,10 @@ before 7:45 PM."
 ---
 
 ## 📈 Monitoring and Statistics
+
+### Dynamic Tile in FLP
+![FLP Dynamic Tile](img/flp-tile-one-notification.png)
+*Dynamic tile showing real-time notification count with severity breakdown*
 
 ### Dashboard Header
 The dashboard always shows:
