@@ -88,6 +88,31 @@ sap.ui.define([], function () {
             }
 
             return day + "/" + month + "/" + year;
+        },
+
+        /**
+         * Format date range (start to end) in readable format
+         * @param {string} startDate - Start date in ISO or ABAP format
+         * @param {string} endDate - End date in ISO or ABAP format
+         * @returns {string} Formatted date range (e.g., "01/10/2025 → 31/10/2025")
+         */
+        formatDateRange: function (startDate, endDate) {
+            var start = this.formatAbapDate(startDate);
+            var end = this.formatAbapDate(endDate);
+
+            if (!start && !end) {
+                return "";
+            }
+
+            if (!end) {
+                return start;
+            }
+
+            if (!start) {
+                return end;
+            }
+
+            return start + " → " + end;
         }
     };
 });

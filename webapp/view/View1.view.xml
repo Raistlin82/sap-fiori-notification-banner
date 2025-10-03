@@ -85,22 +85,22 @@
                     <Column width="80px">
                         <Text text="{i18n>columnSeverity}"/>
                     </Column>
-                    <Column width="200px" minScreenWidth="Tablet" demandPopin="true">
+                    <Column width="250px" minScreenWidth="Tablet" demandPopin="true">
                         <Text text="{i18n>columnTitle}"/>
                     </Column>
-                    <Column minScreenWidth="Desktop" demandPopin="true">
+                    <Column minScreenWidth="Desktop" demandPopin="true" hAlign="Begin">
                         <Text text="{i18n>columnMessage}"/>
                     </Column>
-                    <Column width="180px" minScreenWidth="Tablet" demandPopin="true">
+                    <Column width="220px" minScreenWidth="Desktop" demandPopin="true">
                         <Text text="{i18n>columnPeriod}"/>
                     </Column>
-                    <Column width="120px" minScreenWidth="Desktop" demandPopin="true">
+                    <Column width="130px" minScreenWidth="Desktop" demandPopin="true">
                         <Text text="{i18n>columnTargetAudience}"/>
                     </Column>
-                    <Column width="120px" minScreenWidth="Tablet" demandPopin="true">
+                    <Column width="130px" minScreenWidth="Tablet" demandPopin="true">
                         <Text text="{i18n>columnDisplayMode}"/>
                     </Column>
-                    <Column width="150px" minScreenWidth="Tablet" demandPopin="true">
+                    <Column width="120px" minScreenWidth="Tablet" demandPopin="true" hAlign="Center">
                         <Text text="{i18n>columnStatus}"/>
                     </Column>
                     <Column width="180px">
@@ -134,20 +134,16 @@
                             <!-- Message -->
                             <Text
                                 text="{message_text}"
-                                maxLines="2"/>
+                                maxLines="3"
+                                wrapping="true"/>
 
-                            <!-- Period -->
-                            <VBox>
-                                <Text text="{
-                                    path: 'start_date',
-                                    formatter: '.formatter.formatAbapDate'
-                                }"/>
-                                <Text text="to" class="sapUiTinyMarginTop sapUiTinyMarginBottom"/>
-                                <Text text="{
-                                    path: 'end_date',
-                                    formatter: '.formatter.formatAbapDate'
-                                }"/>
-                            </VBox>
+                            <!-- Period (Date Range) -->
+                            <Text
+                                text="{
+                                    parts: ['start_date', 'end_date'],
+                                    formatter: '.formatter.formatDateRange'
+                                }"
+                                wrapping="false"/>
 
                             <!-- Target Users -->
                             <Text text="{target_users}"/>

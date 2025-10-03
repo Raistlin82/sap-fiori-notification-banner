@@ -367,3 +367,69 @@ html[data-sap-ui-theme*="sap_fiori_3"] .notificationBanner {
 .sapUShellApplicationContainer .sapMPageEnableScrolling {
     height: calc(100% - 3rem) !important;
 }
+
+/* ==========================================================================
+   Admin Table Readability Improvements
+   ========================================================================== */
+
+/* Table header styling */
+#View1--messagesTable .sapMListTblHeaderCell {
+    font-weight: 600 !important;
+    color: var(--sapList_HeaderTextColor, #32363a) !important;
+    background-color: var(--sapList_HeaderBackground, #fafafa) !important;
+    border-bottom: 2px solid var(--sapList_BorderColor, #e5e5e5) !important;
+    padding: 0.75rem 0.5rem !important;
+}
+
+/* Table row hover effect for better visibility */
+#View1--messagesTable .sapMListTblRow:hover {
+    background-color: var(--sapList_Hover_Background, #f5f5f5) !important;
+}
+
+/* Table cell padding for better spacing */
+#View1--messagesTable .sapMListTblCell {
+    padding: 0.75rem 0.5rem !important;
+    vertical-align: top !important;
+}
+
+/* Improve text contrast in cells */
+#View1--messagesTable .sapMText {
+    color: var(--sapTextColor, #32363a) !important;
+    line-height: 1.5 !important;
+}
+
+/* Message text cell - better readability */
+#View1--messagesTable .sapMText[data-sap-ui*="message_text"] {
+    font-size: 0.875rem !important;
+    color: var(--sapTextColor, #32363a) !important;
+}
+
+/* Date range text - ensure good contrast */
+#View1--messagesTable .sapMLIBContent .sapMText {
+    color: var(--sapTextColor, #32363a) !important;
+    font-weight: 400 !important;
+}
+
+/* Switch component alignment */
+#View1--messagesTable .sapMSwt {
+    margin: 0 auto !important;
+}
+
+/* ObjectStatus styling for better visibility */
+#View1--messagesTable .sapMObjectStatus {
+    font-weight: 500 !important;
+}
+
+/* Ensure table borders are visible */
+#View1--messagesTable .sapMListTbl {
+    border: 1px solid var(--sapList_BorderColor, #e5e5e5) !important;
+}
+
+/* Alternating row colors for better readability */
+#View1--messagesTable .sapMListTblRow:nth-child(even) {
+    background-color: var(--sapList_AlternatingBackground, #fafafa) !important;
+}
+
+#View1--messagesTable .sapMListTblRow:nth-child(odd) {
+    background-color: var(--sapList_Background, #ffffff) !important;
+}
