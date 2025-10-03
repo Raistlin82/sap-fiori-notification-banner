@@ -209,7 +209,7 @@ CLASS zcl_notification_rest IMPLEMENTATION.
     rv_json = /ui2/cl_json=>serialize(
       data = it_notifications
       compress = abap_true
-      pretty_name = /ui2/cl_json=>pretty_mode-camel_case ).
+      pretty_name = /ui2/cl_json=>pretty_mode-low_case ).
 
   ENDMETHOD.
 
