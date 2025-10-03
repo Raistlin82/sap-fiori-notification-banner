@@ -38,13 +38,15 @@ As an administrator, you have the responsibility to:
 
 ### Method 1: Via Fiori Launchpad
 1. Access the **Fiori Launchpad**
-2. Search for the tile **"Notification Administration"**
+2. Search for the tile **"System Notifications"**
 3. Click to open the admin interface
 
 ### Method 2: Direct URL
 ```
-https://your-s4hana-system.com/sap/bc/ui5_ui5/sap/z_notification_admin/index.html
+https://your-s4hana-system:port/sap/bc/ui5_ui5/sap/znotify_banner2/index.html?sap-client=100
 ```
+
+**Note**: Replace `your-s4hana-system`, `port`, and `100` (client) with your actual system values.
 
 ### Initial Dashboard
 You will immediately see:
