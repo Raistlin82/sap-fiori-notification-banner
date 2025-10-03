@@ -83,15 +83,22 @@ CLASS zcl_notification_rest IMPLEMENTATION.
   METHOD handle_get_notifications.
 
     DATA: lt_notifications TYPE zcl_notification_manager=>tt_notifications,
+          ls_notification TYPE zcl_notification_manager=>ty_notification,
+          lt_db_notifications TYPE TABLE OF ztnotify_msgs,
+          ls_db_notification TYPE ztnotify_msgs,
           lv_json TYPE string,
           lv_user_id_str TYPE string,
           lv_user_id TYPE sy-uname,
+          lv_all_str TYPE string,
           lv_today TYPE sy-datum,
           lv_expired_count TYPE i.
 
     " Get user ID from query parameter
     lv_user_id_str = mo_server->request->get_form_field( 'user_id' ).
     lv_user_id = lv_user_id_str.
+
+    " Get 'all' parameter - if 'X', return all notifications (for admin app)
+    lv_all_str = mo_server->request->get_form_field( 'all' ).
 
     " Auto-expire notifications: Deactivate notifications where end_date has passed
     lv_today = sy-datum.
@@ -110,8 +117,50 @@ CLASS zcl_notification_rest IMPLEMENTATION.
       " MESSAGE s001(00) WITH 'Auto-expired' lv_expired_count 'notifications'.
     ENDIF.
 
-    " Get active notifications
-    lt_notifications = zcl_notification_manager=>get_active_notifications( lv_user_id ).
+    " Admin app: Return ALL notifications (active + inactive + expired)
+    IF lv_all_str = 'X'.
+      SELECT message_id,
+             message_type,
+             severity,
+             title,
+             message_text,
+             start_date,
+             end_date,
+             target_users,
+             active,
+             display_mode,
+             created_by,
+             created_at,
+             changed_by,
+             changed_at
+        FROM ztnotify_msgs
+        INTO TABLE @lt_db_notifications
+        ORDER BY changed_at DESCENDING.
+
+      " Convert to notification structure
+      LOOP AT lt_db_notifications INTO ls_db_notification.
+        CLEAR ls_notification.
+        ls_notification-message_id = ls_db_notification-message_id.
+        ls_notification-message_type = ls_db_notification-message_type.
+        ls_notification-severity = ls_db_notification-severity.
+        ls_notification-title = ls_db_notification-title.
+        ls_notification-message_text = ls_db_notification-message_text.
+        ls_notification-start_date = ls_db_notification-start_date.
+        ls_notification-end_date = ls_db_notification-end_date.
+        ls_notification-target_users = ls_db_notification-target_users.
+        ls_notification-active = ls_db_notification-active.
+        ls_notification-display_mode = ls_db_notification-display_mode.
+        ls_notification-created_by = ls_db_notification-created_by.
+        ls_notification-created_at = ls_db_notification-created_at.
+        ls_notification-changed_by = ls_db_notification-changed_by.
+        ls_notification-changed_at = ls_db_notification-changed_at.
+        APPEND ls_notification TO lt_notifications.
+      ENDLOOP.
+
+    ELSE.
+      " Normal mode: Return only active notifications for current user
+      lt_notifications = zcl_notification_manager=>get_active_notifications( lv_user_id ).
+    ENDIF.
 
     " Serialize to JSON
     lv_json = serialize_notifications( lt_notifications ).
