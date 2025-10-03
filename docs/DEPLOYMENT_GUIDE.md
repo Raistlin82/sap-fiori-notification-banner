@@ -467,28 +467,6 @@ The FLP configuration creates a **single dynamic tile** that serves two purposes
    - Opens full CRUD table for notification management
    - Only accessible to users with proper authorization
 
-### 📋 Configuration Steps Summary
-
-1. **Create Target Mapping** (`/UI2/FLPD_CUST`)
-   - Semantic Object: `NotificationBanner`
-   - Action: `display`
-
-2. **Create Dynamic Tile** with service URL:
-   - Service: `/sap/bc/rest/zcl_notif_rest/stats`
-   - Refresh: 60 seconds
-
-3. **Assign to Group** and configure role-based access
-
-4. **Test** in Fiori Launchpad (`/sap/bc/ui2/flp`)
-
-### ⚠️ Prerequisites
-
-Before configuring FLP, ensure:
-- ✅ Backend deployed (database tables, REST service active)
-- ✅ Frontend deployed (BSP application `ZNOTIFY_BANNER2` available)
-- ✅ `/sap/bc/rest/zcl_notif_rest/stats` endpoint returns valid OData V2 format
-- ✅ You have authorization for `/UI2/FLPD_CUST`, `PFCG`, and `SU01`
-
 ---
 
 ## 📞 Support
@@ -506,5 +484,5 @@ Before configuring FLP, ensure:
 
 ---
 
-**Last Updated**: January 30, 2025
-**Version**: 1.1.0
+**Last Updated**: January 2025
+**Version**: 1.2.0
