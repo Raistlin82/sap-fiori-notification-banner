@@ -88,6 +88,9 @@
                     <Column width="180px" minScreenWidth="Tablet" demandPopin="true">
                         <Text text="{i18n>columnPeriod}"/>
                     </Column>
+                    <Column width="120px" minScreenWidth="Desktop" demandPopin="true">
+                        <Text text="{i18n>columnTargetAudience}"/>
+                    </Column>
                     <Column width="120px" minScreenWidth="Tablet" demandPopin="true">
                         <Text text="{i18n>columnDisplayMode}"/>
                     </Column>
@@ -131,16 +134,17 @@
                             <VBox>
                                 <Text text="{
                                     path: 'start_date',
-                                    type: 'sap.ui.model.type.Date',
-                                    formatOptions: {pattern: 'dd/MM/yyyy'}
+                                    formatter: '.formatter.formatAbapDate'
                                 }"/>
                                 <Text text="to" class="sapUiTinyMarginTop sapUiTinyMarginBottom"/>
                                 <Text text="{
                                     path: 'end_date',
-                                    type: 'sap.ui.model.type.Date',
-                                    formatOptions: {pattern: 'dd/MM/yyyy'}
+                                    formatter: '.formatter.formatAbapDate'
                                 }"/>
                             </VBox>
+
+                            <!-- Target Users -->
+                            <Text text="{target_users}"/>
 
                             <!-- Display Mode -->
                             <Text text="{display_mode}"/>

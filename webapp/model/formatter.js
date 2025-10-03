@@ -54,6 +54,23 @@ sap.ui.define([], function () {
          */
         formatActiveState: function (active) {
             return active ? "Success" : "Error";
+        },
+
+        /**
+         * Format ABAP DATS date (YYYYMMDD) to readable format
+         * @param {string} abapDate - Date in ABAP DATS format (e.g., "20251003")
+         * @returns {string} Formatted date (e.g., "03/10/2025")
+         */
+        formatAbapDate: function (abapDate) {
+            if (!abapDate || abapDate.length !== 8) {
+                return "";
+            }
+            // Parse YYYYMMDD
+            var year = abapDate.substring(0, 4);
+            var month = abapDate.substring(4, 6);
+            var day = abapDate.substring(6, 8);
+
+            return day + "/" + month + "/" + year;
         }
     };
 });
