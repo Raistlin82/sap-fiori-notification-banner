@@ -94,7 +94,7 @@
                     <Column width="120px" minScreenWidth="Tablet" demandPopin="true">
                         <Text text="{i18n>columnDisplayMode}"/>
                     </Column>
-                    <Column width="100px">
+                    <Column width="150px" minScreenWidth="Tablet" demandPopin="true">
                         <Text text="{i18n>columnStatus}"/>
                     </Column>
                     <Column width="180px">
