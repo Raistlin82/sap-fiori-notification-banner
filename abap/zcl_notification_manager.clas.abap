@@ -185,6 +185,7 @@ CLASS zcl_notification_manager IMPLEMENTATION.
       ls_notification-display_mode = 'BANNER'.  " Default to BANNER
     ENDIF.
     ls_notification-target_users = is_notification-target_users.
+    ls_notification-active = is_notification-active.
     ls_notification-changed_by = sy-uname.
 
     GET TIME STAMP FIELD lv_timestamp.
