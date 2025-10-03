@@ -497,54 +497,81 @@ Il plugin FLP carica automaticamente il componente per TUTTI gli utenti all'avvi
 
 **Prerequisites**:
 - SAP S/4HANA versione 1809 o superiore
-- Autorizzazioni admin per FLP Designer
+- Autorizzazioni admin per FLP configuration
 - Componente UI5 già deployato (ZNOTIFY_BANNER2)
 
 **Steps**:
 
-1. **Attivare Plugin in Customizing**:
+1. **Definire Plugin Properties**:
 
    ```
-   Transaction: SPRO
-   → SAP NetWeaver → UI Technologies → SAP Fiori
-   → Configure SAP Fiori Launchpad → Activating Plug-Ins
-
-   O direttamente: Transaction /UI2/FLPD_CONF_DEF
+   Transaction: /UI2/FLP_CONF_DEF
    ```
 
-2. **Creare Plugin Configuration**:
+   a. Click "New Entries" (Ctrl+F4)
+
+   b. Fill in plugin details:
 
    ```
-   Click "New Entry" o "Create"
-
+   Launchpad Plug-In ID: ZNOTIFY_BANNER_PLUGIN
+   Description: Global Notification Banner Plugin
    UI5 Component ID: com.sap.notifications.banner2
-   URL: /sap/bc/ui5_ui5/sap/znotify_banner2/index.html
-
-   Component Properties (opzionale):
-   - autoStart: true
-   - enabled: true
-
-   Save
+   URL: /sap/bc/ui5_ui5/sap/znotify_banner2
    ```
 
-3. **Verificare Attivazione**:
+   c. Save (Ctrl+S) with transport request
+
+2. **Attivare Plugin**:
 
    ```
-   Transaction: /UI2/FLPD_CONF_DEF
-   → Visualizza lista plugin
-   → com.sap.notifications.banner2 deve apparire come "Active"
+   Transaction: /UI2/FLP_SYS_CONF
    ```
 
-4. **Assegnare a Tutti gli Utenti** (opzionale):
+   a. Seleziona il plugin: `ZNOTIFY_BANNER_PLUGIN`
 
-   Il plugin si carica automaticamente per tutti gli utenti che accedono al FLP.
-   Non serve assegnazione role-based.
+   b. Set "Activity State" to:
+
+   ```
+   ☑ Active (check the checkbox)
+   ```
+
+   c. Save (Ctrl+S) with transport request
+
+**Important Notes**:
+
+- ⚠️ L'URL nel plugin definition **NON** deve includere `/index.html` - solo il path alla BSP app
+- ✅ Correct: `/sap/bc/ui5_ui5/sap/znotify_banner2`
+- ❌ Wrong: `/sap/bc/ui5_ui5/sap/znotify_banner2/index.html`
+
+- ⚠️ Il Component ID deve corrispondere esattamente a quello nel `manifest.json`
+- ✅ Correct: `com.sap.notifications.banner2`
+- ❌ Wrong: `com.sap.notifications.banner2.Component`
+
+3. **Verificare Configurazione**:
+
+   ```
+   Transaction: /UI2/FLP_CONF_DEF
+   → Find: ZNOTIFY_BANNER_PLUGIN
+   Expected: Plugin visible with all details
+   ```
+
+   ```
+   Transaction: /UI2/FLP_SYS_CONF
+   → Find: ZNOTIFY_BANNER_PLUGIN
+   Expected: Activity State = Active (checkbox selected)
+   ```
+
+4. **Comportamento Plugin**:
+
+   Il plugin si carica **automaticamente** per tutti gli utenti che accedono al FLP.
+   Non richiede assegnazione role-based - è configurazione cross-client globale.
 
 **Result**:
 - ✅ Component caricato in background per TUTTI gli utenti
 - ✅ Nessun tile visibile necessario
 - ✅ Banner polling attivo automaticamente
 - ✅ Funziona anche se utente non ha accesso alla tile admin
+- ✅ Cross-client configuration (vale per tutti i client)
 
 **Verification**:
 
@@ -558,10 +585,44 @@ Il plugin FLP carica automaticamente il componente per TUTTI gli utenti all'avvi
 **Troubleshooting**:
 
 Se il plugin non si carica:
-1. Verifica che BSP app ZNOTIFY_BANNER2 sia attiva
-2. Controlla URL completo: `/sap/bc/ui5_ui5/sap/znotify_banner2/index.html`
-3. Verifica autorizzazioni utente per accesso BSP
-4. Controlla browser console per errori di caricamento
+
+1. **Verifica URL corretto**:
+   ```
+   ✅ Correct: /sap/bc/ui5_ui5/sap/znotify_banner2
+   ❌ Wrong: /sap/bc/ui5_ui5/sap/znotify_banner2/index.html
+   ```
+
+2. **Verifica BSP app attiva**:
+   ```
+   Transaction: SE80 → BSP Application → ZNOTIFY_BANNER2
+   Expected: Files visible and ICF service active
+   ```
+
+3. **Verifica Component ID nel manifest.json**:
+   ```
+   BSP App: ZNOTIFY_BANNER2 → manifest.json
+   "sap.app": {
+       "id": "com.sap.notifications.banner2",  ← Must match exactly
+       ...
+   }
+   ```
+
+4. **Check plugin status**:
+   ```
+   /UI2/FLP_SYS_CONF → Plugin deve essere "Active"
+   Se non attivo: seleziona plugin → check "Active" → Save
+   ```
+
+5. **Browser console errors**:
+   ```
+   F12 → Console tab
+   Look for: "Failed to load plugin" or Component errors
+   ```
+
+6. **Cache clearing**:
+   ```
+   Ctrl+F5 (hard refresh) dopo ogni modifica plugin
+   ```
 
 ---
 
