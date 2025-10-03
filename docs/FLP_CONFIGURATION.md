@@ -15,55 +15,26 @@
 1. **Admin Interface** (Visible Tile): CRUD operations for notification management
 2. **Global Banner** (Background): Displays notifications to all users
 
-```bash
-╔══════════════════════════════════════════════════════╗
-║  ONE APPLICATION: ZNOTIFY_BANNER2                    ║
-║  ONE DYNAMIC TILE: "System Notifications"            ║
-╠══════════════════════════════════════════════════════╣
-║                                                       ║
-║  FIORI LAUNCHPAD                                     ║
-║                                                       ║
-║   ╔═══════════════════════════╗                      ║
-║   ║  System Notifications     ║  ← ONE Dynamic Tile  ║
-║   ║                           ║    (not two tiles!)  ║
-║   ║       🔴 10               ║                      ║
-║   ║       Active              ║  Stats updated       ║
-║   ║                           ║  every 60s           ║
-║   ║    3H | 5M | 2L          ║                      ║
-║   ╚═══════════════════════════╝  Color: Red/Orange  ║
-║            ↓ CLICK                based on severity  ║
-║                                                       ║
-║   ┌────────────────────────────────────────────┐     ║
-║   │ Notification Management App                │     ║
-║   │ (ZNOTIFY_BANNER2 - Same app!)             │     ║
-║   │                                            │     ║
-║   │ [+ Create] [Refresh] [Search...]          │     ║
-║   │                                            │     ║
-║   │ ┌──────────────────────────────────────┐  │     ║
-║   │ │ Table with CRUD operations           │  │     ║
-║   │ │ - Create/Edit/Delete notifications   │  │     ║
-║   │ │ - Filter by severity/status          │  │     ║
-║   │ │ - Toggle active/inactive             │  │     ║
-║   │ └──────────────────────────────────────┘  │     ║
-║   │                                            │     ║
-║   │ Only visible to ADMIN users               │     ║
-║   └────────────────────────────────────────────┘     ║
-║                                                       ║
-╚══════════════════════════════════════════════════════╝
+```mermaid
+graph TB
+    subgraph FLP["SAP Fiori Launchpad"]
+        Tile["🔔 System Notifications Tile<br/>🔴 10 Active<br/>3H | 5M | 2L<br/><i>Stats update every 60s</i><br/><i>Color: RED/ORANGE based on severity</i>"]
+    end
 
-                    ↓ (invisible to users)
+    subgraph App["ONE APPLICATION: ZNOTIFY_BANNER2"]
+        Admin["📋 Admin Interface<br/><b>Notification Management App</b><br/><br/>[+ Create] [Refresh] [Search...]<br/><br/>Table with CRUD operations:<br/>• Create/Edit/Delete notifications<br/>• Filter by severity/status<br/>• Toggle active/inactive<br/><br/><i>Only visible to ADMIN users</i>"]
 
-╔══════════════════════════════════════════════════════╗
-║  GLOBAL NOTIFICATION BANNER COMPONENT                ║
-║  (Part of ZNOTIFY_BANNER2 - same app!)               ║
-╠══════════════════════════════════════════════════════╣
-║                                                       ║
-║  • Loads automatically for ALL users in FLP          ║
-║  • Polls every 30 seconds                            ║
-║  • Shows banner/toast based on active messages       ║
-║  • No separate app needed (background component)     ║
-║                                                       ║
-╚══════════════════════════════════════════════════════╝
+        Banner["🌐 Global Banner Component<br/><b>Background - Invisible to Users</b><br/><br/>• Loads automatically for ALL users<br/>• Polls every 30 seconds<br/>• Shows banner/toast based on display mode<br/>• No separate app needed"]
+    end
+
+    Tile -->|Click| Admin
+    FLP -.->|Plugin loads globally| Banner
+
+    style FLP fill:#e3f2fd,stroke:#1976d2,stroke-width:2px
+    style Tile fill:#fff3e0,stroke:#f57c00,stroke-width:2px
+    style App fill:#f1f8e9,stroke:#689f38,stroke-width:2px
+    style Admin fill:#fce4ec,stroke:#c2185b,stroke-width:2px
+    style Banner fill:#e8f5e9,stroke:#388e3c,stroke-width:2px
 ```
 
 **Key Points**:

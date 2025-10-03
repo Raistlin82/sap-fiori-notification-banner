@@ -766,12 +766,12 @@ Response: []  ✅ SERVICE WORKING!
    - ✅ The field ZNOTIFY_TP is now available for use in SU21
 
 **✨ What Just Happened**:
-```
-SU20: Authorization Field ZNOTIFY_TP
-  └── uses Data Element: ZNOTIFY_MSG_TYPE
-       └── uses Domain: ZDOMAIN_MSG_TYPE
-            └── 6 fixed values: URGENT, INFO, MAINT, WARNING, TIP, SUCCESS
-```
+
+**Hierarchy Created:**
+- **SU20**: Authorization Field `ZNOTIFY_TP`
+  - Uses Data Element: `ZNOTIFY_MSG_TYPE`
+    - Uses Domain: `ZDOMAIN_MSG_TYPE`
+      - 6 Fixed Values: `URGENT`, `INFO`, `MAINT`, `WARNING`, `TIP`, `SUCCESS`
 
 **Benefits of This Approach**:
 - ✅ Single source of truth: Domain ZDOMAIN_MSG_TYPE
