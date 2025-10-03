@@ -77,7 +77,8 @@
                 items="{/messages}"
                 mode="None"
                 growing="true"
-                growingThreshold="20"
+                growingThreshold="100"
+                growingScrollToLoad="false"
                 noDataText="{i18n>msgNoData}"
                 class="sapUiResponsiveMargin">
 

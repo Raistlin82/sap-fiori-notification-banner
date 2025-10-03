@@ -356,7 +356,7 @@ html[data-sap-ui-theme*="sap_fiori_3"] .notificationBanner {
 /* Ensure page content area uses available space in both contexts */
 .sapMPageWithHeader .sapMPageEnableScrolling {
     height: auto !important;
-    min-height: 500px !important;
+    min-height: calc(100vh - 10rem) !important;
 }
 
 /* FLP-specific fixes - only within app container */
@@ -432,4 +432,13 @@ html[data-sap-ui-theme*="sap_fiori_3"] .notificationBanner {
 
 #View1--messagesTable .sapMListTblRow:nth-child(odd) {
     background-color: var(--sapList_Background, #ffffff) !important;
+}
+
+/* Maximize table visible area */
+#View1--messagesTable {
+    min-height: calc(100vh - 20rem) !important;
+}
+
+#View1--messagesTable .sapMListScr {
+    max-height: calc(100vh - 22rem) !important;
 }
