@@ -247,30 +247,41 @@ CLASS zcl_notification_rest IMPLEMENTATION.
 
     DATA: lv_message_id_str TYPE string,
           lv_message_id TYPE char32,
-          lv_success TYPE abap_bool,
-          lv_error_msg TYPE string.
+          lv_error_msg TYPE string,
+          lv_deleted_rows TYPE i.
 
     TRY.
         " Get message ID from query parameter
         lv_message_id_str = mo_server->request->get_form_field( 'message_id' ).
         lv_message_id = lv_message_id_str.
 
-        " Deactivate notification
-        lv_success = zcl_notification_manager=>deactivate_notification( lv_message_id ).
+        " Check authorization
+        IF zcl_notification_manager=>check_user_authorization( ) = abap_false.
+          mo_server->response->set_header_field( name = 'Content-Type' value = 'application/json' ).
+          mo_server->response->set_status( code = 403 reason = 'Forbidden' ).
+          mo_server->response->set_cdata( data = '{"success": false, "message": "Unauthorized to delete notifications"}' ).
+          RETURN.
+        ENDIF.
 
-        " Set response
-        mo_server->response->set_header_field( name = 'Content-Type' value = 'application/json' ).
+        " PHYSICAL DELETE from database (not just deactivate)
+        DELETE FROM ztnotify_msgs WHERE message_id = @lv_message_id.
+        lv_deleted_rows = sy-dbcnt.
 
-        IF lv_success = abap_true.
+        IF lv_deleted_rows > 0.
+          COMMIT WORK.
+          mo_server->response->set_header_field( name = 'Content-Type' value = 'application/json' ).
           mo_server->response->set_status( code = 200 reason = 'OK' ).
-          mo_server->response->set_cdata( data = '{"success": true, "message": "Notification deleted"}' ).
+          mo_server->response->set_cdata( data = '{"success": true, "message": "Notification permanently deleted"}' ).
         ELSE.
-          mo_server->response->set_status( code = 500 reason = 'Internal Server Error' ).
-          mo_server->response->set_cdata( data = '{"success": false, "message": "Failed to delete notification"}' ).
+          " No rows deleted - record not found
+          mo_server->response->set_header_field( name = 'Content-Type' value = 'application/json' ).
+          mo_server->response->set_status( code = 404 reason = 'Not Found' ).
+          mo_server->response->set_cdata( data = '{"success": false, "message": "Notification not found"}' ).
         ENDIF.
 
       CATCH cx_root INTO DATA(lx_error).
         " Catch any exception and return detailed error message
+        ROLLBACK WORK.
         lv_error_msg = lx_error->get_text( ).
         mo_server->response->set_header_field( name = 'Content-Type' value = 'application/json' ).
         mo_server->response->set_status( code = 500 reason = 'Internal Server Error' ).
