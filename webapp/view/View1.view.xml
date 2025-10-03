@@ -222,7 +222,8 @@
                         value="{editMode>/title}"
                         placeholder="Enter notification title"
                         required="true"
-                        maxLength="100"/>
+                        maxLength="100"
+                        enabled="{= !${editMode>/isViewMode} }"/>
 
                     <!-- Message Text -->
                     <Label text="{i18n>fieldMessage}" required="true"/>
@@ -232,14 +233,16 @@
                         rows="4"
                         placeholder="Enter notification message"
                         required="true"
-                        maxLength="255"/>
+                        maxLength="255"
+                        enabled="{= !${editMode>/isViewMode} }"/>
 
                     <!-- Severity -->
                     <Label text="{i18n>fieldSeverity}" required="true"/>
                     <Select
                         id="selectSeverity"
                         selectedKey="{editMode>/severity}"
-                        required="true">
+                        required="true"
+                        enabled="{= !${editMode>/isViewMode} }">
                         <items>
                             <core:Item key="HIGH" text="{i18n>severityHigh}"/>
                             <core:Item key="MEDIUM" text="{i18n>severityMedium}"/>
@@ -251,7 +254,8 @@
                     <Label text="{i18n>fieldMessageType}"/>
                     <Select
                         id="selectMessageType"
-                        selectedKey="{editMode>/message_type}">
+                        selectedKey="{editMode>/message_type}"
+                        enabled="{= !${editMode>/isViewMode} }">
                         <items>
                             <core:Item key="URGENT" text="{i18n>messageTypeUrgent}"/>
                             <core:Item key="INFO" text="{i18n>messageTypeInfo}"/>
@@ -266,7 +270,8 @@
                     <Select
                         id="selectDisplayMode"
                         selectedKey="{editMode>/display_mode}"
-                        required="true">
+                        required="true"
+                        enabled="{= !${editMode>/isViewMode} }">
                         <items>
                             <core:Item key="BANNER" text="{i18n>displayModeBanner}"/>
                             <core:Item key="TOAST" text="{i18n>displayModeToast}"/>
@@ -280,7 +285,8 @@
                     <Select
                         id="selectTargetUsers"
                         selectedKey="{editMode>/target_audience}"
-                        required="true">
+                        required="true"
+                        enabled="{= !${editMode>/isViewMode} }">
                         <items>
                             <core:Item key="ALL" text="{i18n>targetUsersAll}"/>
                             <core:Item key="ADMIN" text="{i18n>targetUsersAdmin}"/>
@@ -296,7 +302,8 @@
                         valueFormat="yyyy-MM-dd"
                         displayFormat="dd/MM/yyyy"
                         required="true"
-                        change=".onDateChange"/>
+                        change=".onDateChange"
+                        enabled="{= !${editMode>/isViewMode} }"/>
 
                     <!-- End Date -->
                     <Label text="{i18n>fieldEndDate}" required="true"/>
@@ -306,7 +313,8 @@
                         valueFormat="yyyy-MM-dd"
                         displayFormat="dd/MM/yyyy"
                         required="true"
-                        change=".onDateChange"/>
+                        change=".onDateChange"
+                        enabled="{= !${editMode>/isViewMode} }"/>
 
                     <!-- Active Status -->
                     <Label text="{i18n>fieldActive}"/>
@@ -314,7 +322,8 @@
                         id="switchActive"
                         state="{editMode>/active}"
                         customTextOn="Active"
-                        customTextOff="Inactive"/>
+                        customTextOff="Inactive"
+                        enabled="{= !${editMode>/isViewMode} }"/>
 
                 </f:content>
             </f:SimpleForm>
