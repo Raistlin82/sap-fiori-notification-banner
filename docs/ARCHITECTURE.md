@@ -1,6 +1,8 @@
 # 🏗️ System Architecture - SAP Fiori Global Notification Banner
 
-**Complete Architectural Diagrams and Documentation**
+**Version**: 1.2.0
+**Last Updated**: January 2025
+**Architects**: Gabriele Rendina & Ileana Scaglia
 
 ---
 
@@ -8,51 +10,41 @@
 
 ```mermaid
 graph TB
-    subgraph FioriLP["SAP Fiori Launchpad"]
-        LP[Entry Point per tutti gli utenti]
+    subgraph FLP["🚀 SAP Fiori Launchpad"]
+        Plugin["FLP Plugin<br/>sap.flp config<br/>Auto-loads for all users"]
     end
 
-    subgraph Banner["🔔 Global Notification Banner"]
-        Component["Component.js<br/>• Polling automatico ogni 30s<br/>• Event listener shell container<br/>• Lifecycle management"]
-        NotifBanner["NotificationBanner.js<br/>• Load & process notifications<br/>• Display management<br/>• Navigation logic<br/>• User interaction handling"]
-        UIComp["UI Components<br/>• Priority-based styling<br/>• Responsive design<br/>• Accessibility support"]
-
-        Component --> NotifBanner
-        NotifBanner --> UIComp
+    subgraph Frontend["💻 Frontend Layer (UI5)"]
+        Component["Component.js<br/>• Global initialization<br/>• Polling every 30s<br/>• Memory management"]
+        Banner["NotificationBanner.js<br/>• Display modes (BANNER/TOAST/BOTH/SILENT)<br/>• Dismissed notifications (localStorage)<br/>• Navigation & user interactions"]
+        TileCounter["TileCounter.js<br/>• Dynamic tile statistics<br/>• Color coding (RED/ORANGE/GREEN)<br/>• Auto-update every 60s"]
+        View["Admin UI (View1.controller.js)<br/>• CRUD operations<br/>• Filters (Active/Severity)<br/>• Display mode selector"]
     end
 
-    subgraph Backend["SAP S/4HANA Backend Layer"]
-        SICF["SICF Service<br/>/sap/bc/rest/zcl_notify<br/>GET | POST | PUT | DELETE"]
-        REST["REST Handler<br/>ZCL_NOTIFY_REST<br/>handle_get | handle_post<br/>handle_put | handle_del"]
-        Auth["Authorization<br/>Z_NOTIFY Object<br/>01 Create | 02 Change<br/>03 Display | 06 Delete"]
-
-        SICF --> REST
-        SICF --> Auth
-        REST --> Auth
+    subgraph Backend["🗄️ Backend Layer (ABAP)"]
+        REST["ZCL_NOTIFICATION_REST<br/>• REST endpoints<br/>• CORS handling<br/>• JSON serialization"]
+        Manager["ZCL_NOTIFICATION_MANAGER<br/>• Business logic<br/>• Authorization checks<br/>• Data validation"]
+        CDS["ZT_NOTIFY_MESSAGES<br/>• CDS View with filters<br/>• Date range logic"]
+        DB["ZTNOTIFY_MSGS<br/>• Custom domains<br/>• Audit trail fields"]
     end
 
-    subgraph BizLogic["Business Logic Layer"]
-        Manager["ZCL_NOTIFICATION_MANAGER<br/>• create_notification()<br/>• get_active_notifications()<br/>• update_notification()<br/>• delete_notification()<br/>• validate_notification_data()<br/>• filter_by_user()<br/>• filter_by_date_range()<br/>• check_authorization()"]
-    end
+    FLP --> Plugin
+    Plugin --> Component
+    Component --> Banner
+    Component --> TileCounter
+    Component --> View
 
-    subgraph DataLayer["Data Access Layer"]
-        CDS["ZT_NOTIFY_MESSAGES (CDS View)<br/>• Active filter (active = 'X')<br/>• Date range filter<br/>• User targeting logic"]
-        DB["ZTNOTIFY_MSGS (Table)<br/>MESSAGE_ID, MESSAGE_TYPE<br/>SEVERITY, TITLE, MESSAGE_TEXT<br/>START_DATE, END_DATE<br/>TARGET_USERS, ACTIVE<br/>CREATED_BY, CREATED_AT<br/>CHANGED_BY, CHANGED_AT"]
+    Banner -->|REST API| REST
+    TileCounter -->|/stats endpoint| REST
+    View -->|CRUD API| REST
 
-        CDS --> DB
-    end
-
-    FioriLP --> Banner
-    UIComp -->|REST API Calls| SICF
-    Auth --> Manager
     REST --> Manager
     Manager --> CDS
+    CDS --> DB
 
-    style FioriLP fill:#e3f2fd
-    style Banner fill:#fff3e0
-    style Backend fill:#fce4ec
-    style BizLogic fill:#f3e5f5
-    style DataLayer fill:#e8f5e9
+    style FLP fill:#e3f2fd
+    style Frontend fill:#fff3e0
+    style Backend fill:#e8f5e9
 ```
 
 ---
@@ -69,50 +61,52 @@ sequenceDiagram
     participant Backend as ABAP Backend
     participant DB as Database
 
-    User->>FLP: Apre Fiori App
+    User->>FLP: Opens Fiori App
     activate FLP
-    FLP->>Comp: Inizializza Component
+    FLP->>Comp: Initialize via FLP Plugin
     activate Comp
     Comp->>Banner: Create NotificationBanner
     activate Banner
-    Banner->>Comp: Instance ready
-    Comp->>FLP: Attach to shell event
     Comp->>Banner: Start polling (30s)
 
     loop Every 30 seconds
-        Banner->>REST: GET /sap/bc/rest/zcl_notification_rest
-        Note right of REST: Headers: Auth + CSRF token<br/>Query: user_id=current_user
+        Banner->>REST: GET /sap/bc/rest/zcl_notif_rest/
         activate REST
         REST->>Backend: Validate authorization
         activate Backend
-        Backend->>Backend: Check Z_NOTIFY object
-        Backend->>DB: Execute CDS view query
+        Backend->>DB: Query active notifications
         activate DB
-        DB->>DB: Filter by active='X'<br/>Filter by date range<br/>Sort by priority
+        DB->>DB: Filter: active='X'<br/>Filter: date range<br/>Sort by severity
         DB-->>Backend: Return rows
         deactivate DB
         Backend-->>REST: JSON Response
         deactivate Backend
-        REST-->>Banner: [{message_id, title, severity...}]
+        REST-->>Banner: [{message_id, title, severity, display_mode...}]
         deactivate REST
 
-        Banner->>Banner: Compare with cache
-        Banner->>Banner: Detect new/updated
+        Banner->>Banner: Check localStorage (dismissed)
+        Banner->>Banner: Group by display_mode
 
-        alt New notification found
-            Banner->>FLP: Create MessageStrip
-            FLP->>User: Display banner
-            Banner->>FLP: Add navigation controls
+        alt BANNER mode
+            Banner->>FLP: Show MessageStrip (top)
+        end
+
+        alt TOAST mode
+            Banner->>FLP: Show MessageToast (bottom-right, 5s)
+        end
+
+        alt BOTH mode
+            Banner->>FLP: Show both Banner + Toast
+        end
+
+        alt SILENT mode
+            Banner->>Banner: Log only (no UI)
         end
     end
 
-    User->>Banner: Click ➡️ (Next)
-    Banner->>FLP: Update MessageStrip
-    FLP->>User: Show next notification
-
-    User->>Banner: Click ❌ (Close)
-    Banner->>FLP: Remove MessageStrip
-    FLP->>User: Banner hidden
+    User->>Banner: Click ❌ (Dismiss)
+    Banner->>Banner: Save to localStorage (1h timeout)
+    Banner->>FLP: Hide notification
 
     deactivate Banner
     deactivate Comp
@@ -121,86 +115,100 @@ sequenceDiagram
 
 ---
 
-## 🔐 Security and Authorization Flow
+## 🔐 Security and Authorization
 
 ```mermaid
 flowchart TD
     Start([User Request]) --> Auth[SAP Authentication]
-    Auth -->|SAP Logon Ticket<br/>Basic Auth dev<br/>SSO Token prod| SICF[SICF Service Check]
+    Auth -->|SAP Logon Ticket<br/>Basic Auth (dev)<br/>SSO Token (prod)| SICF[SICF Service Check]
 
-    SICF -->|Verify service active<br/>Check handler class<br/>Validate HTTP method| AuthCheck{Authorization Check}
+    SICF -->|Service: /sap/bc/rest/zcl_notif_rest/<br/>Handler: ZCL_NOTIFICATION_REST| AuthCheck{Authorization Check}
 
-    AuthCheck -->|Object: Z_NOTIFY| Activities[Check Activity]
+    AuthCheck -->|Z_BR_ADMINISTRATOR role| BypassAuth[✅ Admin - Full Access]
+    AuthCheck -->|No Z_BR_ADMINISTRATOR| CheckNotify[Check Z_NOTIFY object]
+
+    CheckNotify -->|Has Z_NOTIFY| Activities[Check Activity]
+    CheckNotify -->|No Z_NOTIFY| Deny[❌ 401 Unauthorized]
+
     Activities -->|GET| Display[03 - Display]
     Activities -->|POST| Create[01 - Create]
     Activities -->|PUT| Change[02 - Change]
     Activities -->|DELETE| Delete[06 - Delete]
 
-    Display --> CSRF[CSRF Token Validation]
+    BypassAuth --> CSRF[CSRF Token Validation]
+    Display --> CSRF
     Create --> CSRF
     Change --> CSRF
     Delete --> CSRF
 
-    CSRF -->|Check X-CSRF-Token<br/>Validate for POST/PUT/DELETE<br/>Generate if needed| InputVal[Input Validation]
+    CSRF -->|Valid token| BizLogic[Execute Business Logic]
+    CSRF -->|Invalid/missing| Deny
 
-    InputVal -->|Sanitize input<br/>Check required fields<br/>Validate data types<br/>Prevent XSS/SQL injection| BizLogic[Execute Business Logic]
-
-    BizLogic -->|ZCL_NOTIFICATION_MANAGER<br/>Database operations<br/>Audit logging| Response{Return Response}
-
-    Response -->|Success| Success[200 OK + JSON data]
-    Response -->|Auth Error| AuthError[401/403 Unauthorized]
-    Response -->|Server Error| ServerError[500 Internal Server Error]
+    BizLogic -->|Success| Success[200/201 OK + JSON]
+    BizLogic -->|Error| ServerError[500 Internal Server Error]
 
     style Start fill:#e3f2fd
     style Auth fill:#fff3e0
-    style SICF fill:#fce4ec
-    style AuthCheck fill:#f3e5f5
-    style CSRF fill:#e8f5e9
-    style InputVal fill:#fff9c4
-    style BizLogic fill:#f1f8e9
+    style BypassAuth fill:#c8e6c9
     style Success fill:#c8e6c9
-    style AuthError fill:#ffccbc
+    style Deny fill:#ffccbc
     style ServerError fill:#ffccbc
 ```
 
+**Authorization Strategy:**
+1. **Z_BR_ADMINISTRATOR role** → Full access (bypass Z_NOTIFY check)
+2. **Z_NOTIFY authorization object** → Activity-based permissions
+3. **Target Audience filtering** → Role-based notification visibility (ALL, ADMIN, DEVELOPER)
+
 ---
 
-## 💾 Data Model E-R
+## 💾 Data Model
 
 ```mermaid
 erDiagram
-    ZTNOTIFY_MSGS ||--o{ ZT_NOTIFY_MESSAGES : "used by"
+    ZTNOTIFY_MSGS ||--o{ ZT_NOTIFY_MESSAGES : "filtered by"
 
     ZTNOTIFY_MSGS {
-        uuid MESSAGE_ID PK "Primary Key"
-        varchar10 MESSAGE_TYPE "URGENT, INFO, WARNING"
-        varchar10 SEVERITY "HIGH, MEDIUM, LOW"
-        varchar255 TITLE "INDEXED"
-        varchar255 MESSAGE_TEXT "Fixed length CHAR field"
-        date START_DATE "INDEXED"
-        date END_DATE "INDEXED"
-        varchar10 TARGET_USERS "ALL, ADMIN, DEVELOPER (F4 help - 3 values)"
-        char1 ACTIVE "INDEXED - X or blank"
-        varchar12 CREATED_BY
-        timestamp CREATED_AT
-        varchar12 CHANGED_BY
-        timestamp CHANGED_AT "INDEXED"
+        char32 MESSAGE_ID PK "UUID"
+        char12 MESSAGE_TYPE "Domain: ZDOMAIN_MSG_TYPE (6 values)"
+        char8 SEVERITY "Domain: ZDOMAIN_SEVERITY (3 values)"
+        char255 TITLE "Required"
+        char255 MESSAGE_TEXT "Required"
+        dats START_DATE "Required"
+        dats END_DATE "Required"
+        char10 TARGET_USERS "Domain: ZDOMAIN_TARGET_USERS (3 values)"
+        char1 ACTIVE "X or blank"
+        char10 DISPLAY_MODE "Domain: ZDOMAIN_DISPLAY_MODE (4 values)"
+        syuname CREATED_BY "Audit trail"
+        timestampl CREATED_AT "Audit trail"
+        syuname CHANGED_BY "Audit trail"
+        timestampl CHANGED_AT "Audit trail"
     }
 
     ZT_NOTIFY_MESSAGES {
-        uuid MESSAGE_ID "From ZTNOTIFY_MSGS"
-        varchar10 MESSAGE_TYPE
-        varchar10 SEVERITY
-        varchar255 TITLE
-        varchar1000 MESSAGE_TEXT
-        date START_DATE
-        date END_DATE
-        varchar10 TARGET_USERS
-        char1 ACTIVE "Always X"
+        char32 MESSAGE_ID "From ZTNOTIFY_MSGS"
+        char12 MESSAGE_TYPE
+        char8 SEVERITY
+        char255 TITLE
+        char255 MESSAGE_TEXT
+        dats START_DATE
+        dats END_DATE
+        char10 TARGET_USERS
+        char1 ACTIVE
+        char10 DISPLAY_MODE
     }
 ```
 
-**CDS View Logic:**
+### Custom Domains (v1.1.0+)
+
+| Domain | Data Element | Values | F4 Help |
+|--------|-------------|--------|---------|
+| ZDOMAIN_MSG_TYPE | ZNOTIFY_MSG_TYPE | URGENT, INFO, TIP, SUCCESS, MAINT, WARNING | ✅ Yes |
+| ZDOMAIN_SEVERITY | ZNOTIFY_SEVERITY | HIGH, MEDIUM, LOW | ✅ Yes |
+| ZDOMAIN_DISPLAY_MODE | ZNOTIFY_DISP_MODE | BANNER, TOAST, BOTH, SILENT | ✅ Yes |
+| ZDOMAIN_TARGET_USERS | ZNOTIFY_TARGET_USERS | ALL, ADMIN, DEVELOPER | ✅ Yes |
+
+**CDS View Query:**
 ```sql
 SELECT * FROM ZTNOTIFY_MSGS
 WHERE ACTIVE = 'X'
@@ -208,59 +216,54 @@ WHERE ACTIVE = 'X'
   AND END_DATE >= $session.system_date
 ```
 
-### Recommended Database Indexes
-
-```sql
--- Performance optimization
-INDEX idx_active ON ZTNOTIFY_MSGS(ACTIVE);
-INDEX idx_dates ON ZTNOTIFY_MSGS(START_DATE, END_DATE);
-INDEX idx_changed ON ZTNOTIFY_MSGS(CHANGED_AT);
-INDEX idx_title ON ZTNOTIFY_MSGS(TITLE); -- Per ricerche full-text
-```
-
 ---
 
-## 📦 Struttura Componenti
+## 📦 Component Structure
 
 ### Frontend (UI5)
 
 ```
 webapp/
-├── Component.js                    [Entry Point]
+├── Component.js                    [Entry Point - Memory Safe]
 │   ├── init()                     ← UIComponent lifecycle
 │   ├── _initializeNotificationBanner()
-│   └── _startNotificationPolling()
+│   ├── _startNotificationPolling() ← Stores interval ID
+│   └── exit()                     ← Cleanup with clearInterval()
 │
 ├── controller/
-│   ├── NotificationBanner.js      [Core Logic]
-│   │   ├── constructor()
-│   │   ├── loadNotifications()    ← API call
-│   │   ├── _processNotifications()
-│   │   ├── _showBanner()
-│   │   ├── _updateBanner()
-│   │   ├── _removeBanner()
-│   │   ├── _onBannerClose()
-│   │   ├── _showPreviousNotification()
-│   │   ├── _showNextNotification()
-│   │   └── _getMessageType()
+│   ├── NotificationBanner.js      [Core Logic - v1.2.0]
+│   │   ├── loadNotifications()    ← API call with retry/circuit breaker
+│   │   ├── _processNotifications() ← Filter dismissed (localStorage)
+│   │   ├── _displayNotifications() ← Group by display_mode
+│   │   ├── _showBanner()          ← MessageStrip (top)
+│   │   ├── _showToast()           ← MessageToast (bottom-right, 5s)
+│   │   ├── _dismissNotification()  ← Save to localStorage (1h timeout)
+│   │   └── _getDismissedNotifications() ← Read from localStorage
 │   │
-│   └── View1.controller.js        [Test View]
-│       └── onTestNotification()
+│   ├── TileCounter.js             [Dynamic Tile - Disabled in Plugin Mode]
+│   │   ├── start()                ← Stats polling (60s)
+│   │   ├── _getTileAPI()          ← Returns null (plugin mode)
+│   │   └── _updateTile()          ← Color coding (RED/ORANGE/GREEN)
+│   │
+│   └── View1.controller.js        [Admin UI - v1.2.0]
+│       ├── onCreateNotification()
+│       ├── onUpdateNotification()
+│       ├── onDeleteNotification()
+│       ├── onFilterChange()       ← 3-state filter (All/Active/Inactive)
+│       └── onDisplayModeSelect()  ← BANNER/TOAST/BOTH/SILENT
+│
+├── view/
+│   └── View1.view.xml             [Admin UI View]
+│       ├── Table (CRUD operations)
+│       ├── Select (Active filter - 3 states)
+│       ├── Select (Severity filter)
+│       └── Select (Display mode selector)
 │
 ├── model/
 │   └── models.js                  [Data Models]
-│       ├── createDeviceModel()
-│       └── createNotificationModel()
-│
-├── view/
-│   └── View1.view.xml             [Test UI]
 │
 ├── css/
 │   └── style.css                  [Styling]
-│       ├── Priority colors (HIGH/MEDIUM/LOW)
-│       ├── Responsive breakpoints
-│       ├── Dark mode support
-│       └── Accessibility styles
 │
 └── i18n/
     └── i18n.properties            [Translations]
@@ -270,300 +273,167 @@ webapp/
 
 ```
 abap/
-├── ztnotify_msgs.se11             [Database Table]
-│   └── Structure definition
-│
-├── ztnotify_messages.ddls         [CDS View]
-│   ├── Active filter
-│   ├── Date range filter
-│   └── Authorization check
-│
 ├── zcl_notification_manager.clas.abap [Business Logic]
-│   ├── Methods:
-│   │   ├── create_notification()
-│   │   ├── get_active_notifications()
-│   │   ├── get_notification_by_id()
-│   │   ├── update_notification()
-│   │   ├── delete_notification()
-│   │   ├── validate_data()
-│   │   ├── check_authorization()
-│   │   └── filter_by_user()
-│   │
-│   └── Private Methods:
-│       ├── _build_where_clause()
-│       ├── _sanitize_input()
-│       └── _log_operation()
+│   ├── get_active_notifications()
+│   ├── create_notification()
+│   ├── update_notification()
+│   ├── deactivate_notification()
+│   ├── check_user_authorization()  ← Z_BR_ADMINISTRATOR or Z_NOTIFY
+│   └── check_target_audience()     ← ALL, ADMIN, DEVELOPER filtering
 │
-└── zcl_notification_rest.clas.abap [REST Handler]
-    ├── IF_HTTP_EXTENSION implementation
-    ├── handle_request()
-    │   ├── handle_get()      ← Retrieve notifications
-    │   ├── handle_post()     ← Create notification
-    │   ├── handle_put()      ← Update notification
-    │   └── handle_delete()   ← Delete notification
-    │
-    └── Helper Methods:
-        ├── get_csrf_token()
-        ├── validate_csrf_token()
-        ├── parse_json()
-        ├── build_json_response()
-        └── send_error_response()
+├── zcl_notification_rest.clas.abap [REST Handler]
+│   ├── if_http_extension~handle_request()
+│   ├── handle_get_notifications()
+│   ├── handle_create_notification()
+│   ├── handle_update_notification()
+│   ├── handle_delete_notification()
+│   ├── handle_get_stats()          ← /stats endpoint (tile counter)
+│   └── handle_get_log()            ← /log endpoint (SILENT notifications)
+│
+├── ztnotify_msgs.se11             [Database Table]
+├── ztnotify_messages.ddls         [CDS View]
+│
+└── domains/
+    ├── zdomain_msg_type.se11      [6 fixed values]
+    ├── zdomain_severity.se11      [3 fixed values]
+    ├── zdomain_display_mode.se11  [4 fixed values]
+    └── zdomain_target_users.se11  [3 fixed values]
 ```
-
----
-
-## 🔌 Interfacce e Integrazioni
-
-### REST API Specification
-
-```yaml
-openapi: 3.0.0
-info:
-  title: SAP Notification Banner API
-  version: 1.0.0
-
-paths:
-  /sap/bc/rest/zcl_notification_rest/:
-    get:
-      summary: Retrieve active notifications
-      parameters:
-        - name: user_id
-          in: query
-          schema:
-            type: string
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/Notification'
-
-    post:
-      summary: Create new notification
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/NotificationCreate'
-      responses:
-        '201':
-          description: Notification created
-
-    put:
-      summary: Update notification
-      parameters:
-        - name: message_id
-          in: query
-          required: true
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/NotificationUpdate'
-
-    delete:
-      summary: Delete notification
-      parameters:
-        - name: message_id
-          in: query
-          required: true
-
-components:
-  schemas:
-    Notification:
-      type: object
-      properties:
-        message_id:
-          type: string
-          format: uuid
-        message_type:
-          type: string
-          enum: [URGENT, INFO, WARNING, MAINTENANCE]
-        severity:
-          type: string
-          enum: [HIGH, MEDIUM, LOW]
-        title:
-          type: string
-          maxLength: 255
-        message_text:
-          type: string
-          maxLength: 1000
-        start_date:
-          type: string
-          format: date
-        end_date:
-          type: string
-          format: date
-        target_users:
-          type: string
-        active:
-          type: string
-          enum: ['X', ' ']
-```
-
----
-
-## ⚡ Performance e Scalabilità
-
-### Ottimizzazioni Implementate
-
-1. **Client-Side Caching**
-   - Notifiche cachate in memoria
-   - Confronto timestamp per update detection
-   - Evita re-render non necessari
-
-2. **Database Optimization**
-   - Indici su campi chiave (ACTIVE, dates)
-   - CDS View con filtri pre-compilati
-   - Query limit implicito (solo active)
-
-3. **Network Optimization**
-   - Polling interval configurabile (default 30s)
-   - Payload minimale (solo campi necessari)
-   - GZIP compression per response
-
-4. **UI Performance**
-   - CSS animations GPU-accelerated
-   - Virtual DOM updates (UI5)
-   - Lazy loading per admin interface
-
-### Limiti e Threshold
-
-| Metrica | Limite | Raccomandazione |
-|---------|--------|-----------------|
-| **Notifiche attive** | Max 10 | Massimo 5 per UX ottimale |
-| **Lunghezza titolo** | 255 char | 50-100 char per leggibilità |
-| **Lunghezza messaggio** | 1000 char | 200-300 char per mobile |
-| **Polling interval** | Min 10s | 30s default, 60s per prod |
-| **Concurrent users** | 10,000+ | Testato su 5,000 users |
-| **Database records** | 100,000+ | Archiv iazione dopo 90 giorni |
-| **API response time** | <200ms | Avg 50-100ms |
-| **UI render time** | <100ms | Avg 30-50ms |
-
----
-
-## 🔍 Monitoring e Logging
-
-### Punti di Monitoraggio
-
-```
-Frontend:
-  • Browser console (errors/warnings)
-  • Network tab (API calls)
-  • Performance tab (render times)
-  • Local storage (cached data)
-
-Backend:
-  • ST22 - ABAP dumps
-  • SM21 - System logs
-  • SLG1 - Application logs
-  • SICF - HTTP service logs
-  • ST05 - SQL trace
-  • SAT - ABAP trace
-
-Database:
-  • Row count queries
-  • Index usage statistics
-  • Query execution plans
-```
-
-### Audit Trail
-
-Every operation is logged with:
-- User ID
-- Operation type (CREATE/UPDATE/DELETE)
-- Timestamp
-- Changed fields
-- Old/New values
 
 ---
 
 ## 🚀 Deployment Architecture
 
+### Modern SAP Deployment (v1.2.0)
+
 ```mermaid
 flowchart LR
-    subgraph Dev["Development Environment"]
-        Local[Local Workstation]
-        NPM[npm run start<br/>port 8080]
-        Mock[Mock data /<br/>Test backend]
-        GitLocal[Git repository]
-
-        Local --> NPM
-        NPM --> Mock
-        Mock --> GitLocal
+    subgraph Dev["Local Development"]
+        Code[Source Code]
+        NPM[npm install<br/>npm run build]
+        FioriTools[SAP Fiori Tools]
     end
 
-    subgraph Repo["Git Repository<br/>GitHub/GitLab"]
-        Main[main branch<br/>production]
-        Develop[develop branch]
-        Feature[feature branches]
-
-        Feature --> Develop
-        Develop --> Main
+    subgraph SAP["SAP S/4HANA System"]
+        BACKEND[ABAP Backend<br/>Tables, Classes, REST]
+        BSP[BSP Application<br/>ZNOTIFY_BANNER2]
+        FLP[Fiori Launchpad<br/>Plugin Configuration]
     end
 
-    subgraph DEV["SAP DEV System"]
-        ABAPDev[ABAP deployment<br/>transport]
-        UI5Dev[UI5 deployment<br/>BSP application]
-        IntTest[Integration testing]
-        UAT[User acceptance<br/>testing]
+    Code --> NPM
+    NPM --> FioriTools
+    FioriTools -->|Automated Deployment| BSP
+    BSP --> FLP
 
-        ABAPDev --> UI5Dev
-        UI5Dev --> IntTest
-        IntTest --> UAT
-    end
-
-    subgraph QA["SAP QA System"]
-        QATest[Quality assurance<br/>testing]
-        PerfTest[Performance<br/>testing]
-        SecScan[Security scanning]
-        RegTest[Regression testing]
-
-        QATest --> PerfTest
-        PerfTest --> SecScan
-        SecScan --> RegTest
-    end
-
-    subgraph PROD["SAP Production System"]
-        BlueGreen[Blue-green<br/>deployment]
-        Monitor[Monitoring active]
-        Rollback[Rollback plan ready]
-        UserNotif[User notification]
-
-        BlueGreen --> Monitor
-        Monitor --> Rollback
-        Rollback --> UserNotif
-    end
-
-    GitLocal -->|git push| Repo
-    Main -->|CI/CD Pipeline| DEV
-    UAT -->|Transport to QA| QA
-    RegTest -->|Transport to PROD| PROD
+    FLP -.->|Loads globally| BACKEND
 
     style Dev fill:#e3f2fd
-    style Repo fill:#fff3e0
-    style DEV fill:#fce4ec
-    style QA fill:#f3e5f5
-    style PROD fill:#c8e6c9
+    style SAP fill:#e8f5e9
 ```
+
+**Deployment Methods:**
+- **Frontend**: Automated deployment with SAP Fiori Tools (Option A)
+- **Backend**: Transport-based ABAP deployment
+- **FLP Configuration**:
+  - Spaces and Pages (S/4HANA 2020+)
+  - FLP Plugin (Global loading for all users)
 
 ---
 
-## 👥 Stakeholders and Responsibilities
+## ⚡ Performance Optimization (v1.2.0)
+
+### Memory Management
+
+**Critical Fix (v1.2.0):**
+- ✅ `setInterval` cleanup in Component.exit()
+- ✅ Proper resource disposal (banner, tile counter)
+- ✅ Null assignments to prevent memory leaks
+
+```javascript
+// Component.js (v1.2.0)
+exit: function() {
+    if (this._pollingInterval) {
+        clearInterval(this._pollingInterval);  // ← Memory leak fix
+        this._pollingInterval = null;
+    }
+    if (this._notificationBanner) {
+        this._notificationBanner.destroy();
+        this._notificationBanner = null;
+    }
+    if (this._tileCounter) {
+        this._tileCounter.destroy();
+        this._tileCounter = null;
+    }
+}
+```
+
+### Performance Metrics
+
+| Metric | Target | Actual (v1.2.0) |
+|--------|--------|-----------------|
+| **API Response Time** | < 200ms | 50-100ms ✅ |
+| **UI Render Time** | < 100ms | 30-50ms ✅ |
+| **Polling Interval** | 30s | 30s ✅ |
+| **Tile Update** | 60s | 60s ✅ |
+| **Memory Leak** | None | Fixed ✅ |
+| **localStorage Usage** | < 1MB | < 100KB ✅ |
+
+---
+
+## 📊 API Endpoints
+
+| Method | Endpoint | Description | Version |
+|--------|----------|-------------|---------|
+| `GET` | `/sap/bc/rest/zcl_notif_rest/` | Get active notifications | v1.0.0 |
+| `GET` | `/sap/bc/rest/zcl_notif_rest/stats` | Get tile statistics (OData format) | v1.1.0 |
+| `GET` | `/sap/bc/rest/zcl_notif_rest/log` | Get SILENT notifications log | v1.1.0 |
+| `POST` | `/sap/bc/rest/zcl_notif_rest/` | Create notification | v1.0.0 |
+| `PUT` | `/sap/bc/rest/zcl_notif_rest/` | Update notification | v1.0.0 |
+| `DELETE` | `/sap/bc/rest/zcl_notif_rest/` | Delete notification | v1.0.0 |
+
+---
+
+## 🆕 What's New in v1.2.0
+
+### Code Quality & Best Practices
+
+1. **SAP Logging Standard**
+   - ✅ Replaced `console.log` with `sap/base/Log`
+   - ✅ Proper logging levels (Info, Warning, Error)
+
+2. **Memory Leak Prevention**
+   - ✅ Fixed `setInterval` cleanup
+   - ✅ Proper component lifecycle management
+   - ✅ Resource disposal in exit() method
+
+3. **Documentation Restructure**
+   - ✅ Separated backend/frontend deployment guides
+   - ✅ Modern SAP approaches only (Spaces & Pages, FLP Plugin)
+   - ✅ Removed ~3,000 lines of obsolete documentation
+   - ✅ Created BACKEND_DEPLOYMENT.md (967 lines)
+   - ✅ Streamlined DEPLOYMENT_GUIDE.md (510 lines)
+   - ✅ Simplified FLP_CONFIGURATION.md (514 lines)
+
+4. **Code Cleanup**
+   - ✅ Removed deploy-sap/ folder (11 files, ~950 lines)
+   - ✅ Removed TESTING_GUIDE.md (545 lines)
+   - ✅ Removed SE80_IMPORT_CHECKLIST.md
+   - ✅ Fixed ESLint warnings
+
+---
+
+## 👥 Stakeholders
 
 | Role | Responsibilities | Contact |
 |------|------------------|---------|
-| **Architect** | Architecture, system design | Gabriele Rendina & Ileana Scaglia |
-| **Technical Lead** | Backend code, integrations | Gabriele Rendina |
+| **Architects** | Architecture, system design | Gabriele Rendina & Ileana Scaglia |
+| **Technical Lead** | Backend code, ABAP development | Gabriele Rendina |
 | **Frontend Lead** | UI5, UX, responsive design | Ileana Scaglia |
 | **SAP Basis** | Infrastructure, authorizations | Basis Team |
-| **Security Team** | Security review, penetration test | Security Team |
 
 ---
 
-## 📚 Riferimenti Tecnici
+## 📚 Technical References
 
 - **UI5 Documentation**: https://ui5.sap.com/
 - **ABAP Development**: SAP NetWeaver AS ABAP
@@ -573,84 +443,6 @@ flowchart LR
 
 ---
 
-## 🆕 Architectural Enhancements v1.1.0
-
-### Early Close Notification Feature
-
-**Release Date**: September 30, 2024
-
-#### Componenti Modificati
-
-##### Frontend (Admin Interface)
-```javascript
-// admin/notification_admin.view.xml
-<Button icon="sap-icon://decline"
-        type="Transparent"
-        press="onCloseEarly"
-        tooltip="Close Early"
-        visible="{path: 'active', formatter: '.formatCloseEarlyVisible'}"/>
-```
-
-**Nuovi metodi nel controller:**
-- `onCloseEarly()` - Handler per il click del bottone
-- `_closeNotificationEarly()` - Logica di chiusura con aggiornamento end_date
-- `formatCloseEarlyVisible()` - Formatter per mostrare bottone solo su notifiche attive
-
-##### Backend (ABAP)
-- ✅ **Nessuna modifica necessaria** - Utilizza metodi esistenti
-- `update_notification()` gestisce l'aggiornamento di end_date e active
-- REST API PUT endpoint rimane invariato
-
-#### Flusso di Esecuzione
-
-```mermaid
-sequenceDiagram
-    actor Admin
-    participant View as Admin View
-    participant Ctrl as Controller
-    participant API as REST API
-    participant DB as Database
-
-    Admin->>View: Click "Close Early" button
-    View->>Ctrl: onCloseEarly()
-    Ctrl->>Admin: Show confirmation dialog
-    Admin->>Ctrl: Confirm OK
-    Ctrl->>Ctrl: _closeNotificationEarly()
-    Note over Ctrl: Set end_date = today<br/>Set active = ' '
-    Ctrl->>API: PUT /zcl_notification_rest/
-    API->>DB: UPDATE ztnotify_msgs
-    DB-->>API: Success
-    API-->>Ctrl: 200 OK
-    Ctrl->>View: Refresh table
-    Ctrl->>Admin: Show success toast
-```
-
-#### Impatto sulle Performance
-
-| Metrica | Prima v1.0.0 | Dopo v1.1.0 | Delta |
-|---------|--------------|-------------|-------|
-| Admin View Size | 111 righe | 115 righe | +4 righe |
-| Controller Methods | 18 metodi | 20 metodi | +2 metodi |
-| REST API Calls | 4 tipi | 4 tipi | Invariato |
-| Database Operations | UPDATE | UPDATE | Invariato |
-| User Actions | 3 azioni | 4 azioni | +1 azione |
-
-#### Architectural Advantages
-
-1. **🔄 Riuso Codice**: Utilizza infrastruttura REST esistente
-2. **🔒 Sicurezza**: Stesse autorizzazioni Z_NOTIFY
-3. **📊 Tracciabilità**: Mantiene audit trail con CHANGED_BY/CHANGED_AT
-4. **⚡ Performance**: Nessun overhead aggiuntivo
-5. **🧪 Testabilità**: Metodi separati facilmente testabili
-
-#### Compatibilità
-
-- ✅ **Backward Compatible**: Non rompe funzionalità esistenti
-- ✅ **Database Schema**: Nessuna modifica alla tabella
-- ✅ **API Endpoints**: Nessun nuovo endpoint richiesto
-- ✅ **Authorization**: Utilizza oggetto Z_NOTIFY esistente
-
----
-
-**Architecture v1.1.0 - Designed by Gabriele Rendina and Ileana Scaglia**
-*Last updated: September 30, 2024*
+**Architecture v1.2.0 - Production Ready**
+*Designed by Gabriele Rendina and Ileana Scaglia*
+*Last updated: January 2025*

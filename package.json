@@ -1,6 +1,6 @@
 {
   "name": "sap-fiori-notification-banner",
-  "version": "1.0.0",
+  "version": "1.2.0",
   "description": "Global Notification Banner for SAP Fiori Applications",
   "main": "webapp/Component.js",
   "scripts": {

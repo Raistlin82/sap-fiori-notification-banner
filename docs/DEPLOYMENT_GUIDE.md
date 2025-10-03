@@ -237,9 +237,9 @@ The backend deployment has been moved to a separate document for clarity. It inc
 
 ### 🎯 Deployment Strategy
 
-The **RECOMMENDED** deployment method is **automated deployment** using Fiori tools (`npm run deploy`). Manual deployment via SE80 is provided as a fallback option for environments where automated deployment is not available.
+The deployment method is **automated deployment** using SAP Fiori Tools (`npm run deploy`). This is the modern SAP-recommended approach for deploying UI5 applications to S/4HANA systems.
 
-### Option A: Automated Deployment with Fiori Tools (✅ RECOMMENDED)
+### Automated Deployment with Fiori Tools
 
 This is the **primary and recommended** deployment method. It automates the entire deployment process using SAP Fiori tools.
 
@@ -318,7 +318,7 @@ npm install -g @ui5/cli
    4. Test profile: Upload a test file via OData
    ```
 
-   **Alternative**: If virus scan profile cannot be configured, use **Option B: Manual Deployment**
+   **Note**: Contact BASIS team to configure VSCAN profile before deployment
 
 4. **User Authorization**:
 
@@ -388,7 +388,7 @@ npx fiori deploy --config ui5-deploy.yaml
 | Error Code | Error Message | Root Cause | Solution |
 |------------|--------------|------------|----------|
 | **403** | Request failed with status code 403 | OData service not active OR missing authorization | 1. SICF → Activate `/sap/opu/odata/UI5/ABAP_REPOSITORY_SRV`<br>2. Check user has S_DEVELOP authorization |
-| **400** | No default virus profile active or found | Virus scan profile not configured (SAP Note 1797736) | 1. Contact BASIS team to configure VSCAN profile<br>2. **OR** Use Option B: Manual Deployment |
+| **400** | No default virus profile active or found | Virus scan profile not configured (SAP Note 1797736) | Contact BASIS team to configure VSCAN profile (required for automated deployment) |
 | **404** | Service not found | OData service doesn't exist or path incorrect | 1. Verify SAP_GWFND component is installed<br>2. Check service path in SICF |
 | **401** | Unauthorized | Incorrect credentials | 1. Check SAP_USER and SAP_PASSWORD env vars<br>2. Verify user account is not locked (SU01) |
 | **500** | Internal Server Error | ABAP runtime error during upload | 1. Check ST22 dump analysis<br>2. Review SM21 system log<br>3. Check application log in SLG1 |
@@ -414,7 +414,7 @@ curl -u username:password \
 **⚠️ If Automated Deployment Fails**:
 
 1. Review error message and check table above
-2. If virus scan profile error: **Use Option B: Manual Deployment** (recommended)
+2. If virus scan profile error: Contact BASIS team to configure VSCAN profile
 3. If OData service error: Contact BASIS team to activate service
 4. If authorization error: Request required authorizations from security team
 
