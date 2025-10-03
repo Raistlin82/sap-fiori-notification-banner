@@ -4,13 +4,14 @@ sap.ui.define([
     "sap/m/MessageToast",
     "sap/m/Button",
     "sap/m/Text",
+    "sap/m/Title",
     "sap/m/HBox",
     "sap/m/VBox",
-    "sap/m/FormattedText",
+    "sap/m/FlexBox",
     "sap/ui/core/library",
     "sap/ui/model/json/JSONModel",
     "sap/base/Log"
-], function(BaseObject, MessageStrip, MessageToast, Button, Text, HBox, VBox, FormattedText, coreLibrary, JSONModel, Log) {
+], function(BaseObject, MessageStrip, MessageToast, Button, Text, Title, HBox, VBox, FlexBox, coreLibrary, JSONModel, Log) {
     "use strict";
 
     var MessageType = coreLibrary.MessageType;
@@ -495,46 +496,31 @@ sap.ui.define([
             console.log("[NotificationBanner] Message text:", notification.message_text);
             console.log("[NotificationBanner] Message type:", messageType);
 
-            // Create formatted text with bold title
-            var htmlText = "<strong style='font-size: 1rem;'>" +
-                          this._escapeHtml(notification.title) +
-                          "</strong>";
-
+            // Build banner text with visual separators (MessageStrip text doesn't support HTML)
+            var bannerText = "■ " + notification.title;
             if (notification.message_text) {
-                htmlText += "<span style='font-size: 0.95rem; margin-left: 0.5rem;'>– " +
-                           this._escapeHtml(notification.message_text) +
-                           "</span>";
+                bannerText += " — " + notification.message_text;
             }
 
             // Add navigation counter if multiple notifications
             if (this._bannerNotifications.length > 1) {
-                htmlText += "<span style='font-size: 0.875rem; margin-left: 1rem; opacity: 0.8;'>" +
-                           "(" + (this._currentBannerIndex + 1) + " of " + this._bannerNotifications.length + ")" +
-                           "</span>";
+                bannerText += "  (" + (this._currentBannerIndex + 1) + " of " + this._bannerNotifications.length + ")";
             }
 
-            console.log("[NotificationBanner] Final banner HTML:", htmlText);
+            console.log("[NotificationBanner] Final banner text:", bannerText);
 
-            // Create FormattedText control
-            var formattedText = new FormattedText({
-                htmlText: htmlText
-            });
-            formattedText.addStyleClass("sapUiTinyMarginTop");
-
-            // Create banner with custom content
+            // Create banner
             var messageStrip = new MessageStrip({
+                text: bannerText,
                 type: messageType,
                 showIcon: true,
                 showCloseButton: true,
                 close: this._onBannerClose.bind(this)
             });
 
-            // Add formatted text as custom content
-            messageStrip.addAggregation("_formattedText", formattedText);
-
-            // Add CSS classes after creation
+            // Add CSS classes for styling
             messageStrip.addStyleClass("sapUiMediumMargin");
-            messageStrip.addStyleClass("notificationBanner");
+            messageStrip.addStyleClass("notificationBannerCustom");
             messageStrip.addStyleClass("notificationBanner--" + notification.severity.toLowerCase());
 
             // If multiple notifications, wrap in HBox with navigation buttons
@@ -716,21 +702,6 @@ sap.ui.define([
             }
 
             this._updateBanner();
-        },
-
-        /**
-         * Escape HTML special characters
-         * @private
-         * @param {string} text - Text to escape
-         * @returns {string} Escaped text
-         */
-        _escapeHtml: function(text) {
-            if (!text) {
-                return "";
-            }
-            var div = document.createElement("div");
-            div.textContent = text;
-            return div.innerHTML;
         },
 
         /**

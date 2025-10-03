@@ -40,6 +40,14 @@
     animation: fadeIn 0.5s ease-in;
 }
 
+/* Custom banner with improved typography */
+.notificationBannerCustom .sapMMessageStripText {
+    font-size: 1rem !important;
+    line-height: 1.5 !important;
+    font-weight: 500 !important;
+    letter-spacing: 0.01em !important;
+}
+
 /* Fade in animation */
 @keyframes fadeIn {
     from { opacity: 0; }
