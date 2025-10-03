@@ -17,7 +17,8 @@ sap.ui.define([
 
         constructor: function() {
             BaseObject.apply(this, arguments);
-            this._notifications = [];
+            this._allNotifications = [];         // All active notifications
+            this._bannerNotifications = [];      // Only banner/both notifications
             this._bannerContainer = null;
             this._currentBannerIndex = 0;
             this._currentBanner = null;
@@ -288,6 +289,7 @@ sap.ui.define([
             var filteredNotifications = notifications.filter(function(notification) {
                 var dismissedTime = dismissed[notification.message_id];
                 if (dismissedTime && (now - dismissedTime) < this._dismissedTimeout) {
+                    console.log("[NotificationBanner] Skipping dismissed notification:", notification.message_id, notification.title);
                     return false; // Skip dismissed notification
                 }
                 return true;
@@ -298,11 +300,11 @@ sap.ui.define([
             var hasNewNotifications = false;
 
             // Check for new or updated notifications
-            if (filteredNotifications.length !== this._notifications.length) {
+            if (filteredNotifications.length !== this._allNotifications.length) {
                 hasNewNotifications = true;
             } else {
                 for (var i = 0; i < filteredNotifications.length; i++) {
-                    var found = this._notifications.find(function(n) {
+                    var found = this._allNotifications.find(function(n) {
                         return n.message_id === filteredNotifications[i].message_id;
                     });
                     if (!found || found.changed_at !== filteredNotifications[i].changed_at) {
@@ -313,8 +315,11 @@ sap.ui.define([
             }
 
             if (hasNewNotifications) {
-                this._notifications = filteredNotifications;
+                console.log("[NotificationBanner] New notifications detected, updating display");
+                this._allNotifications = filteredNotifications;
                 this._displayNotifications();
+            } else {
+                console.log("[NotificationBanner] No new notifications");
             }
         },
 
@@ -339,8 +344,8 @@ sap.ui.define([
             var bothNotifications = [];
             var silentNotifications = [];
 
-            for (var i = 0; i < this._notifications.length; i++) {
-                var notification = this._notifications[i];
+            for (var i = 0; i < this._allNotifications.length; i++) {
+                var notification = this._allNotifications[i];
                 var displayMode = (notification.display_mode || "BANNER").toUpperCase();
 
                 console.log("[NotificationBanner] Notification", i, "- Mode:", displayMode, "Title:", notification.title);
@@ -366,30 +371,23 @@ sap.ui.define([
             console.log("[NotificationBanner] Grouped notifications - BANNER:", bannerNotifications.length,
                        "TOAST:", toastNotifications.length, "BOTH:", bothNotifications.length, "SILENT:", silentNotifications.length);
 
+            // Store banner notifications for navigation (BANNER + BOTH)
+            this._bannerNotifications = bannerNotifications.concat(bothNotifications);
+
             // Display BANNER notifications
-            if (bannerNotifications.length > 0) {
-                this._notifications = bannerNotifications;
+            if (this._bannerNotifications.length > 0) {
                 this._currentBannerIndex = 0;
                 this._showBanner();
             }
 
-            // Display TOAST notifications
+            // Display TOAST notifications (TOAST only, not BOTH - those get toasted separately below)
             for (var j = 0; j < toastNotifications.length; j++) {
                 this._showToast(toastNotifications[j]);
             }
 
-            // Display BOTH notifications (banner + toast)
-            if (bothNotifications.length > 0) {
-                // Add to banner display
-                this._notifications = this._notifications.concat(bothNotifications);
-                if (bannerNotifications.length === 0) {
-                    this._currentBannerIndex = 0;
-                    this._showBanner();
-                }
-                // Also show as toast
-                for (var k = 0; k < bothNotifications.length; k++) {
-                    this._showToast(bothNotifications[k]);
-                }
+            // Display BOTH notifications as toast (banner already shown above)
+            for (var k = 0; k < bothNotifications.length; k++) {
+                this._showToast(bothNotifications[k]);
             }
 
             // Log SILENT notifications
@@ -460,8 +458,8 @@ sap.ui.define([
             // Remove existing banner
             this._removeBanner();
 
-            // Show new banner if notifications exist
-            if (this._notifications.length > 0) {
+            // Show new banner if banner notifications exist
+            if (this._bannerNotifications.length > 0) {
                 this._showBanner();
             }
         },
@@ -471,14 +469,14 @@ sap.ui.define([
          * @private
          */
         _showBanner: function() {
-            console.log("[NotificationBanner] _showBanner called. Notifications count:", this._notifications.length);
+            console.log("[NotificationBanner] _showBanner called. Banner notifications count:", this._bannerNotifications.length);
 
-            if (this._notifications.length === 0) {
-                console.log("[NotificationBanner] No notifications to show - exiting");
+            if (this._bannerNotifications.length === 0) {
+                console.log("[NotificationBanner] No banner notifications to show - exiting");
                 return;
             }
 
-            var notification = this._notifications[this._currentBannerIndex];
+            var notification = this._bannerNotifications[this._currentBannerIndex];
             var messageType = this._getMessageType(notification.severity);
 
             console.log("[NotificationBanner] Creating banner for notification:", notification);
@@ -492,8 +490,8 @@ sap.ui.define([
             }
 
             // Add navigation counter if multiple notifications
-            if (this._notifications.length > 1) {
-                bannerText += " (" + (this._currentBannerIndex + 1) + " of " + this._notifications.length + ")";
+            if (this._bannerNotifications.length > 1) {
+                bannerText += " (" + (this._currentBannerIndex + 1) + " of " + this._bannerNotifications.length + ")";
             }
 
             console.log("[NotificationBanner] Final banner text:", bannerText);
@@ -513,7 +511,7 @@ sap.ui.define([
             messageStrip.addStyleClass("notificationBanner--" + notification.severity.toLowerCase());
 
             // If multiple notifications, wrap in HBox with navigation buttons
-            if (this._notifications.length > 1) {
+            if (this._bannerNotifications.length > 1) {
                 var prevButton = new Button({
                     icon: "sap-icon://navigation-left-arrow",
                     type: "Transparent",
@@ -605,17 +603,25 @@ sap.ui.define([
          */
         _onBannerClose: function() {
             // Save dismissed notification
-            var notification = this._notifications[this._currentBannerIndex];
+            var notification = this._bannerNotifications[this._currentBannerIndex];
             if (notification && notification.message_id) {
                 this._dismissNotification(notification.message_id);
-                console.log("[NotificationBanner] Notification dismissed:", notification.message_id);
+                console.log("[NotificationBanner] Notification dismissed:", notification.message_id, notification.title);
             }
 
             // Remove current notification from display
-            this._notifications.splice(this._currentBannerIndex, 1);
+            this._bannerNotifications.splice(this._currentBannerIndex, 1);
+
+            // Also remove from all notifications
+            var index = this._allNotifications.findIndex(function(n) {
+                return n.message_id === notification.message_id;
+            });
+            if (index !== -1) {
+                this._allNotifications.splice(index, 1);
+            }
 
             // Adjust index if needed
-            if (this._currentBannerIndex >= this._notifications.length) {
+            if (this._currentBannerIndex >= this._bannerNotifications.length) {
                 this._currentBannerIndex = 0;
             }
 
@@ -628,13 +634,13 @@ sap.ui.define([
          * @private
          */
         _showPreviousNotification: function() {
-            if (this._notifications.length <= 1) {
+            if (this._bannerNotifications.length <= 1) {
                 return;
             }
 
             this._currentBannerIndex--;
             if (this._currentBannerIndex < 0) {
-                this._currentBannerIndex = this._notifications.length - 1;
+                this._currentBannerIndex = this._bannerNotifications.length - 1;
             }
 
             this._updateBanner();
@@ -645,12 +651,12 @@ sap.ui.define([
          * @private
          */
         _showNextNotification: function() {
-            if (this._notifications.length <= 1) {
+            if (this._bannerNotifications.length <= 1) {
                 return;
             }
 
             this._currentBannerIndex++;
-            if (this._currentBannerIndex >= this._notifications.length) {
+            if (this._currentBannerIndex >= this._bannerNotifications.length) {
                 this._currentBannerIndex = 0;
             }
 
