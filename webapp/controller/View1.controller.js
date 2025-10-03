@@ -293,16 +293,19 @@ sap.ui.define([
         onFilterChange: function () {
             var oTable = this.byId("messagesTable");
             var oBinding = oTable.getBinding("items");
-            var bActiveOnly = this.byId("filterActiveOnly").getSelected();
+            var sActiveFilter = this.byId("filterActive").getSelectedKey();
             var sSeverity = this.byId("filterSeverity").getSelectedKey();
 
             if (oBinding) {
                 var aFilters = [];
 
-                // Active filter
-                if (bActiveOnly) {
+                // Active filter with 3 states: "" (all), "active" (true only), "inactive" (false only)
+                if (sActiveFilter === "active") {
                     aFilters.push(new sap.ui.model.Filter("active", sap.ui.model.FilterOperator.EQ, true));
+                } else if (sActiveFilter === "inactive") {
+                    aFilters.push(new sap.ui.model.Filter("active", sap.ui.model.FilterOperator.EQ, false));
                 }
+                // If sActiveFilter === "" (All), no filter applied
 
                 // Severity filter
                 if (sSeverity) {

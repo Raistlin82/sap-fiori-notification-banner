@@ -46,11 +46,17 @@
                 <Toolbar>
                     <Title text="{i18n>filterBarTitle}"/>
                     <ToolbarSpacer/>
-                    <CheckBox
-                        id="filterActiveOnly"
-                        text="{i18n>filterActive}"
-                        selected="true"
-                        select=".onFilterChange"/>
+                    <Select
+                        id="filterActive"
+                        width="150px"
+                        selectedKey="active"
+                        change=".onFilterChange">
+                        <items>
+                            <core:Item key="" text="All Notifications"/>
+                            <core:Item key="active" text="Active Only"/>
+                            <core:Item key="inactive" text="Inactive Only"/>
+                        </items>
+                    </Select>
                     <Select
                         id="filterSeverity"
                         width="150px"

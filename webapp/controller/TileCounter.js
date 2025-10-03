@@ -134,25 +134,35 @@ sap.ui.define([
          */
         _getTileAPI: function() {
             try {
-                // Access tile through component data
-                var oComponentData = sap.ui.getCore().getComponent(this.getOwnerComponent().getId()).getComponentData();
+                // NOTE: TileCounter is disabled for plugin mode
+                // In plugin mode, the app is loaded globally, not from a specific tile
+                // Therefore, there is no tile API available to update
+                // This method is kept for potential future use if app is launched from a tile
 
-                if (oComponentData && oComponentData.startupParameters && oComponentData.startupParameters.tileAPI) {
-                    return oComponentData.startupParameters.tileAPI[0];
-                }
-
-                // Alternative: Try accessing through shell container
-                if (sap.ushell && sap.ushell.Container) {
-                    var oRenderer = sap.ushell.Container.getRenderer("fiori2");
-                    if (oRenderer) {
-                        return oRenderer.getDynamicPageTitle();
-                    }
-                }
-
+                Log.info("TileCounter: Tile API not available in plugin mode - skipping tile update");
                 return null;
 
+                // Code below is kept for reference but disabled:
+                // ----------------------------------------------
+                // // Access tile through component data
+                // var oComponentData = sap.ui.getCore().getComponent(this.getOwnerComponent().getId()).getComponentData();
+                //
+                // if (oComponentData && oComponentData.startupParameters && oComponentData.startupParameters.tileAPI) {
+                //     return oComponentData.startupParameters.tileAPI[0];
+                // }
+                //
+                // // Alternative: Try accessing through shell container
+                // if (sap.ushell && sap.ushell.Container) {
+                //     var oRenderer = sap.ushell.Container.getRenderer("fiori2");
+                //     if (oRenderer) {
+                //         return oRenderer.getDynamicPageTitle();
+                //     }
+                // }
+                //
+                // return null;
+
             } catch (e) {
-                Log.error("Error accessing tile API: " + e.message);
+                Log.warning("TileCounter: Cannot access tile API: " + e.message);
                 return null;
             }
         },
