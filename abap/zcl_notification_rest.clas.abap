@@ -148,33 +148,43 @@ CLASS zcl_notification_rest IMPLEMENTATION.
           ls_notification TYPE zcl_notification_manager=>ty_notification,
           lv_message_id_str TYPE string,
           lv_message_id TYPE char32,
-          lv_success TYPE abap_bool.
+          lv_success TYPE abap_bool,
+          lv_error_msg TYPE string.
 
-    " Get message ID from query parameter
-    lv_message_id_str = mo_server->request->get_form_field( 'message_id' ).
-    lv_message_id = lv_message_id_str.
+    TRY.
+        " Get message ID from query parameter
+        lv_message_id_str = mo_server->request->get_form_field( 'message_id' ).
+        lv_message_id = lv_message_id_str.
 
-    " Get JSON from request body
-    lv_json = mo_server->request->get_cdata( ).
+        " Get JSON from request body
+        lv_json = mo_server->request->get_cdata( ).
 
-    " Deserialize JSON to notification structure
-    ls_notification = deserialize_notification( lv_json ).
+        " Deserialize JSON to notification structure
+        ls_notification = deserialize_notification( lv_json ).
 
-    " Update notification
-    lv_success = zcl_notification_manager=>update_notification(
-      iv_message_id = lv_message_id
-      is_notification = ls_notification ).
+        " Update notification
+        lv_success = zcl_notification_manager=>update_notification(
+          iv_message_id = lv_message_id
+          is_notification = ls_notification ).
 
-    " Set response
-    mo_server->response->set_header_field( name = 'Content-Type' value = 'application/json' ).
+        " Set response
+        mo_server->response->set_header_field( name = 'Content-Type' value = 'application/json' ).
 
-    IF lv_success = abap_true.
-      mo_server->response->set_status( code = 200 reason = 'OK' ).
-      mo_server->response->set_cdata( data = '{"success": true, "message": "Notification updated"}' ).
-    ELSE.
-      mo_server->response->set_status( code = 500 reason = 'Internal Server Error' ).
-      mo_server->response->set_cdata( data = '{"success": false, "message": "Failed to update notification"}' ).
-    ENDIF.
+        IF lv_success = abap_true.
+          mo_server->response->set_status( code = 200 reason = 'OK' ).
+          mo_server->response->set_cdata( data = '{"success": true, "message": "Notification updated"}' ).
+        ELSE.
+          mo_server->response->set_status( code = 500 reason = 'Internal Server Error' ).
+          mo_server->response->set_cdata( data = '{"success": false, "message": "Failed to update notification"}' ).
+        ENDIF.
+
+      CATCH cx_root INTO DATA(lx_error).
+        " Catch any exception and return detailed error message
+        lv_error_msg = lx_error->get_text( ).
+        mo_server->response->set_header_field( name = 'Content-Type' value = 'application/json' ).
+        mo_server->response->set_status( code = 500 reason = 'Internal Server Error' ).
+        mo_server->response->set_cdata( data = '{"success": false, "message": "Exception: ' && lv_error_msg && '"}' ).
+    ENDTRY.
 
   ENDMETHOD.
 
@@ -182,25 +192,35 @@ CLASS zcl_notification_rest IMPLEMENTATION.
 
     DATA: lv_message_id_str TYPE string,
           lv_message_id TYPE char32,
-          lv_success TYPE abap_bool.
+          lv_success TYPE abap_bool,
+          lv_error_msg TYPE string.
 
-    " Get message ID from query parameter
-    lv_message_id_str = mo_server->request->get_form_field( 'message_id' ).
-    lv_message_id = lv_message_id_str.
+    TRY.
+        " Get message ID from query parameter
+        lv_message_id_str = mo_server->request->get_form_field( 'message_id' ).
+        lv_message_id = lv_message_id_str.
 
-    " Deactivate notification
-    lv_success = zcl_notification_manager=>deactivate_notification( lv_message_id ).
+        " Deactivate notification
+        lv_success = zcl_notification_manager=>deactivate_notification( lv_message_id ).
 
-    " Set response
-    mo_server->response->set_header_field( name = 'Content-Type' value = 'application/json' ).
+        " Set response
+        mo_server->response->set_header_field( name = 'Content-Type' value = 'application/json' ).
 
-    IF lv_success = abap_true.
-      mo_server->response->set_status( code = 200 reason = 'OK' ).
-      mo_server->response->set_cdata( data = '{"success": true, "message": "Notification deleted"}' ).
-    ELSE.
-      mo_server->response->set_status( code = 500 reason = 'Internal Server Error' ).
-      mo_server->response->set_cdata( data = '{"success": false, "message": "Failed to delete notification"}' ).
-    ENDIF.
+        IF lv_success = abap_true.
+          mo_server->response->set_status( code = 200 reason = 'OK' ).
+          mo_server->response->set_cdata( data = '{"success": true, "message": "Notification deleted"}' ).
+        ELSE.
+          mo_server->response->set_status( code = 500 reason = 'Internal Server Error' ).
+          mo_server->response->set_cdata( data = '{"success": false, "message": "Failed to delete notification"}' ).
+        ENDIF.
+
+      CATCH cx_root INTO DATA(lx_error).
+        " Catch any exception and return detailed error message
+        lv_error_msg = lx_error->get_text( ).
+        mo_server->response->set_header_field( name = 'Content-Type' value = 'application/json' ).
+        mo_server->response->set_status( code = 500 reason = 'Internal Server Error' ).
+        mo_server->response->set_cdata( data = '{"success": false, "message": "Exception: ' && lv_error_msg && '"}' ).
+    ENDTRY.
 
   ENDMETHOD.
 
