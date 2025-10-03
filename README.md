@@ -107,7 +107,7 @@ sap-fiori-notification-banner/
 
 ---
 
-## 📋 Quick Start
+## 📋 Deployment Overview
 
 ### Prerequisites
 
@@ -117,28 +117,33 @@ sap-fiori-notification-banner/
 - Node.js 16+ and npm 8+
 - ABAP development access
 
-### Installation
+### Deployment Steps
 
-```bash
-# Clone the repository
-git clone https://github.com/Raistlin82/sap-fiori-notification-banner.git
-cd sap-fiori-notification-banner
+1. **Clone and Prepare**
+   ```bash
+   git clone https://github.com/Raistlin82/sap-fiori-notification-banner.git
+   cd sap-fiori-notification-banner
+   npm install
+   ```
 
-# Install dependencies
-npm install
+2. **Deploy Backend (ABAP)**
+   - Follow **[Backend Deployment Guide →](docs/BACKEND_DEPLOYMENT.md)**
+   - Create database tables, CDS views, ABAP classes, REST services
+   - Configure SICF service and authorizations
 
-# Build the application
-npm run build
+3. **Deploy Frontend (UI5)**
+   - Follow **[Frontend Deployment Guide →](docs/DEPLOYMENT_GUIDE.md)**
+   - Run `npm run deploy` to deploy to SAP system
+   - BSP application: ZNOTIFY_BANNER2
 
-# Start development server
-npm start
-```
+4. **Configure Fiori Launchpad**
+   - Follow **[FLP Configuration Guide →](docs/FLP_CONFIGURATION.md)**
+   - Create Spaces and Pages (or use FLP Plugin)
+   - Configure Target Mapping and Tile
 
-### Deployment
-
-**For complete deployment instructions, see:**
-- **[Frontend Deployment →](docs/DEPLOYMENT_GUIDE.md)** - Automated deployment with Fiori Tools
+**Complete deployment guides:**
 - **[Backend Deployment →](docs/BACKEND_DEPLOYMENT.md)** - ABAP tables, classes, REST services
+- **[Frontend Deployment →](docs/DEPLOYMENT_GUIDE.md)** - Automated deployment with Fiori Tools
 - **[FLP Configuration →](docs/FLP_CONFIGURATION.md)** - Spaces, Pages, Plugin setup
 
 ---
