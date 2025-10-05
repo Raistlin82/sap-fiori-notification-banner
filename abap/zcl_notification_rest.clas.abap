@@ -164,27 +164,101 @@ CLASS zcl_notification_rest IMPLEMENTATION.
     DATA: lv_json TYPE string,
           ls_notification TYPE zcl_notification_manager=>ty_notification,
           lv_success TYPE abap_bool,
-          lv_error_msg TYPE string.
+          lv_error_msg TYPE string,
+          lv_message_id TYPE char32,
+          lt_message_ids TYPE string_table,
+          lv_response_json TYPE string.
+
+    " Structure for parsing extended JSON with recurrence fields
+    TYPES: BEGIN OF ty_notification_extended,
+             message_type TYPE char12,
+             severity TYPE char8,
+             title TYPE char255,
+             message_text TYPE char255,
+             start_date TYPE dats,
+             end_date TYPE dats,
+             target_users TYPE char10,
+             active TYPE char1,
+             display_mode TYPE char10,
+             is_recurring TYPE abap_bool,
+             recurrence_type TYPE char1,
+             occurrences TYPE i,
+           END OF ty_notification_extended.
+
+    DATA: ls_extended TYPE ty_notification_extended.
 
     TRY.
         " Get JSON from request body
         lv_json = mo_server->request->get_cdata( ).
 
-        " Deserialize JSON to notification structure
-        ls_notification = deserialize_notification( lv_json ).
+        " Deserialize JSON to extended structure (includes recurrence fields)
+        /ui2/cl_json=>deserialize(
+          EXPORTING
+            json = lv_json
+            pretty_name = /ui2/cl_json=>pretty_mode-camel_case
+          CHANGING
+            data = ls_extended ).
 
-        " Create notification
-        lv_success = zcl_notification_manager=>create_notification( ls_notification ).
+        " Map to notification structure
+        ls_notification-message_type = ls_extended-message_type.
+        ls_notification-severity = ls_extended-severity.
+        ls_notification-title = ls_extended-title.
+        ls_notification-message_text = ls_extended-message_text.
+        ls_notification-start_date = ls_extended-start_date.
+        ls_notification-end_date = ls_extended-end_date.
+        ls_notification-target_users = ls_extended-target_users.
+        ls_notification-active = ls_extended-active.
+        ls_notification-display_mode = ls_extended-display_mode.
 
-        " Set response
+        " Set response header
         mo_server->response->set_header_field( name = 'Content-Type' value = 'application/json' ).
 
-        IF lv_success = abap_true.
-          mo_server->response->set_status( code = 201 reason = 'Created' ).
-          mo_server->response->set_cdata( data = '{"success": true, "message": "Notification created"}' ).
+        " Check if recurring notification requested
+        IF ls_extended-is_recurring = abap_true.
+          " Create recurring notifications
+          lv_success = zcl_notification_manager=>create_recurring_notifications(
+            EXPORTING
+              is_notification = ls_notification
+              iv_recurrence_type = ls_extended-recurrence_type
+              iv_occurrences = ls_extended-occurrences
+            IMPORTING
+              et_message_ids = lt_message_ids ).
+
+          IF lv_success = abap_true.
+            " Return list of created message IDs
+            lv_response_json = /ui2/cl_json=>serialize(
+              data = VALUE #( success = abap_true
+                              message = |Created { lines( lt_message_ids ) } recurring notifications|
+                              message_ids = lt_message_ids ) ).
+
+            mo_server->response->set_status( code = 201 reason = 'Created' ).
+            mo_server->response->set_cdata( data = lv_response_json ).
+          ELSE.
+            mo_server->response->set_status( code = 500 reason = 'Internal Server Error' ).
+            mo_server->response->set_cdata( data = '{"success": false, "message": "Failed to create recurring notifications"}' ).
+          ENDIF.
+
         ELSE.
-          mo_server->response->set_status( code = 500 reason = 'Internal Server Error' ).
-          mo_server->response->set_cdata( data = '{"success": false, "message": "Failed to create notification - check authorization"}' ).
+          " Create single notification
+          lv_success = zcl_notification_manager=>create_notification(
+            EXPORTING
+              is_notification = ls_notification
+            IMPORTING
+              ev_message_id = lv_message_id ).
+
+          IF lv_success = abap_true.
+            " Return created message ID
+            lv_response_json = /ui2/cl_json=>serialize(
+              data = VALUE #( success = abap_true
+                              message = 'Notification created'
+                              message_id = lv_message_id ) ).
+
+            mo_server->response->set_status( code = 201 reason = 'Created' ).
+            mo_server->response->set_cdata( data = lv_response_json ).
+          ELSE.
+            mo_server->response->set_status( code = 500 reason = 'Internal Server Error' ).
+            mo_server->response->set_cdata( data = '{"success": false, "message": "Failed to create notification - check authorization"}' ).
+          ENDIF.
         ENDIF.
 
       CATCH cx_root INTO DATA(lx_error).

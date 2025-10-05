@@ -33,6 +33,18 @@ CLASS zcl_notification_manager DEFINITION
                    create_notification
                      IMPORTING
                        is_notification TYPE ty_notification
+                     EXPORTING
+                       ev_message_id TYPE char32
+                     RETURNING
+                       VALUE(rv_success) TYPE abap_bool,
+
+                   create_recurring_notifications
+                     IMPORTING
+                       is_notification TYPE ty_notification
+                       iv_recurrence_type TYPE char1
+                       iv_occurrences TYPE i
+                     EXPORTING
+                       et_message_ids TYPE string_table
                      RETURNING
                        VALUE(rv_success) TYPE abap_bool,
 
@@ -113,6 +125,7 @@ CLASS zcl_notification_manager IMPLEMENTATION.
           lv_timestamp TYPE timestampl.
 
     rv_success = abap_false.
+    CLEAR ev_message_id.
 
     " Check authorization
     IF check_user_authorization( ) = abap_false.
@@ -121,6 +134,8 @@ CLASS zcl_notification_manager IMPLEMENTATION.
 
     " Generate unique message ID
     ls_notification-message_id = generate_message_id( ).
+    ev_message_id = ls_notification-message_id.  " Return the generated ID
+
     ls_notification-message_type = is_notification-message_type.
     ls_notification-severity = is_notification-severity.
     ls_notification-title = is_notification-title.
@@ -148,6 +163,82 @@ CLASS zcl_notification_manager IMPLEMENTATION.
     ELSE.
       ROLLBACK WORK.
     ENDIF.
+
+  ENDMETHOD.
+
+  METHOD create_recurring_notifications.
+    "*&---------------------------------------------------------------------*
+    "*& Create multiple recurring notifications based on pattern
+    "*& Input: Notification template, recurrence type (D/W/M), occurrences
+    "*& Output: List of created message IDs, success flag
+    "*& Logic: Calculate dates based on recurrence and create N notifications
+    "*&---------------------------------------------------------------------*
+    DATA: ls_new_notification TYPE ty_notification,
+          lv_duration_days TYPE i,
+          lv_counter TYPE i,
+          lv_offset_days TYPE i,
+          lv_message_id TYPE char32,
+          lv_success TYPE abap_bool.
+
+    rv_success = abap_false.
+    CLEAR et_message_ids.
+
+    " Validation: Check minimum inputs
+    IF iv_occurrences < 1 OR iv_occurrences > 365.
+      " Limit to max 365 occurrences to prevent accidental mass creation
+      RETURN.
+    ENDIF.
+
+    IF iv_recurrence_type <> 'D' AND
+       iv_recurrence_type <> 'W' AND
+       iv_recurrence_type <> 'M'.
+      " Invalid recurrence type
+      RETURN.
+    ENDIF.
+
+    " Calculate duration between start and end date
+    lv_duration_days = is_notification-end_date - is_notification-start_date.
+
+    " Create N notifications based on occurrences
+    DO iv_occurrences TIMES.
+      lv_counter = sy-index.
+
+      " Calculate offset based on recurrence type
+      CASE iv_recurrence_type.
+        WHEN 'D'.  " Daily
+          lv_offset_days = ( lv_counter - 1 ) * 1.
+        WHEN 'W'.  " Weekly
+          lv_offset_days = ( lv_counter - 1 ) * 7.
+        WHEN 'M'.  " Monthly (approximate 30 days)
+          lv_offset_days = ( lv_counter - 1 ) * 30.
+      ENDCASE.
+
+      " Create new notification with calculated dates
+      ls_new_notification = is_notification.
+      ls_new_notification-start_date = is_notification-start_date + lv_offset_days.
+      ls_new_notification-end_date = ls_new_notification-start_date + lv_duration_days.
+
+      " Create the notification
+      lv_success = create_notification(
+        EXPORTING
+          is_notification = ls_new_notification
+        IMPORTING
+          ev_message_id = lv_message_id ).
+
+      IF lv_success = abap_true.
+        " Append created message ID to result list
+        APPEND lv_message_id TO et_message_ids.
+      ELSE.
+        " If any creation fails, rollback all and return failure
+        ROLLBACK WORK.
+        CLEAR et_message_ids.
+        RETURN.
+      ENDIF.
+    ENDDO.
+
+    " All notifications created successfully
+    COMMIT WORK.
+    rv_success = abap_true.
 
   ENDMETHOD.
 
