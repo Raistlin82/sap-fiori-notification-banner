@@ -169,6 +169,11 @@
                                     press=".onEdit"
                                     tooltip="{i18n>buttonEdit}"/>
                                 <Button
+                                    icon="sap-icon://copy"
+                                    type="Transparent"
+                                    press=".onCopy"
+                                    tooltip="Copy"/>
+                                <Button
                                     icon="sap-icon://delete"
                                     type="Transparent"
                                     press=".onDelete"
@@ -313,6 +318,52 @@
                         required="true"
                         change=".onDateChange"
                         enabled="{= !${editMode>/isViewMode} }"/>
+
+                    <!-- Recurring Notifications Section -->
+                    <Label text="Recurring Notifications"/>
+                    <VBox>
+                        <CheckBox
+                            id="checkBoxRecurring"
+                            text="Create Recurring Notifications"
+                            selected="{editMode>/isRecurring}"
+                            select=".onRecurringToggle"
+                            enabled="{= !${editMode>/isViewMode} &amp;&amp; ${editMode>/canEnableRecurring} }"/>
+
+                        <VBox visible="{editMode>/isRecurring}" class="sapUiSmallMarginTop sapUiSmallMarginBegin">
+                            <HBox alignItems="Center">
+                                <Label text="Recurrence Type:" class="sapUiTinyMarginEnd"/>
+                                <Select
+                                    id="selectRecurrenceType"
+                                    selectedKey="{editMode>/recurrenceType}"
+                                    width="150px"
+                                    change=".onRecurringChange"
+                                    enabled="{= !${editMode>/isViewMode} }">
+                                    <items>
+                                        <core:Item key="D" text="Daily"/>
+                                        <core:Item key="W" text="Weekly"/>
+                                        <core:Item key="M" text="Monthly"/>
+                                    </items>
+                                </Select>
+                            </HBox>
+
+                            <HBox alignItems="Center" class="sapUiTinyMarginTop">
+                                <Label text="Number of Occurrences:" class="sapUiTinyMarginEnd"/>
+                                <Input
+                                    id="inputOccurrences"
+                                    value="{editMode>/occurrences}"
+                                    type="Number"
+                                    width="100px"
+                                    placeholder="e.g., 12"
+                                    change=".onRecurringChange"
+                                    enabled="{= !${editMode>/isViewMode} }"/>
+                            </HBox>
+
+                            <Text
+                                text="{editMode>/recurringPreview}"
+                                class="sapUiTinyMarginTop"
+                                visible="{= ${editMode>/recurringPreview} !== '' }"/>
+                        </VBox>
+                    </VBox>
 
                     <!-- Active Status -->
                     <Label text="{i18n>fieldActive}"/>

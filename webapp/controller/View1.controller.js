@@ -108,7 +108,13 @@ sap.ui.define([
                 start_date: this._getFormattedDate(new Date()),
                 end_date: this._getFormattedDate(new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)),
                 active: true,
-                isViewMode: false
+                isViewMode: false,
+                // Recurring fields
+                isRecurring: false,
+                recurrenceType: "W",  // Default to Weekly
+                occurrences: 4,
+                recurringPreview: "",
+                canEnableRecurring: false
             });
 
             this._getDialog().open();
@@ -199,6 +205,13 @@ sap.ui.define([
                 active: oEditModel.active ? 'X' : ''
             };
 
+            // Add recurring parameters if enabled
+            if (oEditModel.isRecurring && !oEditModel.message_id) {
+                oData.isRecurring = true;
+                oData.recurrenceType = oEditModel.recurrenceType;
+                oData.occurrences = parseInt(oEditModel.occurrences, 10);
+            }
+
             var isUpdate = !!oEditModel.message_id && oEditModel.message_id.length > 0;
             var method = isUpdate ? "PUT" : "POST";
             var url = "/sap/bc/rest/zcl_notif_rest/";
@@ -212,11 +225,18 @@ sap.ui.define([
                 contentType: "application/json",
                 data: JSON.stringify(oData),
                 timeout: 10000,
-                success: function () {
+                success: function (response) {
                     that._getDialog().close();
-                    MessageToast.show(isUpdate ?
-                        oI18n.getProperty("messageUpdateSuccess") :
-                        oI18n.getProperty("messageCreateSuccess"));
+
+                    // Handle different response formats
+                    if (oData.isRecurring && response && response.message_ids) {
+                        MessageToast.show("Successfully created " + response.message_ids.length + " recurring notifications");
+                    } else {
+                        MessageToast.show(isUpdate ?
+                            oI18n.getProperty("messageUpdateSuccess") :
+                            oI18n.getProperty("messageCreateSuccess"));
+                    }
+
                     that.onRefresh();
                 },
                 error: function (xhr, status, error) {
@@ -456,6 +476,110 @@ sap.ui.define([
             }
             // Remove hyphens from ISO date format: "2025-10-03" -> "20251003"
             return dateString.replace(/-/g, '');
+        },
+
+        /**
+         * Copy notification - opens create dialog with pre-populated fields
+         * @param {sap.ui.base.Event} oEvent - Button press event
+         */
+        onCopy: function (oEvent) {
+            var oContext = oEvent.getSource().getBindingContext();
+            var oMessage = oContext.getObject();
+            var oEditModel = this.getView().getModel("editMode");
+            var oI18n = this.getView().getModel("i18n");
+
+            // Load message data but set as new (no message_id)
+            oEditModel.setData({
+                dialogTitle: oI18n.getProperty("buttonCreate") + " (Copy)",
+                message_id: "", // Empty = new message
+                title: oMessage.title,
+                message_text: oMessage.message_text,
+                severity: oMessage.severity,
+                message_type: oMessage.message_type,
+                display_mode: oMessage.display_mode,
+                target_audience: oMessage.target_audience,
+                start_date: oMessage.start_date,
+                end_date: oMessage.end_date,
+                active: oMessage.active,
+                isViewMode: false,
+                // Recurring fields
+                isRecurring: false,
+                recurrenceType: "W",
+                occurrences: 4,
+                recurringPreview: "",
+                canEnableRecurring: true  // Fields are filled, so recurring can be enabled
+            });
+
+            MessageToast.show("Notification copied. Modify as needed and save.");
+            this._getDialog().open();
+        },
+
+        /**
+         * Handle date change - enable recurring if all required fields filled
+         */
+        onDateChange: function () {
+            var oEditModel = this.getView().getModel("editMode");
+
+            // Check if all required fields are filled
+            var title = oEditModel.getProperty("/title");
+            var message = oEditModel.getProperty("/message_text");
+            var startDate = oEditModel.getProperty("/start_date");
+            var endDate = oEditModel.getProperty("/end_date");
+            var severity = oEditModel.getProperty("/severity");
+
+            var canEnable = !!(title && message && startDate && endDate && severity);
+            oEditModel.setProperty("/canEnableRecurring", canEnable);
+
+            // Update preview if recurring is enabled
+            if (oEditModel.getProperty("/isRecurring")) {
+                this._updateRecurringPreview();
+            }
+        },
+
+        /**
+         * Handle recurring checkbox toggle
+         */
+        onRecurringToggle: function () {
+            var oEditModel = this.getView().getModel("editMode");
+            var isRecurring = oEditModel.getProperty("/isRecurring");
+
+            if (isRecurring) {
+                // Initialize with defaults
+                oEditModel.setProperty("/recurrenceType", "W");
+                oEditModel.setProperty("/occurrences", 4);
+                this._updateRecurringPreview();
+            } else {
+                // Clear preview
+                oEditModel.setProperty("/recurringPreview", "");
+            }
+        },
+
+        /**
+         * Handle recurrence type or occurrences change
+         */
+        onRecurringChange: function () {
+            this._updateRecurringPreview();
+        },
+
+        /**
+         * Update recurring preview text
+         * @private
+         */
+        _updateRecurringPreview: function () {
+            var oEditModel = this.getView().getModel("editMode");
+            var type = oEditModel.getProperty("/recurrenceType");
+            var count = oEditModel.getProperty("/occurrences");
+            var startDate = oEditModel.getProperty("/start_date");
+
+            if (!type || !count || !startDate) {
+                oEditModel.setProperty("/recurringPreview", "");
+                return;
+            }
+
+            var typeText = type === 'D' ? 'daily' : (type === 'W' ? 'weekly' : 'monthly');
+            var preview = "Will create " + count + " " + typeText + " notifications starting from " + startDate;
+
+            oEditModel.setProperty("/recurringPreview", preview);
         }
     });
 });
