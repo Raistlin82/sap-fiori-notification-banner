@@ -380,15 +380,30 @@ sap.ui.define([
         },
 
         /**
-         * Date change handler for validation
+         * Date change handler for validation and recurring enablement
          */
         onDateChange: function () {
-            var oEditModel = this.getView().getModel("editMode").getData();
-            var startDate = new Date(oEditModel.start_date);
-            var endDate = new Date(oEditModel.end_date);
+            var oEditModel = this.getView().getModel("editMode");
+            var oData = oEditModel.getData();
+            var startDate = new Date(oData.start_date);
+            var endDate = new Date(oData.end_date);
 
+            // Validate: end date must be >= start date
             if (endDate < startDate) {
                 MessageToast.show(this.getView().getModel("i18n").getProperty("validationEndDateInvalid"));
+            }
+
+            // Check if all required fields are filled to enable recurring option
+            var title = oEditModel.getProperty("/title");
+            var message = oEditModel.getProperty("/message_text");
+            var severity = oEditModel.getProperty("/severity");
+
+            var canEnable = !!(title && message && oData.start_date && oData.end_date && severity);
+            oEditModel.setProperty("/canEnableRecurring", canEnable);
+
+            // Update preview if recurring is enabled
+            if (oEditModel.getProperty("/isRecurring")) {
+                this._updateRecurringPreview();
             }
         },
 
@@ -512,28 +527,6 @@ sap.ui.define([
 
             MessageToast.show("Notification copied. Modify as needed and save.");
             this._getDialog().open();
-        },
-
-        /**
-         * Handle date change - enable recurring if all required fields filled
-         */
-        onDateChange: function () {
-            var oEditModel = this.getView().getModel("editMode");
-
-            // Check if all required fields are filled
-            var title = oEditModel.getProperty("/title");
-            var message = oEditModel.getProperty("/message_text");
-            var startDate = oEditModel.getProperty("/start_date");
-            var endDate = oEditModel.getProperty("/end_date");
-            var severity = oEditModel.getProperty("/severity");
-
-            var canEnable = !!(title && message && startDate && endDate && severity);
-            oEditModel.setProperty("/canEnableRecurring", canEnable);
-
-            // Update preview if recurring is enabled
-            if (oEditModel.getProperty("/isRecurring")) {
-                this._updateRecurringPreview();
-            }
         },
 
         /**
