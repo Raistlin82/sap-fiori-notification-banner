@@ -41,34 +41,45 @@ This document outlines the top 5 functional enhancements identified for the SAP 
 
 ## Top 5 Functional Enhancements
 
-### 🎯 Enhancement #1: Notification Scheduling & Recurrence Engine
+### 🎯 Enhancement #1: Recurring Notifications & Quick Copy
 
-**Priority**: HIGH | **Complexity**: MEDIUM | **Impact**: HIGH
+**Priority**: HIGH | **Complexity**: LOW | **Impact**: HIGH
 
 #### Business Value
-Enable administrators to schedule notifications in advance and set up recurring patterns for routine communications (maintenance windows, reminders, periodic announcements), reducing manual effort by 70% for repetitive notifications.
+Enable administrators to quickly create recurring notification patterns and duplicate existing notifications, reducing manual effort by 80% for repetitive notifications. Simple, non-disruptive implementation that leverages existing scheduling infrastructure.
+
+#### Current State Analysis
+✅ **Already Implemented**: Date-based scheduling exists! The system already supports `start_date` and `end_date`:
+- Notifications with future `start_date` automatically appear when the date arrives
+- Logic in `zcl_notification_manager.clas.abap:98-99`: `WHERE start_date <= sy-datum AND end_date >= sy-datum`
+- No background jobs needed - the SELECT statement handles it automatically
+
+❌ **What's Missing**: Easy way to create multiple recurring instances and copy existing notifications
 
 #### Functional Requirements
 
-**1.1 One-Time Scheduled Notifications**
-- Schedule notification publication for specific future date/time
-- Support timezone-aware scheduling (user's timezone vs. server timezone)
-- Allow editing scheduled notifications before publication
-- Automatic publication at scheduled time via background job
-- Cancel scheduled notifications before execution
+**1.1 Smart Recurring Notification Creation**
+- **Checkbox/Switch**: "Create Recurring Notifications" (enabled only when all required fields are populated)
+- **Recurrence Type**: Daily, Weekly, Monthly
+- **Number of Occurrences**: Input field (e.g., create 12 monthly notifications)
+- **Smart Generation**: System immediately creates N notifications with calculated dates:
+  - Calculates duration: `duration_days = end_date - start_date`
+  - For each occurrence (1 to N):
+    - Daily: `new_start = start_date + (i * 1 day)`, `new_end = new_start + duration_days`
+    - Weekly: `new_start = start_date + (i * 7 days)`, `new_end = new_start + duration_days`
+    - Monthly: `new_start = start_date + (i * 1 month)`, `new_end = new_start + duration_days`
+  - Creates actual notification records immediately (no scheduler needed)
+  - Returns list of created notification IDs for confirmation
 
-**1.2 Recurring Notification Patterns**
-- **Daily Recurrence**: Every N days, weekdays only, specific days
-- **Weekly Recurrence**: Specific days of week (e.g., every Monday/Friday)
-- **Monthly Recurrence**: Day of month (e.g., 1st of month) or relative (e.g., last Friday)
-- **Custom Recurrence**: Advanced patterns using cron-like syntax
-
-**1.3 Recurrence Management**
-- End condition: End date, after N occurrences, or never
-- Skip holidays/non-working days option
-- Pause/resume recurring series
-- Edit future occurrences vs. edit all
-- Delete single occurrence vs. delete series
+**1.2 Copy Notification Feature**
+- **Copy Button**: Added to action column in notification table
+- **Behavior**: Opens create dialog with all fields pre-populated from source notification
+- **Auto-generate**: New message_id (UUID) is generated automatically
+- **Edit Before Save**: User can modify any field before creating the copy
+- **Use Cases**:
+  - Clone last week's event announcement
+  - Create similar notifications for different user groups
+  - Test variations of messages
 
 #### Technical Specifications
 
@@ -76,134 +87,345 @@ Enable administrators to schedule notifications in advance and set up recurring 
 
 ```abap
 *----------------------------------------------------------------------*
-* Table: ZNOTIF_SCHEDULE - Notification Scheduling
+* Class: ZCL_NOTIFICATION_MANAGER
+* New Method: create_recurring_notifications
 *----------------------------------------------------------------------*
-TYPES: BEGIN OF ty_schedule,
-         schedule_id       TYPE sysuuid_x16,          "Primary Key
-         notification_id   TYPE sysuuid_x16,          "FK to ZNOTIFICATIONS
-         schedule_type     TYPE char1,                "O=OneTime, R=Recurring
-         scheduled_date    TYPE timestamp,            "For one-time
-         recurrence_pattern TYPE string,              "JSON pattern for recurring
-         timezone          TYPE tznzone,              "User timezone
-         last_execution    TYPE timestamp,            "Last run
-         next_execution    TYPE timestamp,            "Next scheduled run
-         status            TYPE char1,                "A=Active, P=Paused, C=Cancelled
-         end_condition     TYPE char1,                "D=Date, O=Occurrences, N=Never
-         end_date          TYPE timestamp,
-         max_occurrences   TYPE i,
-         occurrence_count  TYPE i,
-         skip_holidays     TYPE abap_bool,
-         created_by        TYPE syuname,
-         created_at        TYPE timestamp,
-         modified_by       TYPE syuname,
-         modified_at       TYPE timestamp,
-       END OF ty_schedule.
+CLASS-METHODS: create_recurring_notifications
+                 IMPORTING
+                   is_notification TYPE ty_notification
+                   iv_recurrence_type TYPE char1        "D=Daily, W=Weekly, M=Monthly
+                   iv_occurrences TYPE i
+                 EXPORTING
+                   et_message_ids TYPE string_table     "List of created IDs
+                 RETURNING
+                   VALUE(rv_success) TYPE abap_bool.
 
 *----------------------------------------------------------------------*
-* New REST Endpoints
+* Implementation: create_recurring_notifications
 *----------------------------------------------------------------------*
-" POST /api/notifications/schedule - Create scheduled notification
-" GET /api/notifications/schedule - List all scheduled notifications
-" GET /api/notifications/schedule/{id} - Get schedule details
-" PUT /api/notifications/schedule/{id} - Update schedule
-" DELETE /api/notifications/schedule/{id} - Cancel schedule
-" POST /api/notifications/schedule/{id}/pause - Pause recurring series
-" POST /api/notifications/schedule/{id}/resume - Resume recurring series
+METHOD create_recurring_notifications.
+  DATA: ls_new_notification TYPE ty_notification,
+        lv_duration_days TYPE i,
+        lv_counter TYPE i,
+        lv_offset_days TYPE i,
+        lv_message_id TYPE char32.
+
+  rv_success = abap_false.
+  CLEAR et_message_ids.
+
+  " Calculate duration between start and end
+  lv_duration_days = is_notification-end_date - is_notification-start_date.
+
+  " Create N notifications based on occurrences
+  DO iv_occurrences TIMES.
+    lv_counter = sy-index.
+
+    " Calculate offset based on recurrence type
+    CASE iv_recurrence_type.
+      WHEN 'D'.  " Daily
+        lv_offset_days = ( lv_counter - 1 ) * 1.
+      WHEN 'W'.  " Weekly
+        lv_offset_days = ( lv_counter - 1 ) * 7.
+      WHEN 'M'.  " Monthly
+        lv_offset_days = ( lv_counter - 1 ) * 30.  " Approximate month
+    ENDCASE.
+
+    " Create new notification with calculated dates
+    ls_new_notification = is_notification.
+    ls_new_notification-start_date = is_notification-start_date + lv_offset_days.
+    ls_new_notification-end_date = ls_new_notification-start_date + lv_duration_days.
+
+    " Create the notification
+    IF create_notification( ls_new_notification ) = abap_true.
+      " Get the generated message_id (need to modify create_notification to return it)
+      " For now, append success indicator
+      APPEND |Notification {lv_counter} created| TO et_message_ids.
+    ELSE.
+      " If any creation fails, rollback and return
+      ROLLBACK WORK.
+      RETURN.
+    ENDIF.
+  ENDDO.
+
+  COMMIT WORK.
+  rv_success = abap_true.
+ENDMETHOD.
 
 *----------------------------------------------------------------------*
-* Background Job Implementation
+* Modified: create_notification (return message_id)
 *----------------------------------------------------------------------*
-" Class: ZCL_NOTIFICATION_SCHEDULER
-" Method: execute_scheduled_notifications
-" Frequency: Every 5 minutes (configurable)
-" Logic:
-"   1. Query ZNOTIF_SCHEDULE for next_execution <= current_timestamp
-"   2. For each due schedule:
-"      a. Create notification record in ZNOTIFICATIONS
-"      b. Publish notification (set status to ACTIVE)
-"      c. Update last_execution timestamp
-"      d. Calculate next_execution for recurring
-"      e. Increment occurrence_count
-"      f. Check end condition and deactivate if met
+" Update signature to return created message_id
+CLASS-METHODS: create_notification
+                 IMPORTING
+                   is_notification TYPE ty_notification
+                 EXPORTING
+                   ev_message_id TYPE char32           "NEW: Return generated ID
+                 RETURNING
+                   VALUE(rv_success) TYPE abap_bool.
+```
+
+**REST Endpoint Changes:**
+
+```abap
+*----------------------------------------------------------------------*
+* Modified: handle_create_notification
+* Support recurrence parameters in JSON payload
+*----------------------------------------------------------------------*
+METHOD handle_create_notification.
+  DATA: lv_json TYPE string,
+        ls_notification TYPE zcl_notification_manager=>ty_notification,
+        lv_is_recurring TYPE abap_bool,
+        lv_recurrence_type TYPE char1,
+        lv_occurrences TYPE i,
+        lt_message_ids TYPE string_table,
+        lv_success TYPE abap_bool.
+
+  " Parse JSON (includes new fields: isRecurring, recurrenceType, occurrences)
+  " ... existing parsing code ...
+
+  IF lv_is_recurring = abap_true.
+    " Create recurring notifications
+    lv_success = zcl_notification_manager=>create_recurring_notifications(
+      EXPORTING
+        is_notification = ls_notification
+        iv_recurrence_type = lv_recurrence_type
+        iv_occurrences = lv_occurrences
+      IMPORTING
+        et_message_ids = lt_message_ids ).
+
+    " Return list of created notification IDs
+    lv_json = /ui2/cl_json=>serialize( data = lt_message_ids ).
+  ELSE.
+    " Single notification creation (existing logic)
+    lv_success = zcl_notification_manager=>create_notification( ls_notification ).
+    lv_json = /ui2/cl_json=>serialize( data = ls_notification-message_id ).
+  ENDIF.
+
+  IF lv_success = abap_true.
+    mo_server->response->set_status( code = 201 reason = 'Created' ).
+  ELSE.
+    mo_server->response->set_status( code = 500 reason = 'Error' ).
+  ENDIF.
+
+  mo_server->response->set_cdata( data = lv_json ).
+ENDMETHOD.
 ```
 
 **Fiori UI Changes:**
 
 ```javascript
-// New View: webapp/view/ScheduleNotification.view.xml
-// Components needed:
-// - DateTimePicker for one-time scheduling
-// - RadioButtonGroup: One-time vs. Recurring
-// - ComboBox for recurrence frequency (Daily/Weekly/Monthly/Custom)
-// - Multi-day selector for weekly (checkboxes: Mon-Sun)
-// - Number input for "Every N [days/weeks/months]"
-// - RadioButtonGroup for end condition
-// - DatePicker for end date (if applicable)
-// - Input for max occurrences (if applicable)
-// - Switch for "Skip holidays"
-// - Timezone selector
-// - Preview section showing next 5 execution dates
+// Modified: webapp/view/View1.view.xml - Add Recurring Section to Dialog
+<Dialog id="createDialog" title="{i18n>createNotification}">
+  <content>
+    <!-- Existing fields: title, message, severity, etc. -->
 
-// Controller: webapp/controller/ScheduleNotification.controller.js
-onCreateSchedule: function() {
-    var scheduleData = {
-        notificationId: this._currentNotificationId,
-        scheduleType: this.byId("scheduleType").getSelectedKey(), // "O" or "R"
-        scheduledDate: this.byId("scheduledDateTime").getDateValue(),
-        recurrencePattern: this._buildRecurrencePattern(),
-        timezone: this.byId("timezoneSelect").getSelectedKey(),
-        endCondition: this.byId("endCondition").getSelectedKey(),
-        endDate: this.byId("endDate").getDateValue(),
-        maxOccurrences: this.byId("maxOccurrences").getValue(),
-        skipHolidays: this.byId("skipHolidays").getState()
-    };
+    <!-- NEW: Recurring Notification Section -->
+    <VBox class="sapUiSmallMarginTop">
+      <Label text="Start Date" required="true" />
+      <DatePicker id="startDate"
+                  valueFormat="yyyyMMdd"
+                  displayFormat="medium"
+                  change="onDateChange" />
 
-    // POST to /api/notifications/schedule
-    SecurityUtils.secureAjax({
-        url: "/api/notifications/schedule",
-        method: "POST",
-        data: JSON.stringify(scheduleData),
-        success: this._onScheduleCreated.bind(this)
-    });
+      <Label text="End Date" required="true" />
+      <DatePicker id="endDate"
+                  valueFormat="yyyyMMdd"
+                  displayFormat="medium"
+                  change="onDateChange" />
+    </VBox>
+
+    <!-- Recurring Options (shown only after required fields filled) -->
+    <VBox id="recurringSection"
+          visible="{= ${createModel>/canEnableRecurring} === true }"
+          class="sapUiSmallMarginTop">
+
+      <CheckBox id="isRecurring"
+                text="Create Recurring Notifications"
+                select="onRecurringToggle" />
+
+      <VBox visible="{= ${createModel>/isRecurring} === true }"
+            class="sapUiSmallMarginBegin">
+
+        <Label text="Recurrence Type" required="true" />
+        <ComboBox id="recurrenceType"
+                  selectedKey="{createModel>/recurrenceType}">
+          <items>
+            <Item key="D" text="Daily" />
+            <Item key="W" text="Weekly" />
+            <Item key="M" text="Monthly" />
+          </items>
+        </ComboBox>
+
+        <Label text="Number of Occurrences" required="true" />
+        <Input id="occurrences"
+               type="Number"
+               value="{createModel>/occurrences}"
+               description="notifications"
+               placeholder="e.g., 12" />
+
+        <Text text="Preview: {createModel>/previewText}"
+              class="sapUiTinyMarginTop" />
+      </VBox>
+    </VBox>
+  </content>
+
+  <beginButton>
+    <Button text="Create"
+            type="Emphasized"
+            press="onSaveNotification" />
+  </beginButton>
+</Dialog>
+
+// Controller: webapp/controller/View1.controller.js
+onDateChange: function() {
+  // Check if all required fields are filled
+  var title = this.byId("titleInput").getValue();
+  var message = this.byId("messageInput").getValue();
+  var startDate = this.byId("startDate").getValue();
+  var endDate = this.byId("endDate").getValue();
+  var severity = this.byId("severitySelect").getSelectedKey();
+
+  var canEnable = title && message && startDate && endDate && severity;
+  this.getView().getModel("createModel").setProperty("/canEnableRecurring", canEnable);
+
+  // Update preview if recurring is enabled
+  if (this.byId("isRecurring").getSelected()) {
+    this._updateRecurringPreview();
+  }
+},
+
+_updateRecurringPreview: function() {
+  var type = this.byId("recurrenceType").getSelectedKey();
+  var count = this.byId("occurrences").getValue();
+  var startDate = this.byId("startDate").getDateValue();
+
+  if (!type || !count || !startDate) return;
+
+  var typeText = type === 'D' ? 'daily' : (type === 'W' ? 'weekly' : 'monthly');
+  var preview = `Will create ${count} ${typeText} notifications starting from ${startDate.toLocaleDateString()}`;
+
+  this.getView().getModel("createModel").setProperty("/previewText", preview);
+},
+
+onSaveNotification: function() {
+  var isRecurring = this.byId("isRecurring").getSelected();
+
+  var payload = {
+    title: this.byId("titleInput").getValue(),
+    message: this.byId("messageInput").getValue(),
+    severity: this.byId("severitySelect").getSelectedKey(),
+    startDate: this.byId("startDate").getValue(),
+    endDate: this.byId("endDate").getValue(),
+    targetUsers: this.byId("targetUsersSelect").getSelectedKey(),
+    displayMode: this.byId("displayModeSelect").getSelectedKey(),
+    active: "X"
+  };
+
+  if (isRecurring) {
+    payload.isRecurring = true;
+    payload.recurrenceType = this.byId("recurrenceType").getSelectedKey();
+    payload.occurrences = parseInt(this.byId("occurrences").getValue());
+  }
+
+  jQuery.ajax({
+    url: "/api/notifications",
+    method: "POST",
+    contentType: "application/json",
+    data: JSON.stringify(payload),
+    success: function(data) {
+      if (isRecurring) {
+        MessageToast.show(`Successfully created ${data.length} recurring notifications`);
+      } else {
+        MessageToast.show("Notification created successfully");
+      }
+      this._refreshTable();
+      this.byId("createDialog").close();
+    }.bind(this)
+  });
+},
+
+// NEW: Copy Notification Functionality
+onCopyNotification: function(oEvent) {
+  // Get notification data from table row
+  var oItem = oEvent.getSource().getParent();
+  var oContext = oItem.getBindingContext("notifications");
+  var oNotification = oContext.getObject();
+
+  // Open create dialog
+  this._openCreateDialog();
+
+  // Pre-populate all fields except message_id
+  this.byId("titleInput").setValue(oNotification.title);
+  this.byId("messageInput").setValue(oNotification.message_text);
+  this.byId("severitySelect").setSelectedKey(oNotification.severity);
+  this.byId("startDate").setValue(oNotification.start_date);
+  this.byId("endDate").setValue(oNotification.end_date);
+  this.byId("targetUsersSelect").setSelectedKey(oNotification.target_users);
+  this.byId("displayModeSelect").setSelectedKey(oNotification.display_mode);
+
+  MessageToast.show("Notification copied. Modify as needed and save.");
 }
 ```
 
-**Recurrence Pattern JSON Structure:**
-```json
-{
-  "type": "weekly",
-  "interval": 2,
-  "daysOfWeek": ["MON", "FRI"],
-  "timeOfDay": "09:00:00",
-  "timezone": "Europe/Berlin"
-}
+**Table Action Column Update:**
+
+```xml
+<!-- webapp/view/View1.view.xml - Add Copy button to actions -->
+<ColumnListItem>
+  <!-- existing cells -->
+  <cells>
+    <HBox>
+      <Button icon="sap-icon://edit"
+              press="onEditNotification"
+              tooltip="Edit" />
+      <Button icon="sap-icon://copy"
+              press="onCopyNotification"
+              tooltip="Copy"
+              class="sapUiTinyMarginBegin" />
+      <Button icon="sap-icon://delete"
+              press="onDeleteNotification"
+              tooltip="Delete"
+              type="Reject"
+              class="sapUiTinyMarginBegin" />
+      <Button icon="sap-icon://toggle"
+              press="onToggleActive"
+              tooltip="Toggle Active"
+              class="sapUiTinyMarginBegin" />
+    </HBox>
+  </cells>
+</ColumnListItem>
 ```
 
 #### User Stories
 
-**US-1.1**: As an administrator, I want to schedule a maintenance notification for next Saturday at 8 AM, so users are informed in advance without me working on weekends.
+**US-1.1**: As an administrator, I want to create a notification with a future start date (e.g., next Saturday), so it automatically appears when that date arrives without manual intervention.
+*(Note: Already implemented via start_date field)*
 
-**US-1.2**: As an administrator, I want to set up a recurring notification every Friday at 4 PM reminding users to submit timesheets, so I don't have to create it manually every week.
+**US-1.2**: As an administrator, I want to create 12 monthly recurring notifications for timesheet reminders in one action, so I don't have to manually create each month's notification.
 
-**US-1.3**: As an administrator, I want to schedule a notification for the 1st of every month about expense report deadlines, with the series ending after 12 months.
+**US-1.3**: As an administrator, I want to create 52 weekly notifications for the entire year reminding staff about weekly meetings, with a single click.
 
-**US-1.4**: As an administrator, I want to edit a scheduled notification before it executes, so I can correct mistakes or update information.
+**US-1.4**: As an administrator, I want to copy last week's event announcement and just change the date and location, saving me 5 minutes of data entry.
 
-**US-1.5**: As an administrator, I want to pause a recurring notification series during vacation periods and resume it later.
+**US-1.5**: As an administrator, I want to see a preview of how many notifications will be created before I commit, so I can verify the recurrence settings are correct.
 
 #### Implementation Estimate
-- **ABAP Development**: 20 hours
-  - Database table creation (2h)
-  - REST endpoint implementation (8h)
-  - Background job scheduler (6h)
-  - Recurrence calculation engine (4h)
-- **Fiori Development**: 24 hours
-  - Schedule UI view (8h)
-  - Recurrence pattern builder (8h)
-  - Schedule management list (4h)
-  - Preview/validation logic (4h)
-- **Testing**: 12 hours
-- **Total**: ~56 hours (7 days)
+- **ABAP Development**: 6 hours
+  - New method `create_recurring_notifications` (3h)
+  - Modify REST endpoint to handle recurrence params (2h)
+  - Update `create_notification` to return message_id (1h)
+- **Fiori Development**: 8 hours
+  - Add recurring section to create dialog (3h)
+  - Add validation and preview logic (2h)
+  - Add Copy button and handler (2h)
+  - Update table actions column (1h)
+- **Testing**: 4 hours
+  - Test daily/weekly/monthly recurrence (2h)
+  - Test copy functionality (1h)
+  - Edge cases (large occurrences, date calculations) (1h)
+- **Total**: ~18 hours (2.25 days)
+
+**Reduced from**: 56 hours → 18 hours (68% reduction in complexity)
 
 ---
 
