@@ -8,7 +8,7 @@ builder:
       afterTask: generateCachebusterInfo
       configuration:
         target:
-          url: https://vhwqtds4ci.sap.windtre.it:44300
+          url: https://s4hana-server:44380
           client: '100'
           auth: basic
         app:
