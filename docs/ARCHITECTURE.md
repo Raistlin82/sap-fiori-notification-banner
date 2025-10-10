@@ -1,6 +1,6 @@
 # 🏗️ System Architecture - SAP Fiori Global Notification Banner
 
-**Version**: 1.2.0
+**Version**: 1.3.0
 **Last Updated**: October 2025
 **Architects**: Gabriele Rendina & Ileana Scaglia
 
@@ -183,6 +183,8 @@ flowchart TD
 ```mermaid
 erDiagram
     ZTNOTIFY_MSGS ||--o{ ZT_NOTIFY_MESSAGES : "filtered by"
+    ZTNOTIFY_MSGS ||--o{ ZNOTIFY_ACK_LOG : "tracked by"
+    ZNOTIF_MATRIX ||--o{ ZTNOTIFY_MSGS : "validates"
 
     ZTNOTIFY_MSGS {
         char32 MESSAGE_ID PK "UUID"
@@ -195,10 +197,19 @@ erDiagram
         char10 TARGET_USERS "Domain: ZDOMAIN_TARGET_USERS (3 values)"
         char1 ACTIVE "X or blank"
         char10 DISPLAY_MODE "Domain: ZDOMAIN_DISPLAY_MODE (4 values)"
+        char1 REQUIRES_ACK "X or blank (v1.3.0)"
         syuname CREATED_BY "Audit trail"
         timestampl CREATED_AT "Audit trail"
         syuname CHANGED_BY "Audit trail"
         timestampl CHANGED_AT "Audit trail"
+    }
+
+    ZNOTIFY_ACK_LOG {
+        char3 MANDT PK "Client"
+        char32 MESSAGE_ID PK "FK to ZTNOTIFY_MSGS"
+        char12 USERID PK "User who acknowledged"
+        timestampl ACK_TIMESTAMP "When acknowledged"
+        char255 CLIENT_INFO "Browser/device info"
     }
 
     ZT_NOTIFY_MESSAGES {
@@ -212,6 +223,15 @@ erDiagram
         char10 TARGET_USERS
         char1 ACTIVE
         char10 DISPLAY_MODE
+        char1 REQUIRES_ACK "(v1.3.0)"
+    }
+
+    ZNOTIF_MATRIX {
+        char8 SEVERITY PK
+        char12 MESSAGE_TYPE PK
+        char10 DISPLAY_MODE PK
+        char1 VALID "X or blank"
+        char1 REQUIRES_ACK "Auto-set for HIGH+BANNER, URGENT+BANNER"
     }
 ```
 
@@ -404,8 +424,91 @@ exit: function() {
 | `GET` | `/sap/bc/rest/zcl_notif_rest/stats` | Get tile statistics (OData format) | v1.1.0 |
 | `GET` | `/sap/bc/rest/zcl_notif_rest/log` | Get SILENT notifications log | v1.1.0 |
 | `POST` | `/sap/bc/rest/zcl_notif_rest/` | Create notification | v1.0.0 |
+| `POST` | `/sap/bc/rest/zcl_notif_rest/acknowledge` | Record user acknowledgment | v1.3.0 |
 | `PUT` | `/sap/bc/rest/zcl_notif_rest/` | Update notification | v1.0.0 |
 | `DELETE` | `/sap/bc/rest/zcl_notif_rest/` | Delete notification | v1.0.0 |
+
+### Acknowledgment Endpoint (v1.3.0)
+
+**POST** `/sap/bc/rest/zcl_notif_rest/acknowledge`
+
+**Request Body**:
+```json
+{
+  "message_id": "abc123",
+  "client_info": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)..."
+}
+```
+
+**Response Codes**:
+- `200 OK`: Acknowledgment recorded successfully
+- `400 Bad Request`: Missing message_id
+- `409 Conflict`: Already acknowledged by this user
+- `500 Internal Server Error`: Database or system error
+
+**Response Body** (Success):
+```json
+{
+  "success": true,
+  "timestamp": "20251010T143022"
+}
+```
+
+**Response Body** (Error):
+```json
+{
+  "success": false,
+  "error": "Already acknowledged"
+}
+```
+
+---
+
+## 🆕 What's New in v1.3.0
+
+### User Acknowledgment Tracking System
+
+**🎯 Feature**: Critical notifications now require explicit user acknowledgment before dismissal.
+
+**Key Components**:
+
+1. **Frontend (NotificationBanner.js)**
+   - ✅ "OK" button replaces "X" for `requires_ack='X'` notifications
+   - ✅ POST to `/acknowledge` endpoint with message_id and browser info
+   - ✅ localStorage tracking for already-acknowledged notifications
+   - ✅ Acknowledged notifications don't reappear for same user
+
+2. **Backend (ZCL_NOTIFICATION_MANAGER)**
+   - ✅ `has_user_acknowledged()` - Check if user already acknowledged
+   - ✅ `record_acknowledgment()` - INSERT into ZNOTIFY_ACK_LOG with duplicate prevention
+   - ✅ `get_acknowledgments()` - Query acknowledgment history for reporting
+   - ✅ Updated `get_active_notifications()` to filter out acknowledged messages
+
+3. **REST API (ZCL_NOTIF_REST)**
+   - ✅ `handle_acknowledge()` - New POST /acknowledge endpoint
+   - ✅ JSON parsing (message_id + client_info)
+   - ✅ Status codes: 200 (success), 409 (duplicate), 400 (bad request), 500 (error)
+
+4. **Database**
+   - ✅ New table: `ZNOTIFY_ACK_LOG` (composite PK: MANDT + MESSAGE_ID + USERID)
+   - ✅ New field: `ZTNOTIFY_MSGS.REQUIRES_ACK` (CHAR1)
+   - ✅ Updated CDS view: `ztnotify_messages` exposes requires_ack field
+   - ✅ Integration with ZNOTIF_MATRIX for auto-setting requires_ack
+
+**Business Rules**:
+- `requires_ack='X'` automatically set for:
+  - HIGH severity + BANNER/BOTH display mode
+  - URGENT message type + BANNER/BOTH display mode
+- Acknowledgment log records:
+  - Who acknowledged (userid)
+  - When acknowledged (timestamp with milliseconds)
+  - Browser/device info (user agent string)
+
+**Benefits**:
+- ✅ Audit trail for critical notifications
+- ✅ Compliance reporting (who read what and when)
+- ✅ Better UX (clear "OK" vs ambiguous "X")
+- ✅ Smart filtering (don't re-show acknowledged notifications)
 
 ---
 
@@ -459,6 +562,6 @@ exit: function() {
 
 ---
 
-**Architecture v1.2.0 - Production Ready**
+**Architecture v1.3.0 - User Acknowledgment Tracking**
 *Designed by Gabriele Rendina and Ileana Scaglia*
-*Last updated: October 2025*
+*Last updated: October 10, 2025*

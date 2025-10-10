@@ -16,6 +16,7 @@ CLASS zcl_notification_manager DEFINITION
              target_users TYPE char10,
              active       TYPE char1,
              display_mode TYPE char10,
+             requires_ack TYPE char1,
              created_by   TYPE syuname,
              created_at   TYPE timestampl,
              changed_by   TYPE syuname,
@@ -23,6 +24,16 @@ CLASS zcl_notification_manager DEFINITION
            END OF ty_notification.
 
     TYPES: tt_notifications TYPE STANDARD TABLE OF ty_notification WITH DEFAULT KEY.
+
+    " Acknowledgment tracking types (v1.3.0)
+    TYPES: BEGIN OF ty_acknowledgment,
+             message_id    TYPE char32,
+             userid        TYPE syuname,
+             ack_timestamp TYPE timestampl,
+             client_info   TYPE char255,
+           END OF ty_acknowledgment.
+
+    TYPES: tt_acknowledgments TYPE STANDARD TABLE OF ty_acknowledgment WITH DEFAULT KEY.
 
     CLASS-METHODS: get_active_notifications
                      IMPORTING
@@ -65,7 +76,60 @@ CLASS zcl_notification_manager DEFINITION
                      IMPORTING
                        iv_user_id TYPE sy-uname OPTIONAL
                      RETURNING
-                       VALUE(rv_authorized) TYPE abap_bool.
+                       VALUE(rv_authorized) TYPE abap_bool,
+
+                   validate_notif_combination
+                     IMPORTING
+                       iv_severity TYPE char8
+                       iv_message_type TYPE char12
+                       iv_display_mode TYPE char10
+                     EXPORTING
+                       ev_valid TYPE abap_bool
+                       ev_requires_ack TYPE abap_bool
+                       ev_error_message TYPE string
+                     RETURNING
+                       VALUE(rv_success) TYPE abap_bool,
+
+                   get_valid_display_modes
+                     IMPORTING
+                       iv_severity TYPE char8
+                       iv_message_type TYPE char12
+                     EXPORTING
+                       et_display_modes TYPE string_table
+                       ev_default_mode TYPE char10
+                     RETURNING
+                       VALUE(rv_success) TYPE abap_bool,
+
+                   get_valid_message_types
+                     IMPORTING
+                       iv_severity TYPE char8
+                     EXPORTING
+                       et_message_types TYPE string_table
+                       ev_default_type TYPE char12
+                     RETURNING
+                       VALUE(rv_success) TYPE abap_bool,
+
+                   " Acknowledgment tracking methods (v1.3.0)
+                   has_user_acknowledged
+                     IMPORTING
+                       iv_message_id TYPE char32
+                       iv_user_id TYPE sy-uname DEFAULT sy-uname
+                     RETURNING
+                       VALUE(rv_acknowledged) TYPE abap_bool,
+
+                   record_acknowledgment
+                     IMPORTING
+                       iv_message_id TYPE char32
+                       iv_user_id TYPE sy-uname DEFAULT sy-uname
+                       iv_client_info TYPE char255 OPTIONAL
+                     RETURNING
+                       VALUE(rv_success) TYPE abap_bool,
+
+                   get_acknowledgments
+                     IMPORTING
+                       iv_message_id TYPE char32
+                     RETURNING
+                       VALUE(rt_acknowledgments) TYPE tt_acknowledgments.
 
   PRIVATE SECTION.
     CLASS-METHODS: generate_message_id
@@ -100,6 +164,7 @@ CLASS zcl_notification_manager IMPLEMENTATION.
            target_users,
            active,
            display_mode,
+           requires_ack,
            created_by,
            created_at,
            changed_by,
@@ -114,6 +179,16 @@ CLASS zcl_notification_manager IMPLEMENTATION.
     LOOP AT lt_all_notifications INTO DATA(ls_notification).
       IF check_target_audience( ls_notification-target_users ) = abap_true.
         APPEND ls_notification TO rt_notifications.
+      ENDIF.
+    ENDLOOP.
+
+    " Filter out acknowledged notifications for this user (v1.3.0)
+    LOOP AT rt_notifications ASSIGNING FIELD-SYMBOL(<notif>).
+      IF <notif>-requires_ack = 'X'.
+        IF has_user_acknowledged( iv_message_id = <notif>-message_id
+                                 iv_user_id = lv_user_id ) = abap_true.
+          DELETE rt_notifications.
+        ENDIF.
       ENDIF.
     ENDLOOP.
 
@@ -132,6 +207,35 @@ CLASS zcl_notification_manager IMPLEMENTATION.
       RETURN.
     ENDIF.
 
+    " Apply default display mode if not provided
+    DATA: lv_display_mode TYPE char10.
+    lv_display_mode = is_notification-display_mode.
+    IF lv_display_mode IS INITIAL.
+      lv_display_mode = 'BANNER'.  " Default to BANNER
+    ENDIF.
+
+    " Validate notification combination against matrix
+    DATA: lv_valid TYPE abap_bool,
+          lv_requires_ack TYPE abap_bool,
+          lv_error_message TYPE string,
+          lv_validation_success TYPE abap_bool.
+
+    lv_validation_success = validate_notif_combination(
+      EXPORTING
+        iv_severity = is_notification-severity
+        iv_message_type = is_notification-message_type
+        iv_display_mode = lv_display_mode
+      IMPORTING
+        ev_valid = lv_valid
+        ev_requires_ack = lv_requires_ack
+        ev_error_message = lv_error_message
+    ).
+
+    IF lv_validation_success = abap_false OR lv_valid = abap_false.
+      " Invalid combination - reject creation
+      RETURN.
+    ENDIF.
+
     " Generate unique message ID
     ls_notification-message_id = generate_message_id( ).
     ev_message_id = ls_notification-message_id.  " Return the generated ID
@@ -144,16 +248,20 @@ CLASS zcl_notification_manager IMPLEMENTATION.
     ls_notification-end_date = is_notification-end_date.
     ls_notification-target_users = is_notification-target_users.
     ls_notification-active = 'X'.
-    ls_notification-display_mode = is_notification-display_mode.
-    IF ls_notification-display_mode IS INITIAL.
-      ls_notification-display_mode = 'BANNER'.  " Default to BANNER
-    ENDIF.
+    ls_notification-display_mode = lv_display_mode.
     ls_notification-created_by = sy-uname.
 
     GET TIME STAMP FIELD lv_timestamp.
     ls_notification-created_at = lv_timestamp.
     ls_notification-changed_by = sy-uname.
     ls_notification-changed_at = lv_timestamp.
+
+    " Set requires_ack flag from matrix validation
+    IF lv_requires_ack = abap_true.
+      ls_notification-requires_ack = 'X'.
+    ELSE.
+      CLEAR ls_notification-requires_ack.
+    ENDIF.
 
     INSERT ztnotify_msgs FROM ls_notification.
 
@@ -254,6 +362,35 @@ CLASS zcl_notification_manager IMPLEMENTATION.
       RETURN.
     ENDIF.
 
+    " Apply default display mode if not provided
+    DATA: lv_display_mode TYPE char10.
+    lv_display_mode = is_notification-display_mode.
+    IF lv_display_mode IS INITIAL.
+      lv_display_mode = 'BANNER'.  " Default to BANNER
+    ENDIF.
+
+    " Validate notification combination against matrix
+    DATA: lv_valid TYPE abap_bool,
+          lv_requires_ack TYPE abap_bool,
+          lv_error_message TYPE string,
+          lv_validation_success TYPE abap_bool.
+
+    lv_validation_success = validate_notif_combination(
+      EXPORTING
+        iv_severity = is_notification-severity
+        iv_message_type = is_notification-message_type
+        iv_display_mode = lv_display_mode
+      IMPORTING
+        ev_valid = lv_valid
+        ev_requires_ack = lv_requires_ack
+        ev_error_message = lv_error_message
+    ).
+
+    IF lv_validation_success = abap_false OR lv_valid = abap_false.
+      " Invalid combination - reject update
+      RETURN.
+    ENDIF.
+
     " Get existing record
     SELECT SINGLE *
       FROM ztnotify_msgs
@@ -271,16 +408,20 @@ CLASS zcl_notification_manager IMPLEMENTATION.
     ls_notification-message_text = is_notification-message_text.
     ls_notification-start_date = is_notification-start_date.
     ls_notification-end_date = is_notification-end_date.
-    ls_notification-display_mode = is_notification-display_mode.
-    IF ls_notification-display_mode IS INITIAL.
-      ls_notification-display_mode = 'BANNER'.  " Default to BANNER
-    ENDIF.
+    ls_notification-display_mode = lv_display_mode.
     ls_notification-target_users = is_notification-target_users.
     ls_notification-active = is_notification-active.
     ls_notification-changed_by = sy-uname.
 
     GET TIME STAMP FIELD lv_timestamp.
     ls_notification-changed_at = lv_timestamp.
+
+    " Set requires_ack flag from matrix validation
+    IF lv_requires_ack = abap_true.
+      ls_notification-requires_ack = 'X'.
+    ELSE.
+      CLEAR ls_notification-requires_ack.
+    ENDIF.
 
     UPDATE ztnotify_msgs FROM ls_notification.
 
@@ -425,6 +566,252 @@ CLASS zcl_notification_manager IMPLEMENTATION.
         rv_authorized = abap_false.
 
     ENDCASE.
+
+  ENDMETHOD.
+
+  METHOD validate_notif_combination.
+    " Validates if the combination of severity, message_type, and display_mode
+    " is allowed according to the notification matrix customizing table
+    DATA: ls_matrix TYPE znotif_matrix,
+          lv_timestamp TYPE timestampl.
+
+    " Initialize return values
+    rv_success = abap_false.
+    ev_valid = abap_false.
+    ev_requires_ack = abap_false.
+    CLEAR ev_error_message.
+
+    " Input validation
+    IF iv_severity IS INITIAL OR iv_message_type IS INITIAL OR iv_display_mode IS INITIAL.
+      ev_error_message = 'All parameters (severity, message_type, display_mode) are required'.
+      RETURN.
+    ENDIF.
+
+    " Check if combination exists and is active in matrix
+    SELECT SINGLE *
+      FROM znotif_matrix
+      INTO @ls_matrix
+      WHERE severity = @iv_severity
+        AND message_type = @iv_message_type
+        AND display_mode = @iv_display_mode
+        AND active = @abap_true.
+
+    IF sy-subrc = 0.
+      " Valid combination found
+      ev_valid = abap_true.
+      ev_requires_ack = ls_matrix-requires_ack.
+      rv_success = abap_true.
+    ELSE.
+      " Invalid combination
+      ev_valid = abap_false.
+      ev_error_message = |Combination { iv_severity }/{ iv_message_type }/{ iv_display_mode } is not allowed by notification matrix|.
+      rv_success = abap_true.  " Method executed successfully, but combination is invalid
+    ENDIF.
+
+  ENDMETHOD.
+
+  METHOD get_valid_display_modes.
+    " Returns list of valid display modes for given severity and message_type
+    " Ordered by sort_order, with default mode identified
+    DATA: lt_matrix TYPE TABLE OF znotif_matrix,
+          ls_matrix TYPE znotif_matrix,
+          lv_mode TYPE string.
+
+    " Initialize return values
+    rv_success = abap_false.
+    CLEAR et_display_modes.
+    CLEAR ev_default_mode.
+
+    " Input validation
+    IF iv_severity IS INITIAL OR iv_message_type IS INITIAL.
+      RETURN.
+    ENDIF.
+
+    " Get all active display modes for this combination, ordered by sort_order
+    SELECT *
+      FROM znotif_matrix
+      INTO TABLE @lt_matrix
+      WHERE severity = @iv_severity
+        AND message_type = @iv_message_type
+        AND active = @abap_true
+      ORDER BY sort_order ASCENDING.
+
+    IF sy-subrc <> 0.
+      " No valid combinations found - return empty list
+      rv_success = abap_true.
+      RETURN.
+    ENDIF.
+
+    " Build list of display modes and identify default
+    LOOP AT lt_matrix INTO ls_matrix.
+      APPEND ls_matrix-display_mode TO et_display_modes.
+
+      " Check if this is the default mode
+      IF ls_matrix-is_default = abap_true.
+        ev_default_mode = ls_matrix-display_mode.
+      ENDIF.
+    ENDLOOP.
+
+    " If no default was marked, use first in list as fallback
+    IF ev_default_mode IS INITIAL AND lines( et_display_modes ) > 0.
+      ev_default_mode = et_display_modes[ 1 ].
+    ENDIF.
+
+    rv_success = abap_true.
+
+  ENDMETHOD.
+
+  METHOD get_valid_message_types.
+    " Returns list of valid message types for given severity
+    " Ordered by sort_order, with default type identified
+    DATA: lt_matrix TYPE TABLE OF znotif_matrix,
+          ls_matrix TYPE znotif_matrix,
+          lt_types_temp TYPE string_table,
+          lv_type TYPE string.
+
+    " Initialize return values
+    rv_success = abap_false.
+    CLEAR et_message_types.
+    CLEAR ev_default_type.
+
+    " Input validation
+    IF iv_severity IS INITIAL.
+      RETURN.
+    ENDIF.
+
+    " Get all active message types for this severity, ordered by sort_order
+    " We need to get DISTINCT message types
+    SELECT *
+      FROM znotif_matrix
+      INTO TABLE @lt_matrix
+      WHERE severity = @iv_severity
+        AND active = @abap_true
+      ORDER BY sort_order ASCENDING.
+
+    IF sy-subrc <> 0.
+      " No valid combinations found - return empty list
+      rv_success = abap_true.
+      RETURN.
+    ENDIF.
+
+    " Build list of unique message types and identify default
+    LOOP AT lt_matrix INTO ls_matrix.
+      " Check if message type already in list (ensure uniqueness)
+      READ TABLE et_message_types TRANSPORTING NO FIELDS WITH KEY table_line = ls_matrix-message_type.
+      IF sy-subrc <> 0.
+        " Not in list yet, add it
+        APPEND ls_matrix-message_type TO et_message_types.
+
+        " Check if this is marked as default and we don't have one yet
+        IF ls_matrix-is_default = abap_true AND ev_default_type IS INITIAL.
+          ev_default_type = ls_matrix-message_type.
+        ENDIF.
+      ENDIF.
+    ENDLOOP.
+
+    " If no default was marked, use first in list as fallback
+    IF ev_default_type IS INITIAL AND lines( et_message_types ) > 0.
+      ev_default_type = et_message_types[ 1 ].
+    ENDIF.
+
+    rv_success = abap_true.
+
+  ENDMETHOD.
+
+  METHOD has_user_acknowledged.
+    "*&---------------------------------------------------------------------*
+    "*& Check if a specific user has already acknowledged a notification
+    "*& v1.3.0 - Acknowledgment tracking
+    "*&---------------------------------------------------------------------*
+    DATA: lv_count TYPE i,
+          lv_userid TYPE syuname.
+
+    " Default to current user if not specified
+    lv_userid = COND #( WHEN iv_user_id IS NOT INITIAL
+                        THEN iv_user_id
+                        ELSE sy-uname ).
+
+    " Query acknowledgment log
+    SELECT COUNT(*)
+      FROM znotify_ack_log
+      INTO @lv_count
+      WHERE mandt = @sy-mandt
+        AND message_id = @iv_message_id
+        AND userid = @lv_userid.
+
+    " Return true if acknowledgment record exists
+    rv_acknowledged = COND #( WHEN lv_count > 0 THEN abap_true ELSE abap_false ).
+
+  ENDMETHOD.
+
+  METHOD record_acknowledgment.
+    "*&---------------------------------------------------------------------*
+    "*& Record a user's acknowledgment of a notification
+    "*& v1.3.0 - Acknowledgment tracking
+    "*&---------------------------------------------------------------------*
+    DATA: ls_ack_log TYPE znotify_ack_log,
+          lv_userid TYPE syuname.
+
+    " Default to current user if not specified
+    lv_userid = COND #( WHEN iv_user_id IS NOT INITIAL
+                        THEN iv_user_id
+                        ELSE sy-uname ).
+
+    " Check if already acknowledged (prevent duplicates)
+    IF has_user_acknowledged( iv_message_id = iv_message_id
+                             iv_user_id = lv_userid ) = abap_true.
+      " Already acknowledged - return false to indicate duplicate
+      rv_success = abap_false.
+      RETURN.
+    ENDIF.
+
+    " Prepare acknowledgment record
+    CLEAR ls_ack_log.
+    ls_ack_log-mandt = sy-mandt.
+    ls_ack_log-message_id = iv_message_id.
+    ls_ack_log-userid = lv_userid.
+    GET TIME STAMP FIELD ls_ack_log-ack_timestamp.
+    ls_ack_log-client_info = iv_client_info.
+
+    " Insert into database
+    INSERT znotify_ack_log FROM ls_ack_log.
+
+    IF sy-subrc = 0.
+      " Success - commit immediately
+      COMMIT WORK AND WAIT.
+      rv_success = abap_true.
+    ELSE.
+      " Failure - rollback
+      ROLLBACK WORK.
+      rv_success = abap_false.
+    ENDIF.
+
+  ENDMETHOD.
+
+  METHOD get_acknowledgments.
+    "*&---------------------------------------------------------------------*
+    "*& Get all acknowledgments for a specific notification
+    "*& v1.3.0 - Acknowledgment tracking
+    "*&---------------------------------------------------------------------*
+    DATA: lt_acks TYPE STANDARD TABLE OF znotify_ack_log.
+
+    " Query all acknowledgments for this notification
+    SELECT *
+      FROM znotify_ack_log
+      INTO TABLE @lt_acks
+      WHERE mandt = @sy-mandt
+        AND message_id = @iv_message_id
+      ORDER BY ack_timestamp DESCENDING.
+
+    " Convert to output structure
+    LOOP AT lt_acks INTO DATA(ls_ack).
+      APPEND VALUE #(
+        message_id    = ls_ack-message_id
+        userid        = ls_ack-userid
+        ack_timestamp = ls_ack-ack_timestamp
+        client_info   = ls_ack-client_info
+      ) TO rt_acknowledgments.
+    ENDLOOP.
 
   ENDMETHOD.
 

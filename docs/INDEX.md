@@ -296,7 +296,8 @@ Example code
 |------|---------|---------|
 | 09/29/2024 | 1.0.0 | First complete release |
 | 09/30/2024 | 1.1.0 | Early Close feature, English translation, detailed deployment |
-| TBD | 1.2.0 | Future updates |
+| 10/2025 | 1.2.0 | Code quality improvements, memory leak fixes, documentation restructure |
+| 10/10/2025 | 1.3.0 | **User Acknowledgment Tracking System** - OK button, audit trail, compliance reporting |
 
 ---
 
@@ -344,5 +345,5 @@ Found an error? Want to improve a guide?
 
 ---
 
-*Documentation v1.1.0 - Last updated: September 30, 2024*
+*Documentation v1.3.0 - Last updated: October 10, 2025*
 *Architects: Gabriele Rendina & Ileana Scaglia*

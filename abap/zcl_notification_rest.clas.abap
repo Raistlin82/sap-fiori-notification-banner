@@ -15,6 +15,9 @@ CLASS zcl_notification_rest DEFINITION
              handle_delete_notification,
              handle_get_stats,
              handle_get_log,
+             handle_get_valid_modes,
+             handle_get_valid_types,
+             handle_acknowledge,
              serialize_notifications
                IMPORTING
                  it_notifications TYPE zcl_notification_manager=>tt_notifications
@@ -60,12 +63,21 @@ CLASS zcl_notification_rest IMPLEMENTATION.
           handle_get_stats( ).
         ELSEIF lv_path CS '/log'.
           handle_get_log( ).
+        ELSEIF lv_path CS '/valid-modes'.
+          handle_get_valid_modes( ).
+        ELSEIF lv_path CS '/valid-types'.
+          handle_get_valid_types( ).
         ELSE.
           handle_get_notifications( ).
         ENDIF.
 
       WHEN 'POST'.
-        handle_create_notification( ).
+        " Route to acknowledge endpoint or create notification
+        IF lv_path CS '/acknowledge'.
+          handle_acknowledge( ).
+        ELSE.
+          handle_create_notification( ).
+        ENDIF.
 
       WHEN 'PUT'.
         handle_update_notification( ).
@@ -137,6 +149,7 @@ CLASS zcl_notification_rest IMPLEMENTATION.
         ls_notification-target_users = ls_db_notification-target_users.
         ls_notification-active = ls_db_notification-active.
         ls_notification-display_mode = ls_db_notification-display_mode.
+        ls_notification-requires_ack = ls_db_notification-requires_ack.
         ls_notification-created_by = ls_db_notification-created_by.
         ls_notification-created_at = ls_db_notification-created_at.
         ls_notification-changed_by = ls_db_notification-changed_by.
@@ -185,7 +198,22 @@ CLASS zcl_notification_rest IMPLEMENTATION.
              occurrences TYPE i,
            END OF ty_notification_extended.
 
-    DATA: ls_extended TYPE ty_notification_extended.
+    " Response structures for JSON serialization
+    TYPES: BEGIN OF ty_response_recurring,
+             success TYPE abap_bool,
+             message TYPE string,
+             message_ids TYPE string_table,
+           END OF ty_response_recurring.
+
+    TYPES: BEGIN OF ty_response_single,
+             success TYPE abap_bool,
+             message TYPE string,
+             message_id TYPE char32,
+           END OF ty_response_single.
+
+    DATA: ls_extended TYPE ty_notification_extended,
+          ls_response_recurring TYPE ty_response_recurring,
+          ls_response_single TYPE ty_response_single.
 
     TRY.
         " Get JSON from request body
@@ -226,10 +254,11 @@ CLASS zcl_notification_rest IMPLEMENTATION.
 
           IF lv_success = abap_true.
             " Return list of created message IDs
-            lv_response_json = /ui2/cl_json=>serialize(
-              data = VALUE #( success = abap_true
-                              message = |Created { lines( lt_message_ids ) } recurring notifications|
-                              message_ids = lt_message_ids ) ).
+            ls_response_recurring-success = abap_true.
+            ls_response_recurring-message = |Created { lines( lt_message_ids ) } recurring notifications|.
+            ls_response_recurring-message_ids = lt_message_ids.
+
+            lv_response_json = /ui2/cl_json=>serialize( data = ls_response_recurring ).
 
             mo_server->response->set_status( code = 201 reason = 'Created' ).
             mo_server->response->set_cdata( data = lv_response_json ).
@@ -248,10 +277,11 @@ CLASS zcl_notification_rest IMPLEMENTATION.
 
           IF lv_success = abap_true.
             " Return created message ID
-            lv_response_json = /ui2/cl_json=>serialize(
-              data = VALUE #( success = abap_true
-                              message = 'Notification created'
-                              message_id = lv_message_id ) ).
+            ls_response_single-success = abap_true.
+            ls_response_single-message = 'Notification created'.
+            ls_response_single-message_id = lv_message_id.
+
+            lv_response_json = /ui2/cl_json=>serialize( data = ls_response_single ).
 
             mo_server->response->set_status( code = 201 reason = 'Created' ).
             mo_server->response->set_cdata( data = lv_response_json ).
@@ -489,6 +519,7 @@ CLASS zcl_notification_rest IMPLEMENTATION.
       ls_notification-target_users = ls_db_notification-target_users.
       ls_notification-active = ls_db_notification-active.
       ls_notification-display_mode = ls_db_notification-display_mode.
+      ls_notification-requires_ack = ls_db_notification-requires_ack.
       ls_notification-created_by = ls_db_notification-created_by.
       ls_notification-created_at = ls_db_notification-created_at.
       ls_notification-changed_by = ls_db_notification-changed_by.
@@ -512,6 +543,217 @@ CLASS zcl_notification_rest IMPLEMENTATION.
     mo_server->response->set_status( code = 200 reason = 'OK' ).
     mo_server->response->set_header_field( name = 'Content-Type' value = 'application/json' ).
     mo_server->response->set_cdata( data = lv_json ).
+
+  ENDMETHOD.
+
+  METHOD handle_get_valid_modes.
+    " Returns valid display modes for given severity and message_type
+    " Query parameters: severity, message_type
+    " Response: { display_modes: [...], default_mode: "..." }
+    DATA: lv_severity TYPE char8,
+          lv_message_type TYPE char12,
+          lt_display_modes TYPE string_table,
+          lv_default_mode TYPE char10,
+          lv_success TYPE abap_bool,
+          lv_json TYPE string,
+          lv_mode TYPE string,
+          lv_first TYPE abap_bool.
+
+    " Get query parameters
+    lv_severity = mo_server->request->get_form_field( 'severity' ).
+    lv_message_type = mo_server->request->get_form_field( 'message_type' ).
+
+    " Validate required parameters
+    IF lv_severity IS INITIAL OR lv_message_type IS INITIAL.
+      lv_json = '{"error":"Missing required parameters: severity and message_type"}'.
+      mo_server->response->set_status( code = 400 reason = 'Bad Request' ).
+      mo_server->response->set_header_field( name = 'Content-Type' value = 'application/json' ).
+      mo_server->response->set_cdata( data = lv_json ).
+      RETURN.
+    ENDIF.
+
+    " Call validation method
+    lv_success = zcl_notification_manager=>get_valid_display_modes(
+      EXPORTING
+        iv_severity = lv_severity
+        iv_message_type = lv_message_type
+      IMPORTING
+        et_display_modes = lt_display_modes
+        ev_default_mode = lv_default_mode
+    ).
+
+    IF lv_success = abap_false.
+      lv_json = '{"error":"Failed to retrieve valid display modes"}'.
+      mo_server->response->set_status( code = 500 reason = 'Internal Server Error' ).
+      mo_server->response->set_header_field( name = 'Content-Type' value = 'application/json' ).
+      mo_server->response->set_cdata( data = lv_json ).
+      RETURN.
+    ENDIF.
+
+    " Build JSON response manually
+    lv_json = '{"display_modes":['.
+    lv_first = abap_true.
+
+    LOOP AT lt_display_modes INTO lv_mode.
+      IF lv_first = abap_false.
+        CONCATENATE lv_json ',' INTO lv_json.
+      ENDIF.
+      lv_first = abap_false.
+      CONCATENATE lv_json '"' lv_mode '"' INTO lv_json.
+    ENDLOOP.
+
+    CONCATENATE lv_json '],"default_mode":"' lv_default_mode '"' INTO lv_json.
+    CONCATENATE lv_json '}' INTO lv_json.
+
+    " Set response
+    mo_server->response->set_status( code = 200 reason = 'OK' ).
+    mo_server->response->set_header_field( name = 'Content-Type' value = 'application/json' ).
+    mo_server->response->set_cdata( data = lv_json ).
+
+  ENDMETHOD.
+
+  METHOD handle_get_valid_types.
+    " Returns valid message types for given severity
+    " Query parameter: severity
+    " Response: { message_types: [...], default_type: "..." }
+    DATA: lv_severity TYPE char8,
+          lt_message_types TYPE string_table,
+          lv_default_type TYPE char12,
+          lv_success TYPE abap_bool,
+          lv_json TYPE string,
+          lv_type TYPE string,
+          lv_first TYPE abap_bool.
+
+    " Get query parameter
+    lv_severity = mo_server->request->get_form_field( 'severity' ).
+
+    " Validate required parameter
+    IF lv_severity IS INITIAL.
+      lv_json = '{"error":"Missing required parameter: severity"}'.
+      mo_server->response->set_status( code = 400 reason = 'Bad Request' ).
+      mo_server->response->set_header_field( name = 'Content-Type' value = 'application/json' ).
+      mo_server->response->set_cdata( data = lv_json ).
+      RETURN.
+    ENDIF.
+
+    " Call validation method
+    lv_success = zcl_notification_manager=>get_valid_message_types(
+      EXPORTING
+        iv_severity = lv_severity
+      IMPORTING
+        et_message_types = lt_message_types
+        ev_default_type = lv_default_type
+    ).
+
+    IF lv_success = abap_false.
+      lv_json = '{"error":"Failed to retrieve valid message types"}'.
+      mo_server->response->set_status( code = 500 reason = 'Internal Server Error' ).
+      mo_server->response->set_header_field( name = 'Content-Type' value = 'application/json' ).
+      mo_server->response->set_cdata( data = lv_json ).
+      RETURN.
+    ENDIF.
+
+    " Build JSON response manually
+    lv_json = '{"message_types":['.
+    lv_first = abap_true.
+
+    LOOP AT lt_message_types INTO lv_type.
+      IF lv_first = abap_false.
+        CONCATENATE lv_json ',' INTO lv_json.
+      ENDIF.
+      lv_first = abap_false.
+      CONCATENATE lv_json '"' lv_type '"' INTO lv_json.
+    ENDLOOP.
+
+    CONCATENATE lv_json '],"default_type":"' lv_default_type '"' INTO lv_json.
+    CONCATENATE lv_json '}' INTO lv_json.
+
+    " Set response
+    mo_server->response->set_status( code = 200 reason = 'OK' ).
+    mo_server->response->set_header_field( name = 'Content-Type' value = 'application/json' ).
+    mo_server->response->set_cdata( data = lv_json ).
+
+  ENDMETHOD.
+
+  METHOD handle_acknowledge.
+    "*----------------------------------------------------------------------*
+    "* METHOD handle_acknowledge (v1.3.0 - Acknowledgment tracking)
+    "*----------------------------------------------------------------------*
+    "* Handle POST /acknowledge endpoint
+    "* Records user acknowledgment of a notification
+    "*----------------------------------------------------------------------*
+    DATA: lv_json_request  TYPE string,
+          lv_json_response TYPE string,
+          lv_message_id    TYPE char32,
+          lv_client_info   TYPE char255,
+          lv_success       TYPE abap_bool,
+          lv_timestamp     TYPE string.
+
+    TRY.
+        " Get request body (JSON)
+        lv_json_request = mo_server->request->get_cdata( ).
+
+        " Parse JSON to extract message_id and client_info
+        " Format: {"message_id": "abc123", "client_info": "Mozilla/5.0..."}
+
+        " Extract message_id using REGEX
+        FIND REGEX '"message_id"\s*:\s*"([^"]+)"' IN lv_json_request
+             SUBMATCHES lv_message_id.
+
+        " Extract client_info (optional)
+        FIND REGEX '"client_info"\s*:\s*"([^"]+)"' IN lv_json_request
+             SUBMATCHES lv_client_info.
+
+        " Validate message_id is provided
+        IF lv_message_id IS INITIAL.
+          " Bad request - missing message_id
+          mo_server->response->set_status( code = 400 reason = 'Bad Request' ).
+          lv_json_response = '{"success":false,"error":"message_id is required"}'.
+          mo_server->response->set_cdata( data = lv_json_response ).
+          mo_server->response->set_header_field( name = 'Content-Type' value = 'application/json' ).
+          RETURN.
+        ENDIF.
+
+        " Record acknowledgment
+        lv_success = zcl_notification_manager=>record_acknowledgment(
+          iv_message_id  = lv_message_id
+          iv_client_info = lv_client_info
+        ).
+
+        " Prepare response
+        mo_server->response->set_header_field( name = 'Content-Type' value = 'application/json' ).
+
+        IF lv_success = abap_true.
+          " Success - acknowledgment recorded
+          mo_server->response->set_status( code = 200 reason = 'OK' ).
+
+          " Get current timestamp for response
+          lv_timestamp = |{ sy-datum }T{ sy-uzeit }|.
+
+          lv_json_response = '{"success":true,"timestamp":"' && lv_timestamp && '"}'.
+          mo_server->response->set_cdata( data = lv_json_response ).
+
+        ELSE.
+          " Failed - check if already acknowledged
+          IF zcl_notification_manager=>has_user_acknowledged( lv_message_id ) = abap_true.
+            " Already acknowledged - return 409 Conflict
+            mo_server->response->set_status( code = 409 reason = 'Conflict' ).
+            lv_json_response = '{"success":false,"error":"Already acknowledged"}'.
+          ELSE.
+            " Generic error - return 500 Internal Server Error
+            mo_server->response->set_status( code = 500 reason = 'Internal Server Error' ).
+            lv_json_response = '{"success":false,"error":"Failed to record acknowledgment"}'.
+          ENDIF.
+          mo_server->response->set_cdata( data = lv_json_response ).
+        ENDIF.
+
+      CATCH cx_root INTO DATA(lx_error).
+        " Exception handling
+        mo_server->response->set_status( code = 500 reason = 'Internal Server Error' ).
+        lv_json_response = '{"success":false,"error":"' && lx_error->get_text( ) && '"}'.
+        mo_server->response->set_cdata( data = lv_json_response ).
+        mo_server->response->set_header_field( name = 'Content-Type' value = 'application/json' ).
+    ENDTRY.
 
   ENDMETHOD.
 

@@ -2,6 +2,7 @@ sap.ui.define([
     "sap/ui/base/Object",
     "sap/m/MessageStrip",
     "sap/m/MessageToast",
+    "sap/m/MessageBox",
     "sap/m/Button",
     "sap/m/Text",
     "sap/m/Title",
@@ -11,7 +12,7 @@ sap.ui.define([
     "sap/ui/core/library",
     "sap/ui/model/json/JSONModel",
     "sap/base/Log"
-], function(BaseObject, MessageStrip, MessageToast, Button, Text, Title, HBox, VBox, FlexBox, coreLibrary, JSONModel, Log) {
+], function(BaseObject, MessageStrip, MessageToast, MessageBox, Button, Text, Title, HBox, VBox, FlexBox, coreLibrary, JSONModel, Log) {
     "use strict";
 
     var MessageType = coreLibrary.MessageType;
@@ -509,14 +510,33 @@ sap.ui.define([
 
             console.log("[NotificationBanner] Final banner text:", bannerText);
 
+            // Check if notification requires acknowledgment
+            var requiresAck = notification.requires_ack === 'X' || notification.requires_ack === true;
+            console.log("[NotificationBanner] Requires acknowledgment:", requiresAck);
+
             // Create banner
             var messageStrip = new MessageStrip({
                 text: bannerText,
                 type: messageType,
                 showIcon: true,
-                showCloseButton: true,
-                close: this._onBannerClose.bind(this)
+                showCloseButton: !requiresAck,  // Hide X button if acknowledgment required
+                close: requiresAck ? null : this._onBannerClose.bind(this)  // Only bind close event if simple dismiss
             });
+
+            // If acknowledgment is required, add custom OK button
+            if (requiresAck) {
+                var that = this;
+                var oAckButton = new Button({
+                    text: "OK",
+                    type: "Emphasized",
+                    icon: "sap-icon://accept",
+                    press: function() {
+                        that._acknowledgeNotification(notification, messageStrip);
+                    }
+                });
+                messageStrip.addCustomAction(oAckButton);
+                console.log("[NotificationBanner] Added OK acknowledgment button");
+            }
 
             // Add CSS classes for styling
             messageStrip.addStyleClass("sapUiMediumMargin");
@@ -720,6 +740,139 @@ sap.ui.define([
                 return MessageType.Information;
             default:
                 return MessageType.Information;
+            }
+        },
+
+        /**
+         * Handle notification acknowledgment (user clicked OK)
+         * @private
+         * @param {object} notification - The notification object
+         * @param {sap.m.MessageStrip} messageStrip - The message strip control
+         */
+        _acknowledgeNotification: function(notification, messageStrip) {
+            var that = this;
+
+            console.log("[NotificationBanner] ========== ACKNOWLEDGE NOTIFICATION ==========");
+            console.log("[NotificationBanner] Acknowledging notification:", notification.message_id, notification.title);
+
+            // Prevent duplicate acknowledgments
+            if (this._isAcknowledging) {
+                console.log("[NotificationBanner] Already acknowledging, ignoring duplicate request");
+                return;
+            }
+            this._isAcknowledging = true;
+
+            jQuery.ajax({
+                url: "/sap/bc/rest/zcl_notif_rest/acknowledge",
+                type: "POST",
+                contentType: "application/json",
+                data: JSON.stringify({
+                    message_id: notification.message_id,
+                    client_info: navigator.userAgent
+                }),
+                timeout: 10000,
+                success: function(response) {
+                    console.log("[NotificationBanner] Acknowledgment recorded successfully:", response);
+
+                    // Mark as acknowledged in localStorage to prevent re-showing during same session
+                    that._markAsAcknowledged(notification.message_id);
+
+                    // Show success toast
+                    MessageToast.show("Notification acknowledged");
+
+                    // Remove notification from display (similar to dismiss but with acknowledgment)
+                    that._handleAcknowledgedNotification(notification, messageStrip);
+
+                    that._isAcknowledging = false;
+                },
+                error: function(xhr, status, error) {
+                    console.error("[NotificationBanner] Failed to acknowledge notification:", error, "Status:", xhr.status);
+
+                    that._isAcknowledging = false;
+
+                    // Show error message
+                    var errorMsg = "Failed to acknowledge notification";
+                    if (xhr.status === 409) {
+                        errorMsg = "Notification already acknowledged";
+                    }
+
+                    MessageBox.error(errorMsg + ": " + error, {
+                        title: "Acknowledgment Error",
+                        actions: [MessageBox.Action.CLOSE]
+                    });
+                }
+            });
+        },
+
+        /**
+         * Mark notification as acknowledged in localStorage
+         * @private
+         * @param {string} messageId - The message ID
+         */
+        _markAsAcknowledged: function(messageId) {
+            try {
+                var acknowledged = this._getAcknowledgedNotifications();
+                acknowledged[messageId] = {
+                    timestamp: Date.now()
+                };
+                localStorage.setItem("acknowledgedNotifications", JSON.stringify(acknowledged));
+                console.log("[NotificationBanner] Marked as acknowledged in localStorage:", messageId);
+            } catch (e) {
+                Log.error("Failed to save acknowledged notification to localStorage: " + e.message);
+            }
+        },
+
+        /**
+         * Get acknowledged notifications from localStorage
+         * @private
+         * @returns {object} Map of messageId -> {timestamp}
+         */
+        _getAcknowledgedNotifications: function() {
+            try {
+                var data = localStorage.getItem("acknowledgedNotifications");
+                return data ? JSON.parse(data) : {};
+            } catch (e) {
+                Log.error("Failed to read acknowledged notifications from localStorage: " + e.message);
+                return {};
+            }
+        },
+
+        /**
+         * Handle acknowledged notification removal from display
+         * @private
+         * @param {object} notification - The notification object
+         * @param {sap.m.MessageStrip} messageStrip - The message strip control
+         */
+        _handleAcknowledgedNotification: function(notification, messageStrip) {
+            console.log("[NotificationBanner] Removing acknowledged notification from display");
+
+            // Remove current notification from display list
+            var index = this._bannerNotifications.indexOf(notification);
+            if (index > -1) {
+                this._bannerNotifications.splice(index, 1);
+                console.log("[NotificationBanner] Removed from bannerNotifications, new count:", this._bannerNotifications.length);
+            }
+
+            // Also remove from all notifications
+            var allIndex = this._allNotifications.findIndex(function(n) {
+                return n.message_id === notification.message_id;
+            });
+            if (allIndex > -1) {
+                this._allNotifications.splice(allIndex, 1);
+            }
+
+            // Show next notification or remove banner if no more notifications
+            if (this._bannerNotifications.length > 0) {
+                // Adjust index if needed
+                if (this._currentBannerIndex >= this._bannerNotifications.length) {
+                    this._currentBannerIndex = this._bannerNotifications.length - 1;
+                }
+                console.log("[NotificationBanner] Showing next notification at index:", this._currentBannerIndex);
+                this._removeBanner();
+                this._createBanner(this._bannerNotifications[this._currentBannerIndex]);
+            } else {
+                console.log("[NotificationBanner] No more notifications to show, removing banner");
+                this._removeBanner();
             }
         },
 
