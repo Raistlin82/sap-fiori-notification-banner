@@ -121,6 +121,30 @@ sap.ui.define([], function () {
             }
 
             return start + " → " + end;
+        },
+
+        /**
+         * Format display mode key to localized text
+         * @param {string} mode - Display mode key (BANNER, TOAST, BOTH, SILENT)
+         * @param {string} bannerText - Localized text for BANNER
+         * @param {string} toastText - Localized text for TOAST
+         * @param {string} bothText - Localized text for BOTH
+         * @param {string} silentText - Localized text for SILENT
+         * @returns {string} Localized display mode text
+         */
+        formatDisplayModeText: function (mode, bannerText, toastText, bothText, silentText) {
+            switch (mode) {
+                case "BANNER":
+                    return bannerText;
+                case "TOAST":
+                    return toastText;
+                case "BOTH":
+                    return bothText;
+                case "SILENT":
+                    return silentText;
+                default:
+                    return mode;
+            }
         }
     };
 });

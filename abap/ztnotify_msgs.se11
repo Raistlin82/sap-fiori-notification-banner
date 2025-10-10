@@ -44,6 +44,7 @@ END_DATE               DATS               DATS       8       0         Valid To 
 TARGET_USERS           ZNOTIFY_TARGET_USERS CHAR     10      0         Target Audience Filter
 ACTIVE                 CHAR1              CHAR       1       0         Active Flag (X/' ')
 DISPLAY_MODE           ZNOTIFY_DISP_MODE  CHAR       10      0         Display Mode (F4) v1.1.0
+REQUIRES_ACK           CHAR1              CHAR       1       0         Requires Acknowledgment (X/' ') v1.2.0
 CREATED_BY             SYUNAME            CHAR       12      0         Created By User
 CREATED_AT             TIMESTAMPL         DEC        21      7         Created Timestamp
 CHANGED_BY             SYUNAME            CHAR       12      0         Changed By User
@@ -116,6 +117,16 @@ CHANGED_AT             TIMESTAMPL         DEC        21      7         Changed T
 *     - Use checkbox (X=' ')
 *     - Standard ABAP boolean flag
 *
+*   REQUIRES_ACK:
+*     - X = Track user acknowledgment for this notification
+*     - blank = Do not track acknowledgment
+*     - Automatically set from ZNOTIF_MATRIX during create/update
+*     - Business rule: Track only for BANNER/BOTH + (HIGH severity OR URGENT type)
+*     - Foundation for future analytics (who read which critical notifications)
+*     - Added in v1.2.0 with notification matrix enhancement
+*
 *-- Version History:
 *   v1.0.0: Initial version
 *   v1.1.0: Added DISPLAY_MODE field for toast notifications and tile counter
+*   v1.2.0: Added REQUIRES_ACK field for user acknowledgment tracking
+*           Added notification matrix validation (ZNOTIF_MATRIX table)
