@@ -85,8 +85,8 @@ sap.ui.define([
                         // Handle ABAP 'X', boolean true, or string 'true'
                         // Convert anything else (empty string, space, null) to false
                         // Trim spaces to handle ABAP space padding
-                        var activeValue = typeof msg.active === 'string' ? msg.active.trim() : msg.active;
-                        msg.active = !!(activeValue === 'X' || activeValue === true || activeValue === 'true');
+                        var activeValue = typeof msg.active === "string" ? msg.active.trim() : msg.active;
+                        msg.active = !!(activeValue === "X" || activeValue === true || activeValue === "true");
                     });
 
                     oModel.setProperty("/messages", messages);
@@ -149,60 +149,60 @@ sap.ui.define([
 
         /**
          * Navigate to next step in wizard
+         * Validates current step data and moves to next wizard step
          */
         onNextStep: function() {
-            var that = this;
             var oEditModel = this.getView().getModel("editMode");
             var currentStep = oEditModel.getProperty("/currentStep");
 
             switch(currentStep) {
-                case 1: // Title + Message → Severity
-                    var title = oEditModel.getProperty("/title");
-                    var message = oEditModel.getProperty("/message_text");
-                    if (!title || !title.trim() || !message || !message.trim()) {
-                        MessageBox.error("Please fill in both Title and Message");
-                        return;
-                    }
-                    oEditModel.setProperty("/currentStep", 2);
-                    this._updateButtonVisibility();
-                    break;
+            case 1: // Step 1: Title + Message → Severity
+                var title = oEditModel.getProperty("/title");
+                var message = oEditModel.getProperty("/message_text");
+                if (!title || !title.trim() || !message || !message.trim()) {
+                    MessageBox.error("Please fill in both Title and Message");
+                    return;
+                }
+                oEditModel.setProperty("/currentStep", 2);
+                this._updateButtonVisibility();
+                break;
 
-                case 2: // Severity → Message Type (carica valori validi)
-                    var severity = oEditModel.getProperty("/severity");
-                    if (!severity) {
-                        MessageBox.error("Please select a Severity");
-                        return;
-                    }
-                    // Carica message types validi per questa severity
-                    this._loadValidMessageTypesAndProceed();
-                    // _updateButtonVisibility will be called after loading completes
-                    break;
+            case 2: // Severity → Message Type (carica valori validi)
+                var severity = oEditModel.getProperty("/severity");
+                if (!severity) {
+                    MessageBox.error("Please select a Severity");
+                    return;
+                }
+                // Carica message types validi per questa severity
+                this._loadValidMessageTypesAndProceed();
+                // _updateButtonVisibility will be called after loading completes
+                break;
 
-                case 3: // Message Type → Display Mode (carica valori validi)
-                    var messageType = oEditModel.getProperty("/message_type");
-                    if (!messageType) {
-                        MessageBox.error("Please select a Message Type");
-                        return;
-                    }
-                    // Carica display modes validi per severity + message type
-                    this._loadValidDisplayModesAndProceed();
-                    // _updateButtonVisibility will be called after loading completes
-                    break;
+            case 3: // Message Type → Display Mode (carica valori validi)
+                var messageType = oEditModel.getProperty("/message_type");
+                if (!messageType) {
+                    MessageBox.error("Please select a Message Type");
+                    return;
+                }
+                // Carica display modes validi per severity + message type
+                this._loadValidDisplayModesAndProceed();
+                // _updateButtonVisibility will be called after loading completes
+                break;
 
-                case 4: // Display Mode → Dettagli
-                    var displayMode = oEditModel.getProperty("/display_mode");
-                    if (!displayMode) {
-                        MessageBox.error("Please select a Display Mode");
-                        return;
-                    }
-                    oEditModel.setProperty("/currentStep", 5);
-                    this._updateButtonVisibility();
-                    // Enable recurring if all required fields are filled
-                    this._checkRecurringEnabledment();
-                    break;
+            case 4: // Display Mode → Dettagli
+                var displayMode = oEditModel.getProperty("/display_mode");
+                if (!displayMode) {
+                    MessageBox.error("Please select a Display Mode");
+                    return;
+                }
+                oEditModel.setProperty("/currentStep", 5);
+                this._updateButtonVisibility();
+                // Enable recurring if all required fields are filled
+                this._checkRecurringEnabledment();
+                break;
 
-                default:
-                    break;
+            default:
+                break;
             }
         },
 
@@ -365,7 +365,7 @@ sap.ui.define([
                 target_users: oEditModel.target_audience,  // ABAP expects target_users not target_audience
                 start_date: this._formatDateForABAP(oEditModel.start_date),  // Convert to YYYYMMDD
                 end_date: this._formatDateForABAP(oEditModel.end_date),      // Convert to YYYYMMDD
-                active: oEditModel.active ? 'X' : ''
+                active: oEditModel.active ? "X" : ""
             };
 
             // Add recurring parameters if enabled
@@ -454,7 +454,7 @@ sap.ui.define([
 
             // Prepare data for backend (ABAP expects 'X' or '' and YYYYMMDD dates)
             var oData = Object.assign({}, oMessage);
-            oData.active = bNewState ? 'X' : '';
+            oData.active = bNewState ? "X" : "";
             // Convert dates from ISO to ABAP format if needed
             oData.start_date = this._formatDateForABAP(oData.start_date);
             oData.end_date = this._formatDateForABAP(oData.end_date);
@@ -620,13 +620,13 @@ sap.ui.define([
          */
         _generateUUID: function () {
             // Generate UUID and remove hyphens to fit ABAP char32 (32 characters max)
-            var uuid = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+            var uuid = "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function(c) {
                 var r = Math.random() * 16 | 0;
-                var v = c === 'x' ? r : (r & 0x3 | 0x8);
+                var v = c === "x" ? r : (r & 0x3 | 0x8);
                 return v.toString(16);
             });
             // Remove hyphens: "fc4b1a3e-fa30-442b-956e-52a0aafa67d5" → "fc4b1a3efa30442b956e52a0aafa67d5"
-            return uuid.replace(/-/g, '');
+            return uuid.replace(/-/g, "");
         },
 
         /**
@@ -637,9 +637,9 @@ sap.ui.define([
          */
         _getFormattedDate: function (date) {
             var year = date.getFullYear();
-            var month = String(date.getMonth() + 1).padStart(2, '0');
-            var day = String(date.getDate()).padStart(2, '0');
-            return year + '-' + month + '-' + day;
+            var month = String(date.getMonth() + 1).padStart(2, "0");
+            var day = String(date.getDate()).padStart(2, "0");
+            return year + "-" + month + "-" + day;
         },
 
         /**
@@ -650,10 +650,10 @@ sap.ui.define([
          */
         _formatDateForABAP: function (dateString) {
             if (!dateString) {
-                return '';
+                return "";
             }
             // Remove hyphens from ISO date format: "2025-10-03" -> "20251003"
-            return dateString.replace(/-/g, '');
+            return dateString.replace(/-/g, "");
         },
 
         /**
@@ -958,7 +958,7 @@ sap.ui.define([
                 return;
             }
 
-            var typeText = type === 'D' ? 'daily' : (type === 'W' ? 'weekly' : 'monthly');
+            var typeText = type === "D" ? "daily" : (type === "W" ? "weekly" : "monthly");
             var preview = "Will create " + count + " " + typeText + " notifications starting from " + startDate;
 
             oEditModel.setProperty("/recurringPreview", preview);

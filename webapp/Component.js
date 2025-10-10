@@ -53,10 +53,11 @@ sap.ui.define([
         _initMockServer: function() {
             return new Promise(function(resolve) {
                 sap.ui.require(["com/sap/notifications/banner2/localService/mockserver"], function(mockserver) {
+                    // Initialize mock server for local development
                     mockserver.init();
                     resolve();
-                }, function(_error) {
-                    // Mockserver not available - continue without it
+                }, function() {
+                    // Mockserver not available - continue without it (production mode)
                     resolve();
                 });
             });

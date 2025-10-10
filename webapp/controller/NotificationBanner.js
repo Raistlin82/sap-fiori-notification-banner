@@ -511,7 +511,7 @@ sap.ui.define([
             console.log("[NotificationBanner] Final banner text:", bannerText);
 
             // Check if notification requires acknowledgment
-            var requiresAck = notification.requires_ack === 'X' || notification.requires_ack === true;
+            var requiresAck = notification.requires_ack === "X" || notification.requires_ack === true;
             console.log("[NotificationBanner] Requires acknowledgment:", requiresAck);
 
             // Create banner
@@ -755,32 +755,63 @@ sap.ui.define([
             console.log("[NotificationBanner] ========== ACKNOWLEDGE NOTIFICATION ==========");
             console.log("[NotificationBanner] Acknowledging notification:", notification.message_id, notification.title);
 
-            // Prevent duplicate acknowledgments
+            /**
+             * CRITICAL: Prevent duplicate acknowledgments
+             *
+             * When user clicks "OK - I Understand" button, we must prevent:
+             * 1. Multiple rapid clicks (double-click)
+             * 2. Concurrent AJAX requests to backend
+             *
+             * This flag ensures only ONE acknowledgment request is processed at a time
+             */
             if (this._isAcknowledging) {
                 console.log("[NotificationBanner] Already acknowledging, ignoring duplicate request");
                 return;
             }
             this._isAcknowledging = true;
 
+            /**
+             * POST to ABAP REST endpoint: /sap/bc/rest/zcl_notif_rest/acknowledge
+             *
+             * Request payload:
+             * {
+             *   "message_id": "unique_notification_id",
+             *   "client_info": "Mozilla/5.0 ..." (browser user agent)
+             * }
+             *
+             * Expected responses:
+             * - 200 OK: Acknowledgment recorded successfully in ZNOTIFY_ACK_LOG
+             * - 409 Conflict: User already acknowledged this notification (duplicate)
+             * - 500 Internal Server Error: Database error or ABAP exception
+             */
             jQuery.ajax({
                 url: "/sap/bc/rest/zcl_notif_rest/acknowledge",
                 type: "POST",
                 contentType: "application/json",
                 data: JSON.stringify({
                     message_id: notification.message_id,
-                    client_info: navigator.userAgent
+                    client_info: navigator.userAgent  // Track browser/device for audit trail
                 }),
-                timeout: 10000,
+                timeout: 10000,  // 10 second timeout
                 success: function(response) {
                     console.log("[NotificationBanner] Acknowledgment recorded successfully:", response);
 
-                    // Mark as acknowledged in localStorage to prevent re-showing during same session
+                    /**
+                     * DUAL PERSISTENCE STRATEGY:
+                     *
+                     * 1. Backend (ABAP): ZNOTIFY_ACK_LOG table (permanent, audit trail)
+                     * 2. Frontend (Browser): localStorage (session cache, prevents re-fetch)
+                     *
+                     * Why both?
+                     * - Backend: Legal/compliance requirement, cross-device tracking
+                     * - Frontend: Performance optimization, reduces server load
+                     */
                     that._markAsAcknowledged(notification.message_id);
 
-                    // Show success toast
+                    // Show success feedback to user
                     MessageToast.show("Notification acknowledged");
 
-                    // Remove notification from display (similar to dismiss but with acknowledgment)
+                    // Remove notification from display and show next one if available
                     that._handleAcknowledgedNotification(notification, messageStrip);
 
                     that._isAcknowledging = false;
@@ -790,7 +821,18 @@ sap.ui.define([
 
                     that._isAcknowledging = false;
 
-                    // Show error message
+                    /**
+                     * ERROR HANDLING STRATEGY:
+                     *
+                     * 409 Conflict: Already acknowledged by this user
+                     *   - This is actually a SUCCESS case (user saw and acknowledged)
+                     *   - Show friendly message, not an error
+                     *
+                     * 500 Server Error: Database failure or ABAP dump
+                     *   - Show error dialog
+                     *   - Do NOT remove notification from display
+                     *   - User can retry acknowledgment
+                     */
                     var errorMsg = "Failed to acknowledge notification";
                     if (xhr.status === 409) {
                         errorMsg = "Notification already acknowledged";
@@ -805,25 +847,60 @@ sap.ui.define([
         },
 
         /**
-         * Mark notification as acknowledged in localStorage
+         * Mark notification as acknowledged in browser localStorage
+         *
+         * PURPOSE:
+         * Creates a client-side cache of acknowledged notifications to improve UX
+         *
+         * DATA STRUCTURE:
+         * {
+         *   "MSG_001": { "timestamp": 1728550234567 },
+         *   "MSG_002": { "timestamp": 1728550345678 }
+         * }
+         *
+         * WHY TIMESTAMP?
+         * - Future cleanup: could implement expiration (e.g., remove after 30 days)
+         * - Debugging: helps understand when user acknowledged
+         * - Analytics: potential for acknowledgment time tracking
+         *
+         * ERROR HANDLING:
+         * localStorage can fail due to:
+         * - QuotaExceededError: Storage full (rarely happens for small data)
+         * - SecurityError: Disabled in private browsing mode
+         * - Catch all errors and fail gracefully (backend is source of truth)
+         *
          * @private
-         * @param {string} messageId - The message ID
+         * @param {string} messageId - The message ID to mark as acknowledged
          */
         _markAsAcknowledged: function(messageId) {
             try {
                 var acknowledged = this._getAcknowledgedNotifications();
                 acknowledged[messageId] = {
-                    timestamp: Date.now()
+                    timestamp: Date.now()  // Unix timestamp in milliseconds
                 };
                 localStorage.setItem("acknowledgedNotifications", JSON.stringify(acknowledged));
                 console.log("[NotificationBanner] Marked as acknowledged in localStorage:", messageId);
             } catch (e) {
+                // IMPORTANT: Don't show error to user - backend persistence is sufficient
                 Log.error("Failed to save acknowledged notification to localStorage: " + e.message);
             }
         },
 
         /**
-         * Get acknowledged notifications from localStorage
+         * Get all acknowledged notifications from browser localStorage
+         *
+         * CACHE STRATEGY:
+         * - localStorage is SECONDARY cache (backend ZNOTIFY_ACK_LOG is primary)
+         * - Used to avoid re-fetching already acknowledged notifications
+         * - Survives page refresh within same browser
+         * - Does NOT sync across devices/browsers (by design)
+         *
+         * FALLBACK BEHAVIOR:
+         * If localStorage fails or is disabled:
+         * - Return empty object {}
+         * - App continues to work (fetches from backend every time)
+         * - Slight performance impact but fully functional
+         *
          * @private
          * @returns {object} Map of messageId -> {timestamp}
          */
@@ -832,6 +909,7 @@ sap.ui.define([
                 var data = localStorage.getItem("acknowledgedNotifications");
                 return data ? JSON.parse(data) : {};
             } catch (e) {
+                // Fail silently - return empty object to allow app to continue
                 Log.error("Failed to read acknowledged notifications from localStorage: " + e.message);
                 return {};
             }
