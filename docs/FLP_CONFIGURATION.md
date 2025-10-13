@@ -302,25 +302,22 @@ _initializeNotificationBanner: function() {
 - Once loaded, it continues to poll and show notifications for that session
 - Regular users **will NOT** see the banner unless the app component is loaded
 
-### Options for Global Banner Activation
+### FLP Plugin Configuration (For S/4HANA 1809+)
 
-
-#### Option B: FLP Plugin Configuration (For S/4HANA 1809+)
-
-**⚠️ Important**: Questa opzione funziona **solo per S/4HANA 1809 o superiore**.
+**⚠️ Important**: This configuration works **only for S/4HANA 1809 or higher**.
 
 **How it works**:
 
-Il plugin FLP carica automaticamente il componente per TUTTI gli utenti all'avvio del Launchpad, senza bisogno di tile visibili.
+The FLP plugin automatically loads the component for ALL users when the Launchpad starts, without requiring visible tiles.
 
 **Prerequisites**:
-- SAP S/4HANA versione 1809 o superiore
-- Autorizzazioni admin per FLP configuration
-- Componente UI5 già deployato (ZNOTIFY_BANNER2)
+- SAP S/4HANA version 1809 or higher
+- Admin authorizations for FLP configuration
+- UI5 component already deployed (ZNOTIFY_BANNER2)
 
 **Steps**:
 
-1. **Definire Plugin Properties**:
+1. **Define Plugin Properties**:
 
    ```
    Transaction: /UI2/FLP_CONF_DEF
@@ -339,13 +336,13 @@ Il plugin FLP carica automaticamente il componente per TUTTI gli utenti all'avvi
 
    c. Save (Ctrl+S) with transport request
 
-2. **Attivare Plugin**:
+2. **Activate Plugin**:
 
    ```
    Transaction: /UI2/FLP_SYS_CONF
    ```
 
-   a. Seleziona il plugin: `ZNOTIFY_BANNER_PLUGIN`
+   a. Select the plugin: `ZNOTIFY_BANNER_PLUGIN`
 
    b. Set "Activity State" to:
 
@@ -357,15 +354,15 @@ Il plugin FLP carica automaticamente il componente per TUTTI gli utenti all'avvi
 
 **Important Notes**:
 
-- ⚠️ L'URL nel plugin definition **NON** deve includere `/index.html` - solo il path alla BSP app
+- ⚠️ The URL in plugin definition **MUST NOT** include `/index.html` - only the path to the BSP app
 - ✅ Correct: `/sap/bc/ui5_ui5/sap/znotify_banner2`
 - ❌ Wrong: `/sap/bc/ui5_ui5/sap/znotify_banner2/index.html`
 
-- ⚠️ Il Component ID deve corrispondere esattamente a quello nel `manifest.json`
+- ⚠️ The Component ID must match exactly the one in `manifest.json`
 - ✅ Correct: `com.sap.notifications.banner2`
 - ❌ Wrong: `com.sap.notifications.banner2.Component`
 
-3. **Verificare Configurazione**:
+3. **Verify Configuration**:
 
    ```
    Transaction: /UI2/FLP_CONF_DEF
@@ -379,17 +376,17 @@ Il plugin FLP carica automaticamente il componente per TUTTI gli utenti all'avvi
    Expected: Activity State = Active (checkbox selected)
    ```
 
-4. **Comportamento Plugin**:
+4. **Plugin Behavior**:
 
-   Il plugin si carica **automaticamente** per tutti gli utenti che accedono al FLP.
-   Non richiede assegnazione role-based - è configurazione cross-client globale.
+   The plugin loads **automatically** for all users who access the FLP.
+   It does not require role-based assignment - it is a cross-client global configuration.
 
 **Result**:
-- ✅ Component caricato in background per TUTTI gli utenti
-- ✅ Nessun tile visibile necessario
-- ✅ Banner polling attivo automaticamente
-- ✅ Funziona anche se utente non ha accesso alla tile admin
-- ✅ Cross-client configuration (vale per tutti i client)
+- ✅ Component loaded in background for ALL users
+- ✅ No visible tile needed
+- ✅ Banner polling active automatically
+- ✅ Works even if user does not have access to admin tile
+- ✅ Cross-client configuration (applies to all clients)
 
 **Verification**:
 
@@ -402,21 +399,21 @@ Il plugin FLP carica automaticamente il componente per TUTTI gli utenti all'avvi
 
 **Troubleshooting**:
 
-Se il plugin non si carica:
+If the plugin does not load:
 
-1. **Verifica URL corretto**:
+1. **Verify correct URL**:
    ```
    ✅ Correct: /sap/bc/ui5_ui5/sap/znotify_banner2
    ❌ Wrong: /sap/bc/ui5_ui5/sap/znotify_banner2/index.html
    ```
 
-2. **Verifica BSP app attiva**:
+2. **Verify BSP app is active**:
    ```
    Transaction: SE80 → BSP Application → ZNOTIFY_BANNER2
    Expected: Files visible and ICF service active
    ```
 
-3. **Verifica Component ID nel manifest.json**:
+3. **Verify Component ID in manifest.json**:
    ```
    BSP App: ZNOTIFY_BANNER2 → manifest.json
    "sap.app": {
@@ -427,8 +424,8 @@ Se il plugin non si carica:
 
 4. **Check plugin status**:
    ```
-   /UI2/FLP_SYS_CONF → Plugin deve essere "Active"
-   Se non attivo: seleziona plugin → check "Active" → Save
+   /UI2/FLP_SYS_CONF → Plugin must be "Active"
+   If not active: select plugin → check "Active" → Save
    ```
 
 5. **Browser console errors**:
@@ -439,7 +436,7 @@ Se il plugin non si carica:
 
 6. **Cache clearing**:
    ```
-   Ctrl+F5 (hard refresh) dopo ogni modifica plugin
+   Ctrl+F5 (hard refresh) after every plugin modification
    ```
 
 ---
