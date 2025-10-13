@@ -3,10 +3,14 @@
   "version": "1.2.0",
   "description": "Global Notification Banner for SAP Fiori Applications",
   "main": "webapp/Component.js",
+  "workspaces": [
+    "app/*"
+  ],
   "scripts": {
     "build": "ui5 build --config ui5.yaml",
     "deploy": "fiori deploy --config ui5-deploy.yaml --yes",
     "start": "ui5 serve --config ui5.yaml --port 8080",
+    "start:analytics": "cd app/analytics && npm start",
     "lint": "eslint webapp/",
     "clean": "rm -rf dist/",
     "watch": "ui5 serve --config ui5.yaml --port 8080 --open"
