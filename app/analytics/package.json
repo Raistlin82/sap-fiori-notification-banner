@@ -1,0 +1,15 @@
+{
+  "name": "notifications-analytics",
+  "version": "1.0.0",
+  "description": "Notification Acknowledgment Analytics Dashboard",
+  "scripts": {
+    "start": "ui5 serve --port 8081 --open index.html",
+    "build": "ui5 build --config ui5.yaml",
+    "lint": "eslint webapp/"
+  },
+  "devDependencies": {
+    "@sap/ux-ui5-tooling": "^1.12.0",
+    "@ui5/cli": "^3.11.11",
+    "eslint": "^8.50.0"
+  }
+}

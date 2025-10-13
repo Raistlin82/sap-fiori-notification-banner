@@ -169,6 +169,11 @@
                                     press=".onEdit"
                                     tooltip="{i18n>buttonEdit}"/>
                                 <Button
+                                    icon="sap-icon://copy"
+                                    type="Transparent"
+                                    press=".onCopy"
+                                    tooltip="Copy"/>
+                                <Button
                                     icon="sap-icon://delete"
                                     type="Transparent"
                                     press=".onDelete"
@@ -213,7 +218,7 @@
 
                 <f:content>
 
-                    <!-- Title -->
+                    <!-- STEP 1: Title and Message (always visible in create mode) -->
                     <Label text="{i18n>fieldTitle}" required="true"/>
                     <Input
                         id="inputTitle"
@@ -234,12 +239,14 @@
                         maxLength="255"
                         enabled="{= !${editMode>/isViewMode} }"/>
 
-                    <!-- Severity -->
-                    <Label text="{i18n>fieldSeverity}" required="true"/>
+                    <!-- STEP 2: Severity (visible from step 2 onwards OR in edit/view mode) -->
+                    <Label text="{i18n>fieldSeverity}" required="true"
+                           visible="{= ${editMode>/currentStep} >= 2 || !!${editMode>/message_id} }"/>
                     <Select
                         id="selectSeverity"
                         selectedKey="{editMode>/severity}"
                         required="true"
+                        visible="{= ${editMode>/currentStep} >= 2 || !!${editMode>/message_id} }"
                         enabled="{= !${editMode>/isViewMode} }">
                         <items>
                             <core:Item key="HIGH" text="{i18n>severityHigh}"/>
@@ -248,11 +255,14 @@
                         </items>
                     </Select>
 
-                    <!-- Message Type -->
-                    <Label text="{i18n>fieldMessageType}"/>
+                    <!-- STEP 3: Message Type (visible from step 3 onwards OR in edit/view mode) -->
+                    <Label text="{i18n>fieldMessageType}" required="true"
+                           visible="{= ${editMode>/currentStep} >= 3 || !!${editMode>/message_id} }"/>
                     <Select
                         id="selectMessageType"
                         selectedKey="{editMode>/message_type}"
+                        required="true"
+                        visible="{= ${editMode>/currentStep} >= 3 || !!${editMode>/message_id} }"
                         enabled="{= !${editMode>/isViewMode} }">
                         <items>
                             <core:Item key="URGENT" text="{i18n>messageTypeUrgent}"/>
@@ -263,12 +273,14 @@
                         </items>
                     </Select>
 
-                    <!-- Display Mode -->
-                    <Label text="{i18n>fieldDisplayMode}" required="true"/>
+                    <!-- STEP 4: Display Mode (visible from step 4 onwards OR in edit/view mode) -->
+                    <Label text="{i18n>fieldDisplayMode}" required="true"
+                           visible="{= ${editMode>/currentStep} >= 4 || !!${editMode>/message_id} }"/>
                     <Select
                         id="selectDisplayMode"
                         selectedKey="{editMode>/display_mode}"
                         required="true"
+                        visible="{= ${editMode>/currentStep} >= 4 || !!${editMode>/message_id} }"
                         enabled="{= !${editMode>/isViewMode} }">
                         <items>
                             <core:Item key="BANNER" text="{i18n>displayModeBanner}"/>
@@ -278,12 +290,15 @@
                         </items>
                     </Select>
 
+                    <!-- STEP 5: Remaining fields (visible from step 5 onwards OR in edit/view mode) -->
                     <!-- Target Audience -->
-                    <Label text="{i18n>fieldTargetUsers}" required="true"/>
+                    <Label text="{i18n>fieldTargetUsers}" required="true"
+                           visible="{= ${editMode>/currentStep} >= 5 || !!${editMode>/message_id} }"/>
                     <Select
                         id="selectTargetUsers"
                         selectedKey="{editMode>/target_audience}"
                         required="true"
+                        visible="{= ${editMode>/currentStep} >= 5 || !!${editMode>/message_id} }"
                         enabled="{= !${editMode>/isViewMode} }">
                         <items>
                             <core:Item key="ALL" text="{i18n>targetUsersAll}"/>
@@ -293,53 +308,115 @@
                     </Select>
 
                     <!-- Start Date -->
-                    <Label text="{i18n>fieldStartDate}" required="true"/>
+                    <Label text="{i18n>fieldStartDate}" required="true"
+                           visible="{= ${editMode>/currentStep} >= 5 || !!${editMode>/message_id} }"/>
                     <DatePicker
                         id="inputStartDate"
                         value="{editMode>/start_date}"
                         valueFormat="yyyy-MM-dd"
                         displayFormat="dd/MM/yyyy"
                         required="true"
+                        visible="{= ${editMode>/currentStep} >= 5 || !!${editMode>/message_id} }"
                         change=".onDateChange"
                         enabled="{= !${editMode>/isViewMode} }"/>
 
                     <!-- End Date -->
-                    <Label text="{i18n>fieldEndDate}" required="true"/>
+                    <Label text="{i18n>fieldEndDate}" required="true"
+                           visible="{= ${editMode>/currentStep} >= 5 || !!${editMode>/message_id} }"/>
                     <DatePicker
                         id="inputEndDate"
                         value="{editMode>/end_date}"
                         valueFormat="yyyy-MM-dd"
                         displayFormat="dd/MM/yyyy"
                         required="true"
+                        visible="{= ${editMode>/currentStep} >= 5 || !!${editMode>/message_id} }"
                         change=".onDateChange"
                         enabled="{= !${editMode>/isViewMode} }"/>
 
-                    <!-- Active Status -->
-                    <Label text="{i18n>fieldActive}"/>
+                    <!-- Recurring Notifications Section (visible from step 5 onwards OR in edit/view mode) -->
+                    <Label text="Recurring Notifications"
+                           visible="{= ${editMode>/currentStep} >= 5 || !!${editMode>/message_id} }"/>
+                    <VBox visible="{= ${editMode>/currentStep} >= 5 || !!${editMode>/message_id} }">
+                        <CheckBox
+                            id="checkBoxRecurring"
+                            text="Create Recurring Notifications"
+                            selected="{editMode>/isRecurring}"
+                            select=".onRecurringToggle"
+                            enabled="{= !${editMode>/isViewMode} &amp;&amp; !!${editMode>/canEnableRecurring} }"/>
+
+                        <VBox visible="{editMode>/isRecurring}" class="sapUiSmallMarginTop sapUiSmallMarginBegin">
+                            <HBox alignItems="Center">
+                                <Label text="Recurrence Type:" class="sapUiTinyMarginEnd"/>
+                                <Select
+                                    id="selectRecurrenceType"
+                                    selectedKey="{editMode>/recurrenceType}"
+                                    width="150px"
+                                    change=".onRecurringChange"
+                                    enabled="{= !${editMode>/isViewMode} }">
+                                    <items>
+                                        <core:Item key="D" text="Daily"/>
+                                        <core:Item key="W" text="Weekly"/>
+                                        <core:Item key="M" text="Monthly"/>
+                                    </items>
+                                </Select>
+                            </HBox>
+
+                            <HBox alignItems="Center" class="sapUiTinyMarginTop">
+                                <Label text="Number of Occurrences:" class="sapUiTinyMarginEnd"/>
+                                <Input
+                                    id="inputOccurrences"
+                                    value="{editMode>/occurrences}"
+                                    type="Number"
+                                    width="100px"
+                                    placeholder="e.g., 12"
+                                    change=".onRecurringChange"
+                                    enabled="{= !${editMode>/isViewMode} }"/>
+                            </HBox>
+
+                            <Text
+                                text="{editMode>/recurringPreview}"
+                                class="sapUiTinyMarginTop"
+                                visible="{= ${editMode>/recurringPreview} !== '' }"/>
+                        </VBox>
+                    </VBox>
+
+                    <!-- Active Status (visible from step 5 onwards OR in edit/view mode) -->
+                    <Label text="{i18n>fieldActive}"
+                           visible="{= ${editMode>/currentStep} >= 5 || !!${editMode>/message_id} }"/>
                     <Switch
                         id="switchActive"
                         state="{editMode>/active}"
                         customTextOn="Active"
                         customTextOff="Inactive"
+                        visible="{= ${editMode>/currentStep} >= 5 || !!${editMode>/message_id} }"
                         enabled="{= !${editMode>/isViewMode} }"/>
 
                 </f:content>
             </f:SimpleForm>
         </content>
 
-        <beginButton>
+        <buttons>
+            <Button
+                text="Back"
+                icon="sap-icon://nav-back"
+                press=".onPreviousStep"
+                visible="{editMode>/showBackButton}"/>
+            <Button
+                text="Forward"
+                icon="sap-icon://navigation-right-arrow"
+                iconFirst="false"
+                type="Emphasized"
+                press=".onNextStep"
+                visible="{editMode>/showForwardButton}"/>
             <Button
                 text="{i18n>buttonSave}"
                 type="Emphasized"
                 press=".onSave"
-                visible="{= !${editMode>/isViewMode} }"/>
-        </beginButton>
-
-        <endButton>
+                visible="{editMode>/showSaveButton}"/>
             <Button
                 text="{= ${editMode>/isViewMode} ? 'Close' : ${i18n>buttonCancel} }"
                 press=".onCancelDialog"/>
-        </endButton>
+        </buttons>
 
     </Dialog>
 

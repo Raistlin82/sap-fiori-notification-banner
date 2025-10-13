@@ -1,0 +1,210 @@
+<mvc:View
+    controllerName="com.sap.notifications.analytics.controller.Analytics"
+    xmlns="sap.m"
+    xmlns:mvc="sap.ui.core.mvc"
+    xmlns:l="sap.ui.layout"
+    xmlns:viz="sap.viz.ui5.controls"
+    xmlns:viz.feeds="sap.viz.ui5.controls.common.feeds"
+    xmlns:viz.data="sap.viz.ui5.data"
+    height="100%">
+
+    <Page
+        id="analyticsPage"
+        title="{i18n>pageTitle}"
+        showNavButton="false">
+
+        <content>
+            <l:VerticalLayout width="100%" class="sapUiContentPadding">
+
+                <!-- Notification Selector -->
+                <l:HorizontalLayout width="100%" class="sapUiSmallMarginBottom">
+                    <Label
+                        text="{i18n>selectNotificationLabel}"
+                        labelFor="notificationSelect"
+                        class="sapUiSmallMarginEnd sapUiSmallMarginTop" />
+                    <ComboBox
+                        id="notificationSelect"
+                        width="60%"
+                        placeholder="{i18n>selectNotificationPlaceholder}"
+                        items="{analytics>/notifications}"
+                        selectedKey="{analytics>/selectedNotificationId}"
+                        change=".onNotificationChange">
+                        <items>
+                            <core:Item
+                                key="{analytics>message_id}"
+                                text="{analytics>message_id} - {analytics>title} ({analytics>compliance_pct}% ack)" />
+                        </items>
+                    </ComboBox>
+                    <Button
+                        icon="sap-icon://refresh"
+                        text="{i18n>refreshButton}"
+                        press=".onRefresh"
+                        class="sapUiSmallMarginBegin" />
+                </l:HorizontalLayout>
+
+                <!-- Statistics and Chart Section -->
+                <l:HorizontalLayout
+                    width="100%"
+                    visible="{= ${analytics>/selectedNotification} !== undefined }"
+                    class="sapUiSmallMarginBottom">
+
+                    <!-- Pie Chart -->
+                    <l:VerticalLayout width="40%" class="sapUiSmallMarginEnd">
+                        <Title text="{i18n>chartTitle}" level="H2" class="sapUiSmallMarginBottom" />
+                        <viz:VizFrame
+                            id="pieChart"
+                            width="100%"
+                            height="300px"
+                            vizType="donut"
+                            selectData=".onChartSelect">
+                            <viz:dataset>
+                                <viz.data:FlattenedDataset data="{analytics>/chartData}">
+                                    <viz.data:dimensions>
+                                        <viz.data:DimensionDefinition name="Status" value="{analytics>status}" />
+                                    </viz.data:dimensions>
+                                    <viz.data:measures>
+                                        <viz.data:MeasureDefinition name="Count" value="{analytics>count}" />
+                                    </viz.data:measures>
+                                </viz.data:FlattenedDataset>
+                            </viz:dataset>
+                            <viz:feeds>
+                                <viz.feeds:FeedItem uid="size" type="Measure" values="Count" />
+                                <viz.feeds:FeedItem uid="color" type="Dimension" values="Status" />
+                            </viz:feeds>
+                        </viz:VizFrame>
+                    </l:VerticalLayout>
+
+                    <!-- Statistics Panel -->
+                    <l:VerticalLayout width="60%">
+                        <Panel
+                            headerText="{i18n>statisticsTitle}"
+                            class="sapUiResponsiveMargin">
+                            <content>
+                                <l:VerticalLayout class="sapUiContentPadding">
+                                    <ObjectStatus
+                                        text="{i18n>totalUsersLabel}"
+                                        title="{analytics>/selectedNotification/total_targets}"
+                                        state="None"
+                                        class="sapUiSmallMarginBottom" />
+                                    <ObjectStatus
+                                        text="{i18n>acknowledgedLabel}"
+                                        title="{analytics>/selectedNotification/acknowledged} ({analytics>/selectedNotification/compliance_pct}%)"
+                                        state="Success"
+                                        class="sapUiSmallMarginBottom" />
+                                    <ObjectStatus
+                                        text="{i18n>pendingLabel}"
+                                        title="{analytics>/selectedNotification/pending}"
+                                        state="Warning"
+                                        class="sapUiSmallMarginBottom" />
+                                    <ObjectStatus
+                                        text="{i18n>createdDateLabel}"
+                                        title="{analytics>/selectedNotification/created_at}"
+                                        state="None" />
+                                </l:VerticalLayout>
+                            </content>
+                        </Panel>
+                    </l:VerticalLayout>
+
+                </l:HorizontalLayout>
+
+                <!-- Filter Bar -->
+                <Toolbar
+                    visible="{= ${analytics>/users} !== undefined &amp;&amp; ${analytics>/users}.length > 0 }">
+                    <SegmentedButton
+                        id="statusFilter"
+                        selectedKey="ALL"
+                        selectionChange=".onFilterChange">
+                        <items>
+                            <SegmentedButtonItem key="ALL" text="{i18n>filterAllUsers}" />
+                            <SegmentedButtonItem key="ACK" text="{i18n>filterAcknowledged}" />
+                            <SegmentedButtonItem key="PENDING" text="{i18n>filterPending}" />
+                        </items>
+                    </SegmentedButton>
+                    <ToolbarSpacer />
+                    <SearchField
+                        id="userSearch"
+                        width="300px"
+                        placeholder="{i18n>searchPlaceholder}"
+                        search=".onSearch" />
+                    <Button
+                        icon="sap-icon://excel-attachment"
+                        text="{i18n>exportToExcel}"
+                        press=".onExport"
+                        class="sapUiSmallMarginBegin" />
+                </Toolbar>
+
+                <!-- User Table -->
+                <Table
+                    id="userTable"
+                    items="{
+                        path: 'analytics>/users',
+                        sorter: {
+                            path: 'acknowledged',
+                            descending: true
+                        }
+                    }"
+                    visible="{= ${analytics>/users} !== undefined }"
+                    growing="true"
+                    growingThreshold="50"
+                    mode="None"
+                    class="sapUiResponsiveMargin">
+                    <columns>
+                        <Column width="10%">
+                            <Text text="{i18n>columnUserId}" />
+                        </Column>
+                        <Column width="20%">
+                            <Text text="{i18n>columnUserName}" />
+                        </Column>
+                        <Column width="12%" hAlign="Center">
+                            <Text text="{i18n>columnStatus}" />
+                        </Column>
+                        <Column width="15%">
+                            <Text text="{i18n>columnAckDate}" />
+                        </Column>
+                        <Column width="12%" hAlign="Center">
+                            <Text text="{i18n>columnDaysPending}" />
+                        </Column>
+                        <Column width="31%">
+                            <Text text="{i18n>columnClientInfo}" />
+                        </Column>
+                    </columns>
+                    <items>
+                        <ColumnListItem>
+                            <cells>
+                                <Text text="{analytics>userid}" />
+                                <Text text="{analytics>user_name}" />
+                                <ObjectStatus
+                                    text="{= ${analytics>acknowledged} ? ${i18n>statusAcknowledged} : ${i18n>statusPending} }"
+                                    state="{= ${analytics>acknowledged} ? 'Success' : 'Warning' }"
+                                    icon="{= ${analytics>acknowledged} ? 'sap-icon://accept' : 'sap-icon://pending' }" />
+                                <Text text="{
+                                    path: 'analytics>ack_timestamp',
+                                    formatter: '.formatTimestamp'
+                                }" />
+                                <ObjectNumber
+                                    number="{analytics>days_pending}"
+                                    state="{= ${analytics>days_pending} > 7 ? 'Error' : 'None' }"
+                                    visible="{= !${analytics>acknowledged} }" />
+                                <Text
+                                    text="{analytics>client_info}"
+                                    wrapping="false"
+                                    maxLines="1" />
+                            </cells>
+                        </ColumnListItem>
+                    </items>
+                </Table>
+
+                <!-- No Data Message -->
+                <MessageStrip
+                    text="{i18n>noNotificationSelected}"
+                    type="Information"
+                    visible="{= ${analytics>/selectedNotification} === undefined }"
+                    showIcon="true"
+                    class="sapUiResponsiveMargin" />
+
+            </l:VerticalLayout>
+        </content>
+
+    </Page>
+
+</mvc:View>

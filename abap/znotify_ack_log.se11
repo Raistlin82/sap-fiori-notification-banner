@@ -1,0 +1,114 @@
+*&---------------------------------------------------------------------*
+*& Table: ZNOTIFY_ACK_LOG
+*& Description: Notification Acknowledgment Log
+*& Purpose: Track which users have acknowledged which notifications
+*& Version: v1.2.0
+*&---------------------------------------------------------------------*
+
+@EndUserText.label : 'Notification Acknowledgment Log'
+@AbapCatalog.enhancement.category : #NOT_EXTENSIBLE
+@AbapCatalog.tableCategory : #TRANSPARENT
+@AbapCatalog.deliveryClass : #A
+@AbapCatalog.dataMaintenance : #LIMITED
+
+define table znotify_ack_log {
+  key mandt        : mandt not null;
+  key message_id   : char32 not null;
+  key userid       : syuname not null;
+  ack_timestamp    : timestampl not null;
+  client_info      : char255;
+}
+
+*&---------------------------------------------------------------------*
+*& Field Descriptions:
+*&---------------------------------------------------------------------*
+*& MESSAGE_ID    - References ZTNOTIFY_MSGS.MESSAGE_ID
+*& USERID        - SAP username who acknowledged the notification
+*& ACK_TIMESTAMP - Exact timestamp when user clicked OK/acknowledged
+*& CLIENT_INFO   - Optional: Browser/device info for audit trail
+*&---------------------------------------------------------------------*
+
+*&---------------------------------------------------------------------*
+*& CREATION INSTRUCTIONS:
+*&---------------------------------------------------------------------*
+*& METHOD 1: Via SE11 (Recommended)
+*&   1. Transaction: SE11
+*&   2. Select "Database table"
+*&   3. Enter: ZNOTIFY_ACK_LOG
+*&   4. Click "Create"
+*&   5. Copy field definitions from below
+*&   6. Save and activate
+*&
+*& METHOD 2: Via SQL (HANA Studio)
+*&   Execute the SQL statement in the SQL section below
+*&
+*& After creation, grant appropriate authorizations
+*&---------------------------------------------------------------------*
+
+*&---------------------------------------------------------------------*
+*& SQL Creation Statement (for HANA Studio / DB Client)
+*&---------------------------------------------------------------------*
+
+CREATE COLUMN TABLE ZNOTIFY_ACK_LOG (
+    MANDT NVARCHAR(3) NOT NULL,
+    MESSAGE_ID NVARCHAR(32) NOT NULL,
+    USERID NVARCHAR(12) NOT NULL,
+    ACK_TIMESTAMP DECIMAL(21,7) NOT NULL,
+    CLIENT_INFO NVARCHAR(255),
+    PRIMARY KEY (MANDT, MESSAGE_ID, USERID)
+);
+
+COMMENT ON TABLE ZNOTIFY_ACK_LOG IS 'Notification Acknowledgment Log - Tracks user acknowledgments';
+COMMENT ON COLUMN ZNOTIFY_ACK_LOG.MESSAGE_ID IS 'Notification ID from ZTNOTIFY_MSGS';
+COMMENT ON COLUMN ZNOTIFY_ACK_LOG.USERID IS 'SAP User who acknowledged';
+COMMENT ON COLUMN ZNOTIFY_ACK_LOG.ACK_TIMESTAMP IS 'Timestamp of acknowledgment';
+COMMENT ON COLUMN ZNOTIFY_ACK_LOG.CLIENT_INFO IS 'Browser/device information';
+
+-- Create index for performance on MESSAGE_ID lookups
+CREATE INDEX ZNOTIFY_ACK_LOG_MSG_IDX ON ZNOTIFY_ACK_LOG (MESSAGE_ID);
+
+-- Create index for user-based queries
+CREATE INDEX ZNOTIFY_ACK_LOG_USR_IDX ON ZNOTIFY_ACK_LOG (USERID);
+
+*&---------------------------------------------------------------------*
+*& Sample Queries After Creation
+*&---------------------------------------------------------------------*
+
+-- Check who acknowledged a specific notification
+SELECT USERID, ACK_TIMESTAMP
+FROM ZNOTIFY_ACK_LOG
+WHERE MESSAGE_ID = 'your_message_id_here'
+ORDER BY ACK_TIMESTAMP;
+
+-- Count acknowledgments per notification
+SELECT MESSAGE_ID, COUNT(*) AS ACK_COUNT
+FROM ZNOTIFY_ACK_LOG
+GROUP BY MESSAGE_ID
+ORDER BY ACK_COUNT DESC;
+
+-- Find users who haven't acknowledged a specific notification
+-- (requires join with system users - example with specific user list)
+SELECT USERID
+FROM (SELECT 'USER1' AS USERID FROM DUMMY
+      UNION SELECT 'USER2' FROM DUMMY)
+WHERE USERID NOT IN (
+    SELECT USERID FROM ZNOTIFY_ACK_LOG
+    WHERE MESSAGE_ID = 'your_message_id_here'
+);
+
+*&---------------------------------------------------------------------*
+*& Integration Notes:
+*&---------------------------------------------------------------------*
+*& 1. The ABAP REST handler (ZCL_NOTIF_REST) needs a new endpoint:
+*&    POST /acknowledge - Records user acknowledgment
+*&    GET /acknowledgments?message_id=X - Gets ack list for a message
+*&
+*& 2. The NotificationBanner component needs to:
+*&    - Replace X button with OK button for REQUIRES_ACK='X'
+*&    - Call /acknowledge endpoint when OK is clicked
+*&    - Only dismiss banner after successful acknowledgment
+*&
+*& 3. The notification manager (ZCL_NOTIFICATION_MANAGER) should:
+*&    - Filter out already-acknowledged notifications for each user
+*&    - Check ZNOTIFY_ACK_LOG before returning active notifications
+*&---------------------------------------------------------------------*

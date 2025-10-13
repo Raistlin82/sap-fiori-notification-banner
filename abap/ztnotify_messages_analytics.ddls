@@ -1,0 +1,46 @@
+@AccessControl.authorizationCheck: #NOT_REQUIRED
+@EndUserText.label: 'Notification Messages - Analytics View'
+@Metadata.allowExtensions: true
+
+/**
+ * CDS View for Notification Analytics Dashboard
+ *
+ * PURPOSE:
+ * - Show ALL notifications requiring acknowledgment (not just active today)
+ * - Include historical notifications for compliance audit trail
+ * - Used by analytics dashboard to track acknowledgment rates
+ *
+ * DIFFERENCES from ztnotify_messages:
+ * - NO date range filter (start_date/end_date)
+ * - Shows only notifications with requires_ack = 'X'
+ * - Shows only active notifications (active = 'X')
+ * - Includes created_at for historical analysis
+ *
+ * USAGE:
+ * - Analytics REST endpoint (ZCL_NOTIF_ANALYTICS)
+ * - Compliance reporting
+ * - Acknowledgment rate tracking
+ */
+define view entity ztnotify_messages_analytics
+  as select from ztnotify_msgs
+{
+  key message_id,
+      message_type,
+      severity,
+      title,
+      message_text,
+      start_date,
+      end_date,
+      target_users,
+      active,
+      display_mode,
+      requires_ack,
+      created_by,
+      created_at,
+      changed_by,
+      changed_at
+}
+where
+      requires_ack = 'X'  // Only notifications requiring acknowledgment
+  and active       = 'X'  // Only active notifications (not deleted)
+// NO date range filter - show historical notifications for compliance

@@ -1,11 +1,35 @@
 # 🚀 Complete Deployment Guide - SAP Fiori Global Notification Banner
 
-**Version**: 1.1.1
-**Last Updated**: October 2025
+**Version**: 1.3.0
+**Last Updated**: October 10, 2025
 
 ---
 
-## 🆕 Latest Updates (v1.1.1)
+## 🆕 Latest Updates
+
+### v1.3.0 (October 10, 2025) - User Acknowledgment Tracking 🆕
+
+**🎯 New Feature**: Critical notifications now require explicit user acknowledgment with full audit trail.
+
+**Database Changes**:
+- ✅ New table: `ZNOTIFY_ACK_LOG` (tracks user acknowledgments)
+- ✅ New field: `ZTNOTIFY_MSGS.REQUIRES_ACK` (CHAR1)
+- ✅ Updated CDS view: `ztnotify_messages` includes requires_ack
+
+**Backend Changes**:
+- ✅ `ZCL_NOTIFICATION_MANAGER`: 3 new methods (has_user_acknowledged, record_acknowledgment, get_acknowledgments)
+- ✅ `ZCL_NOTIF_REST`: New endpoint `POST /acknowledge`
+- ✅ Updated `get_active_notifications()` to filter acknowledged notifications
+
+**Frontend Changes**:
+- ✅ "OK" button replaces "X" for critical notifications
+- ✅ localStorage tracking for offline acknowledgments
+
+📄 **See**: [`docs/RELEASE_NOTES.md`](./RELEASE_NOTES.md) for complete v1.3.0 changelog and deployment steps.
+
+---
+
+### v1.1.1 (October 2025)
 
 **Application Name Changed**: `ZNOTIFY_BANNER` → `ZNOTIFY_BANNER2`
 **Namespace**: `com.sap.notifications.banner2`
@@ -14,8 +38,6 @@
 - ✅ Page height CSS issue resolved (inline styles added)
 - ✅ Mockserver error handling fixed (graceful fallback)
 - ✅ BSP structure confirmed correct per SAP official documentation
-
-📄 **See**: [`docs/RELEASE_NOTES.md`](./RELEASE_NOTES.md) for complete change log.
 
 ---
 

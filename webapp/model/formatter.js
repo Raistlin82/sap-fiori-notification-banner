@@ -15,9 +15,9 @@ sap.ui.define([], function () {
 
         var year, month, day;
 
-        if (dateStr.length === 10 && dateStr.indexOf('-') !== -1) {
+        if (dateStr.length === 10 && dateStr.indexOf("-") !== -1) {
             // ISO format: "2025-10-03"
-            var parts = dateStr.split('-');
+            var parts = dateStr.split("-");
             year = parts[0];
             month = parts[1];
             day = parts[2];
@@ -41,14 +41,14 @@ sap.ui.define([], function () {
          */
         formatSeverityState: function (severity) {
             switch (severity) {
-                case "HIGH":
-                    return "Error";
-                case "MEDIUM":
-                    return "Warning";
-                case "LOW":
-                    return "Success";
-                default:
-                    return "None";
+            case "HIGH":
+                return "Error";
+            case "MEDIUM":
+                return "Warning";
+            case "LOW":
+                return "Success";
+            default:
+                return "None";
             }
         },
 
@@ -59,14 +59,14 @@ sap.ui.define([], function () {
          */
         formatSeverityIcon: function (severity) {
             switch (severity) {
-                case "HIGH":
-                    return "sap-icon://message-error";
-                case "MEDIUM":
-                    return "sap-icon://message-warning";
-                case "LOW":
-                    return "sap-icon://message-information";
-                default:
-                    return "sap-icon://message-information";
+            case "HIGH":
+                return "sap-icon://message-error";
+            case "MEDIUM":
+                return "sap-icon://message-warning";
+            case "LOW":
+                return "sap-icon://message-information";
+            default:
+                return "sap-icon://message-information";
             }
         },
 
@@ -121,6 +121,30 @@ sap.ui.define([], function () {
             }
 
             return start + " → " + end;
+        },
+
+        /**
+         * Format display mode key to localized text
+         * @param {string} mode - Display mode key (BANNER, TOAST, BOTH, SILENT)
+         * @param {string} bannerText - Localized text for BANNER
+         * @param {string} toastText - Localized text for TOAST
+         * @param {string} bothText - Localized text for BOTH
+         * @param {string} silentText - Localized text for SILENT
+         * @returns {string} Localized display mode text
+         */
+        formatDisplayModeText: function (mode, bannerText, toastText, bothText, silentText) {
+            switch (mode) {
+            case "BANNER":
+                return bannerText;
+            case "TOAST":
+                return toastText;
+            case "BOTH":
+                return bothText;
+            case "SILENT":
+                return silentText;
+            default:
+                return mode;
+            }
         }
     };
 });

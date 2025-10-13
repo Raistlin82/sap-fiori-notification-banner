@@ -1,8 +1,8 @@
 # 🏗️ Backend Deployment Guide (ABAP)
 
 **SAP Fiori Global Notification Banner**
-**Version**: 1.1.1
-**Last Updated**: October 2025
+**Version**: 1.3.0
+**Last Updated**: October 10, 2025
 
 ---
 
@@ -277,6 +277,7 @@ Delivery Class: A (Application Table)
 | TARGET_USERS    |     | ZNOTIFY_TARGET_USERS   | CHAR      | 10     | Target Audience (F4 help)    |
 | ACTIVE          |     | CHAR1                  | CHAR      | 1      | Active Flag (X/blank)        |
 | DISPLAY_MODE    |     | ZNOTIFY_DISP_MODE      | CHAR      | 10     | Display Mode (F4 help)       |
+| REQUIRES_ACK    |     | CHAR1                  | CHAR      | 1      | Requires Acknowledgment (v1.3.0) |
 | CREATED_BY      |     | SYUNAME                | CHAR      | 12     | Created By User              |
 | CREATED_AT      |     | TIMESTAMPL             | DEC       | 21     | Created Timestamp            |
 | CHANGED_BY      |     | SYUNAME                | CHAR      | 12     | Changed By User              |
@@ -298,11 +299,87 @@ Delivery Class: A (Application Table)
 - DISPLAY_MODE uses ZNOTIFY_DISP_MODE → Automatic F4 help with 4 values
 - TARGET_USERS uses ZNOTIFY_TARGET_USERS → Automatic F4 help with 3 values (SAP standard roles only)
 - MESSAGE_TEXT uses CHAR255 (fixed length 255 chars, SM30 compatible)
+- **REQUIRES_ACK** (v1.3.0): 'X' = requires user acknowledgment, blank = simple dismiss
 
 **✅ Verification**:
-- SE11 → Display ZTNOTIFY_MSGS → Check all fields exist
+- SE11 → Display ZTNOTIFY_MSGS → Check all fields exist (including REQUIRES_ACK)
 - SM30 → ZTNOTIFY_MSGS → Test F4 help on MESSAGE_TYPE (should show 6 values)
 - SM30 → ZTNOTIFY_MSGS → Test F4 help on TARGET_USERS (should show 3 values: ALL, ADMIN, DEVELOPER)
+
+---
+
+### Step 3b: Create Acknowledgment Log Table (v1.3.0) 🆕
+
+**Transaction**: SE11 → Database Table
+
+Create table `ZNOTIFY_ACK_LOG` to track user acknowledgments:
+
+```
+Table Name: ZNOTIFY_ACK_LOG
+Short Description: Notification Acknowledgment Log
+Delivery Class: A (Application Table)
+```
+
+**Fields**:
+
+| Field Name      | Key | Data Element           | Type      | Length | Description                  |
+|-----------------|-----|------------------------|-----------|--------|------------------------------|
+| CLIENT          | ✅  | MANDT                  | CLNT      | 3      | Client                       |
+| MESSAGE_ID      | ✅  | CHAR32                 | CHAR      | 32     | Message ID (FK to ZTNOTIFY_MSGS) |
+| USERID          | ✅  | SYUNAME                | CHAR      | 12     | User Who Acknowledged        |
+| ACK_TIMESTAMP   |     | TIMESTAMPL             | DEC       | 21     | Acknowledgment Timestamp     |
+| CLIENT_INFO     |     | CHAR255                | CHAR      | 255    | Browser/Device Information   |
+
+**Actions**:
+1. SE11 → Database Table → Enter "ZNOTIFY_ACK_LOG" → Create
+2. Short Description: "Notification Acknowledgment Log"
+3. Delivery Class: A (Application Table)
+4. **Add all fields as shown above**
+5. **Primary Key**: MANDT + MESSAGE_ID + USERID (composite key prevents duplicates)
+6. Technical Settings:
+   - Data Class: APPL0 (Master Data)
+   - Size Category: 2 (16,000-150,000 rows expected)
+7. **Create Indexes**:
+   - Index 1: MESSAGE_ID (for reporting queries)
+   - Index 2: USERID (for user lookup)
+8. **Save** → **Check** → **Activate**
+
+**SQL Alternative** (for HANA systems):
+```sql
+CREATE COLUMN TABLE znotify_ack_log (
+    mandt NVARCHAR(3) NOT NULL,
+    message_id NVARCHAR(32) NOT NULL,
+    userid NVARCHAR(12) NOT NULL,
+    ack_timestamp DECIMAL(21,7) NOT NULL,
+    client_info NVARCHAR(255),
+    PRIMARY KEY (mandt, message_id, userid)
+);
+
+CREATE INDEX znotify_ack_log_msg_idx ON znotify_ack_log (message_id);
+CREATE INDEX znotify_ack_log_usr_idx ON znotify_ack_log (userid);
+```
+
+**🎯 Key Points**:
+- **Composite Primary Key**: Prevents same user from acknowledging twice
+- **Foreign Key Relationship**: MESSAGE_ID links to ZTNOTIFY_MSGS.MESSAGE_ID
+- **Audit Trail**: Records WHO, WHEN, and FROM WHICH DEVICE
+- **Immutable Log**: No UPDATE/DELETE operations allowed (INSERT only)
+
+**Populate Existing Notifications** (optional):
+```sql
+-- Auto-set requires_ack for critical notifications
+UPDATE ztnotify_msgs
+SET requires_ack = 'X'
+WHERE severity = 'HIGH' AND display_mode IN ('BANNER', 'BOTH')
+  AND (requires_ack IS NULL OR requires_ack = '');
+
+UPDATE ztnotify_msgs
+SET requires_ack = 'X'
+WHERE message_type = 'URGENT' AND display_mode IN ('BANNER', 'BOTH')
+  AND (requires_ack IS NULL OR requires_ack = '');
+
+COMMIT;
+```
 
 ---
 
@@ -334,6 +411,7 @@ define view entity ztnotify_messages
       target_users,
       active,
       display_mode,
+      requires_ack,      // v1.3.0 - Acknowledgment tracking
       created_by,
       created_at,
       changed_by,
@@ -396,14 +474,18 @@ Instantiation: Public
 ```
 
 **Static Methods**:
-- `get_active_notifications` - Retrieve active notifications for a user
+- `get_active_notifications` - Retrieve active notifications for a user (filters acknowledged notifications in v1.3.0)
 - `create_notification` - Create a new notification
 - `update_notification` - Update an existing notification
 - `deactivate_notification` - Deactivate a notification (sets active = ' ')
 - `check_user_authorization` - Check if user is authorized
+- **`has_user_acknowledged`** (v1.3.0) - Check if user already acknowledged a notification
+- **`record_acknowledgment`** (v1.3.0) - Record user acknowledgment with duplicate prevention
+- **`get_acknowledgments`** (v1.3.0) - Query acknowledgment history for reporting
 
-**Key Type Definition**:
+**Key Type Definitions**:
 ```abap
+" Notification structure
 TYPES: BEGIN OF ty_notification,
          message_id   TYPE char32,      " UUID in text format
          message_type TYPE char12,      " MESSAGE_TYPE domain
@@ -415,6 +497,7 @@ TYPES: BEGIN OF ty_notification,
          target_users TYPE char10,      " TARGET_USERS domain
          active       TYPE char1,       " Active flag (X/' ')
          display_mode TYPE char10,      " DISPLAY_MODE domain
+         requires_ack TYPE char1,       " Requires acknowledgment (v1.3.0)
          created_by   TYPE syuname,     " Created by user
          created_at   TYPE timestampl,  " Created timestamp
          changed_by   TYPE syuname,     " Changed by user
@@ -422,6 +505,16 @@ TYPES: BEGIN OF ty_notification,
        END OF ty_notification.
 
 TYPES: tt_notifications TYPE STANDARD TABLE OF ty_notification WITH DEFAULT KEY.
+
+" Acknowledgment structure (v1.3.0)
+TYPES: BEGIN OF ty_acknowledgment,
+         message_id    TYPE char32,     " FK to ZTNOTIFY_MSGS
+         userid        TYPE syuname,    " User who acknowledged
+         ack_timestamp TYPE timestampl, " When acknowledged
+         client_info   TYPE char255,    " Browser/device info
+       END OF ty_acknowledgment.
+
+TYPES: tt_acknowledgments TYPE STANDARD TABLE OF ty_acknowledgment WITH DEFAULT KEY.
 ```
 
 **Important - Modern ABAP Compliance**:
@@ -432,8 +525,8 @@ TYPES: tt_notifications TYPE STANDARD TABLE OF ty_notification WITH DEFAULT KEY.
 
 **Actions**:
 1. SE80 → Class Builder → Create class `ZCL_NOTIFICATION_MANAGER`
-2. Copy definition and implementation from `abap/zcl_notification_manager.clas.abap`
-3. Verify all 5 public static methods are present
+2. Copy definition and implementation from `abap/zcl_notification_manager.clas.abap` (819 lines)
+3. Verify all 8 public static methods are present (5 original + 3 new acknowledgment methods)
 4. **Save** → **Check** → **Activate**
 5. **Important**: Ensure Eclipse ADT is used for activation (modern syntax required)
 
@@ -442,6 +535,11 @@ TYPES: tt_notifications TYPE STANDARD TABLE OF ty_notification WITH DEFAULT KEY.
 - Display mode support (BANNER, TOAST, BOTH, SILENT)
 - Audit trail (automatically sets created_by, created_at, changed_by, changed_at)
 - Statistics calculation for tile counter
+- **User acknowledgment tracking** (v1.3.0):
+  - Check if user acknowledged: `has_user_acknowledged()`
+  - Record acknowledgment with duplicate prevention: `record_acknowledgment()`
+  - Query acknowledgment history: `get_acknowledgments()`
+  - Filter acknowledged notifications in `get_active_notifications()`
 
 #### Class 2: ZCL_NOTIFICATION_REST
 
@@ -463,6 +561,7 @@ Interfaces: IF_HTTP_EXTENSION (required by SICF)
 - `GET /stats` - Get statistics (total, high_count, medium_count, low_count)
 - `GET /log` - Get silent notifications (display_mode = SILENT)
 - `POST /` - Create new notification
+- **`POST /acknowledge`** (v1.3.0) - Record user acknowledgment
 - `PUT /?message_id=xxx` - Update existing notification
 - `DELETE /?message_id=xxx` - Delete (deactivate) notification
 
@@ -526,13 +625,15 @@ ENDMETHOD.
 **Actions**:
 1. **Eclipse ADT** (Recommended):
    - New → ABAP Class → `ZCL_NOTIFICATION_REST`
-   - Copy definition and implementation from `abap/zcl_notification_rest.clas.abap`
+   - Copy definition and implementation from `abap/zcl_notification_rest.clas.abap` (760 lines)
+   - Verify new method `handle_acknowledge()` is present (v1.3.0)
    - **Save** (Ctrl+S) → **Activate** (Ctrl+F3)
 
 2. **SE80** (Alternative):
    - Class Builder → Create class `ZCL_NOTIFICATION_REST`
    - Add interface: `IF_HTTP_EXTENSION`
    - Implement method: `IF_HTTP_EXTENSION~HANDLE_REQUEST`
+   - Add private method: `HANDLE_ACKNOWLEDGE` (v1.3.0)
    - Copy implementation code
    - **Save** → **Check** → **Activate**
 
@@ -542,10 +643,15 @@ ENDMETHOD.
 - ✅ **CORS handling** in code (no SICF configuration needed)
 - ✅ **OPTIONS preflight** support for cross-origin requests
 - ✅ **JSON serialization** using `/UI2/CL_JSON` (standard SAP class)
-- ✅ **HTTP status codes**: 200 OK, 201 Created, 500 Internal Server Error
+- ✅ **HTTP status codes**: 200 OK, 201 Created, 409 Conflict, 500 Internal Server Error
 - ✅ **Query parameter handling**: `get_form_field('user_id')`, `get_form_field('message_id')`
 - ✅ **Request body parsing**: `mo_server->request->get_cdata()`
 - ✅ **Response formatting**: `mo_server->response->set_cdata( lv_json )`
+- ✅ **Acknowledgment endpoint** (v1.3.0):
+  - POST /acknowledge with JSON body `{"message_id":"abc","client_info":"..."}`
+  - REGEX parsing for message_id extraction
+  - 409 Conflict for duplicate acknowledgments
+  - Calls ZCL_NOTIFICATION_MANAGER=>record_acknowledgment()
 
 **Modern ABAP Compliance**:
 - ✅ All SQL statements use @ escape: `WHERE active = 'X' AND start_date <= @lv_today`

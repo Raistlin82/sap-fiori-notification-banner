@@ -2,6 +2,7 @@ sap.ui.define([
     "sap/ui/base/Object",
     "sap/m/MessageStrip",
     "sap/m/MessageToast",
+    "sap/m/MessageBox",
     "sap/m/Button",
     "sap/m/Text",
     "sap/m/Title",
@@ -11,7 +12,7 @@ sap.ui.define([
     "sap/ui/core/library",
     "sap/ui/model/json/JSONModel",
     "sap/base/Log"
-], function(BaseObject, MessageStrip, MessageToast, Button, Text, Title, HBox, VBox, FlexBox, coreLibrary, JSONModel, Log) {
+], function(BaseObject, MessageStrip, MessageToast, MessageBox, Button, Text, Title, HBox, VBox, FlexBox, coreLibrary, JSONModel, Log) {
     "use strict";
 
     var MessageType = coreLibrary.MessageType;
@@ -509,14 +510,33 @@ sap.ui.define([
 
             console.log("[NotificationBanner] Final banner text:", bannerText);
 
+            // Check if notification requires acknowledgment
+            var requiresAck = notification.requires_ack === "X" || notification.requires_ack === true;
+            console.log("[NotificationBanner] Requires acknowledgment:", requiresAck);
+
             // Create banner
             var messageStrip = new MessageStrip({
                 text: bannerText,
                 type: messageType,
                 showIcon: true,
-                showCloseButton: true,
-                close: this._onBannerClose.bind(this)
+                showCloseButton: !requiresAck,  // Hide X button if acknowledgment required
+                close: requiresAck ? null : this._onBannerClose.bind(this)  // Only bind close event if simple dismiss
             });
+
+            // If acknowledgment is required, add custom OK button
+            if (requiresAck) {
+                var that = this;
+                var oAckButton = new Button({
+                    text: "OK",
+                    type: "Emphasized",
+                    icon: "sap-icon://accept",
+                    press: function() {
+                        that._acknowledgeNotification(notification, messageStrip);
+                    }
+                });
+                messageStrip.addCustomAction(oAckButton);
+                console.log("[NotificationBanner] Added OK acknowledgment button");
+            }
 
             // Add CSS classes for styling
             messageStrip.addStyleClass("sapUiMediumMargin");
@@ -720,6 +740,217 @@ sap.ui.define([
                 return MessageType.Information;
             default:
                 return MessageType.Information;
+            }
+        },
+
+        /**
+         * Handle notification acknowledgment (user clicked OK)
+         * @private
+         * @param {object} notification - The notification object
+         * @param {sap.m.MessageStrip} messageStrip - The message strip control
+         */
+        _acknowledgeNotification: function(notification, messageStrip) {
+            var that = this;
+
+            console.log("[NotificationBanner] ========== ACKNOWLEDGE NOTIFICATION ==========");
+            console.log("[NotificationBanner] Acknowledging notification:", notification.message_id, notification.title);
+
+            /**
+             * CRITICAL: Prevent duplicate acknowledgments
+             *
+             * When user clicks "OK - I Understand" button, we must prevent:
+             * 1. Multiple rapid clicks (double-click)
+             * 2. Concurrent AJAX requests to backend
+             *
+             * This flag ensures only ONE acknowledgment request is processed at a time
+             */
+            if (this._isAcknowledging) {
+                console.log("[NotificationBanner] Already acknowledging, ignoring duplicate request");
+                return;
+            }
+            this._isAcknowledging = true;
+
+            /**
+             * POST to ABAP REST endpoint: /sap/bc/rest/zcl_notif_rest/acknowledge
+             *
+             * Request payload:
+             * {
+             *   "message_id": "unique_notification_id",
+             *   "client_info": "Mozilla/5.0 ..." (browser user agent)
+             * }
+             *
+             * Expected responses:
+             * - 200 OK: Acknowledgment recorded successfully in ZNOTIFY_ACK_LOG
+             * - 409 Conflict: User already acknowledged this notification (duplicate)
+             * - 500 Internal Server Error: Database error or ABAP exception
+             */
+            jQuery.ajax({
+                url: "/sap/bc/rest/zcl_notif_rest/acknowledge",
+                type: "POST",
+                contentType: "application/json",
+                data: JSON.stringify({
+                    message_id: notification.message_id,
+                    client_info: navigator.userAgent  // Track browser/device for audit trail
+                }),
+                timeout: 10000,  // 10 second timeout
+                success: function(response) {
+                    console.log("[NotificationBanner] Acknowledgment recorded successfully:", response);
+
+                    /**
+                     * DUAL PERSISTENCE STRATEGY:
+                     *
+                     * 1. Backend (ABAP): ZNOTIFY_ACK_LOG table (permanent, audit trail)
+                     * 2. Frontend (Browser): localStorage (session cache, prevents re-fetch)
+                     *
+                     * Why both?
+                     * - Backend: Legal/compliance requirement, cross-device tracking
+                     * - Frontend: Performance optimization, reduces server load
+                     */
+                    that._markAsAcknowledged(notification.message_id);
+
+                    // Show success feedback to user
+                    MessageToast.show("Notification acknowledged");
+
+                    // Remove notification from display and show next one if available
+                    that._handleAcknowledgedNotification(notification, messageStrip);
+
+                    that._isAcknowledging = false;
+                },
+                error: function(xhr, status, error) {
+                    console.error("[NotificationBanner] Failed to acknowledge notification:", error, "Status:", xhr.status);
+
+                    that._isAcknowledging = false;
+
+                    /**
+                     * ERROR HANDLING STRATEGY:
+                     *
+                     * 409 Conflict: Already acknowledged by this user
+                     *   - This is actually a SUCCESS case (user saw and acknowledged)
+                     *   - Show friendly message, not an error
+                     *
+                     * 500 Server Error: Database failure or ABAP dump
+                     *   - Show error dialog
+                     *   - Do NOT remove notification from display
+                     *   - User can retry acknowledgment
+                     */
+                    var errorMsg = "Failed to acknowledge notification";
+                    if (xhr.status === 409) {
+                        errorMsg = "Notification already acknowledged";
+                    }
+
+                    MessageBox.error(errorMsg + ": " + error, {
+                        title: "Acknowledgment Error",
+                        actions: [MessageBox.Action.CLOSE]
+                    });
+                }
+            });
+        },
+
+        /**
+         * Mark notification as acknowledged in browser localStorage
+         *
+         * PURPOSE:
+         * Creates a client-side cache of acknowledged notifications to improve UX
+         *
+         * DATA STRUCTURE:
+         * {
+         *   "MSG_001": { "timestamp": 1728550234567 },
+         *   "MSG_002": { "timestamp": 1728550345678 }
+         * }
+         *
+         * WHY TIMESTAMP?
+         * - Future cleanup: could implement expiration (e.g., remove after 30 days)
+         * - Debugging: helps understand when user acknowledged
+         * - Analytics: potential for acknowledgment time tracking
+         *
+         * ERROR HANDLING:
+         * localStorage can fail due to:
+         * - QuotaExceededError: Storage full (rarely happens for small data)
+         * - SecurityError: Disabled in private browsing mode
+         * - Catch all errors and fail gracefully (backend is source of truth)
+         *
+         * @private
+         * @param {string} messageId - The message ID to mark as acknowledged
+         */
+        _markAsAcknowledged: function(messageId) {
+            try {
+                var acknowledged = this._getAcknowledgedNotifications();
+                acknowledged[messageId] = {
+                    timestamp: Date.now()  // Unix timestamp in milliseconds
+                };
+                localStorage.setItem("acknowledgedNotifications", JSON.stringify(acknowledged));
+                console.log("[NotificationBanner] Marked as acknowledged in localStorage:", messageId);
+            } catch (e) {
+                // IMPORTANT: Don't show error to user - backend persistence is sufficient
+                Log.error("Failed to save acknowledged notification to localStorage: " + e.message);
+            }
+        },
+
+        /**
+         * Get all acknowledged notifications from browser localStorage
+         *
+         * CACHE STRATEGY:
+         * - localStorage is SECONDARY cache (backend ZNOTIFY_ACK_LOG is primary)
+         * - Used to avoid re-fetching already acknowledged notifications
+         * - Survives page refresh within same browser
+         * - Does NOT sync across devices/browsers (by design)
+         *
+         * FALLBACK BEHAVIOR:
+         * If localStorage fails or is disabled:
+         * - Return empty object {}
+         * - App continues to work (fetches from backend every time)
+         * - Slight performance impact but fully functional
+         *
+         * @private
+         * @returns {object} Map of messageId -> {timestamp}
+         */
+        _getAcknowledgedNotifications: function() {
+            try {
+                var data = localStorage.getItem("acknowledgedNotifications");
+                return data ? JSON.parse(data) : {};
+            } catch (e) {
+                // Fail silently - return empty object to allow app to continue
+                Log.error("Failed to read acknowledged notifications from localStorage: " + e.message);
+                return {};
+            }
+        },
+
+        /**
+         * Handle acknowledged notification removal from display
+         * @private
+         * @param {object} notification - The notification object
+         * @param {sap.m.MessageStrip} messageStrip - The message strip control
+         */
+        _handleAcknowledgedNotification: function(notification, messageStrip) {
+            console.log("[NotificationBanner] Removing acknowledged notification from display");
+
+            // Remove current notification from display list
+            var index = this._bannerNotifications.indexOf(notification);
+            if (index > -1) {
+                this._bannerNotifications.splice(index, 1);
+                console.log("[NotificationBanner] Removed from bannerNotifications, new count:", this._bannerNotifications.length);
+            }
+
+            // Also remove from all notifications
+            var allIndex = this._allNotifications.findIndex(function(n) {
+                return n.message_id === notification.message_id;
+            });
+            if (allIndex > -1) {
+                this._allNotifications.splice(allIndex, 1);
+            }
+
+            // Show next notification or remove banner if no more notifications
+            if (this._bannerNotifications.length > 0) {
+                // Adjust index if needed
+                if (this._currentBannerIndex >= this._bannerNotifications.length) {
+                    this._currentBannerIndex = this._bannerNotifications.length - 1;
+                }
+                console.log("[NotificationBanner] Showing next notification at index:", this._currentBannerIndex);
+                this._removeBanner();
+                this._createBanner(this._bannerNotifications[this._currentBannerIndex]);
+            } else {
+                console.log("[NotificationBanner] No more notifications to show, removing banner");
+                this._removeBanner();
             }
         },
 

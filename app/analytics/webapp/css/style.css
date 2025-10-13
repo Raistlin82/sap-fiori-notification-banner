@@ -1,0 +1,46 @@
+/* Analytics Dashboard Custom Styles */
+
+.sapUiContentPadding {
+    padding: 1rem;
+}
+
+.sapUiSmallMarginBottom {
+    margin-bottom: 0.5rem !important;
+}
+
+.sapUiSmallMarginEnd {
+    margin-right: 0.5rem !important;
+}
+
+.sapUiSmallMarginBegin {
+    margin-left: 0.5rem !important;
+}
+
+.sapUiSmallMarginTop {
+    margin-top: 0.5rem !important;
+}
+
+/* Chart container */
+#pieChart {
+    border: 1px solid #e5e5e5;
+    border-radius: 4px;
+    padding: 0.5rem;
+}
+
+/* Statistics panel */
+.sapMPanel {
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+/* User table */
+#userTable {
+    border: 1px solid #e5e5e5;
+    border-radius: 4px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    #pieChart {
+        height: 250px !important;
+    }
+}

@@ -89,6 +89,36 @@ The banner appears automatically when:
 | ⚠️ **NOTIFICATION TITLE**: Important message text | **❌** |
 |---------------------------------------------------|--------|
 
+### Critical Notifications with Acknowledgment (v1.3.0) 🆕
+
+**For critical notifications, you'll see an "OK" button instead of "X":**
+
+| 🔴 **URGENT**: Critical System Update | **[✅ OK]** |
+|---------------------------------------|-------------|
+
+**What happens when you click OK:**
+1. ✅ A toast message confirms: "Notification acknowledged"
+2. ✅ The banner disappears
+3. ✅ Your acknowledgment is recorded in the system (audit trail)
+4. ✅ This notification won't appear again for you
+5. ✅ Administrators can see who acknowledged and when
+
+**Why the OK button?**
+- **Compliance**: Critical communications require confirmation
+- **Audit Trail**: System tracks who read important messages
+- **Better UX**: Clear "OK" is less ambiguous than "X"
+- **Smart Filtering**: Won't bother you again with the same message
+
+**Which notifications require acknowledgment?**
+- 🔴 **HIGH severity** notifications displayed as banners
+- ⚠️ **URGENT** messages displayed as banners
+- Any notification marked as "requires acknowledgment" by administrators
+
+**Simple notifications (X button):**
+- 🔵 LOW and 🟡 MEDIUM priority
+- ℹ️ INFO, 💡 TIP messages
+- Toast notifications (bottom-right)
+
 ### With Multiple Notifications
 
 ![Toast Notification Example](img/admin-table-with-toast.png)
@@ -96,8 +126,8 @@ The banner appears automatically when:
 
 **Multiple Notifications Banner (with navigation):**
 
-| ⚠️ **TITLE**: Message | **⬅️** [1 of 3] **➡️** | **❌** |
-|----------------------|------------------------|--------|
+| ⚠️ **TITLE**: Message | **⬅️** [1 of 3] **➡️** | **❌** or **[OK]** |
+|----------------------|------------------------|--------------------|
 
 ### Available Actions
 
