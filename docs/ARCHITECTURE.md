@@ -33,12 +33,12 @@ graph TB
     subgraph Frontend["💻 Frontend Layer (UI5)"]
         Component["Component.js<br/>• Global initialization<br/>• Polling every 30s<br/>• Memory management"]
         Banner["NotificationBanner.js<br/>• Display modes (BANNER/TOAST/BOTH/SILENT)<br/>• Dismissed notifications (localStorage)<br/>• Navigation & user interactions"]
-        TileCounter["TileCounter.js<br/>• Dynamic tile statistics<br/>• Color coding (RED/ORANGE/GREEN)<br/>• Auto-update every 60s"]
+        Csrf["CsrfAjax.js<br/>• X-CSRF-Token handshake<br/>• Retry on expired token"]
         View["Admin UI (View1.controller.js)<br/>• CRUD operations<br/>• Filters (Active/Severity)<br/>• Display mode selector"]
     end
 
     subgraph Backend["🗄️ Backend Layer (ABAP)"]
-        REST["ZCL_NOTIFICATION_REST<br/>• REST endpoints<br/>• CORS handling<br/>• JSON serialization"]
+        REST["ZCL_NOTIFICATION_REST<br/>• REST endpoints<br/>• CSRF validation<br/>• JSON serialization"]
         Manager["ZCL_NOTIFICATION_MANAGER<br/>• Business logic<br/>• Authorization checks<br/>• Data validation"]
         CDS["ZT_NOTIFY_MESSAGES<br/>• CDS View with filters<br/>• Date range logic"]
         DB["ZTNOTIFY_MSGS<br/>• Custom domains<br/>• Audit trail fields"]
@@ -47,12 +47,14 @@ graph TB
     FLP --> Plugin
     Plugin --> Component
     Component --> Banner
-    Component --> TileCounter
     Component --> View
 
     Banner -->|REST API| REST
-    TileCounter -->|/stats endpoint| REST
-    View -->|CRUD API| REST
+    Banner --> Csrf
+    View --> Csrf
+    Csrf -->|POST/PUT/DELETE with token| REST
+    View -->|GET ?all=X| REST
+    FLP -->|Dynamic tile: /stats| REST
 
     REST --> Manager
     Manager --> CDS
@@ -275,11 +277,6 @@ webapp/
 │   │   ├── _showToast()           ← MessageToast (bottom-right, 5s)
 │   │   ├── _dismissNotification()  ← Save to localStorage (1h timeout)
 │   │   └── _getDismissedNotifications() ← Read from localStorage
-│   │
-│   ├── TileCounter.js             [Dynamic Tile - Disabled in Plugin Mode]
-│   │   ├── start()                ← Stats polling (60s)
-│   │   ├── _getTileAPI()          ← Returns null (plugin mode)
-│   │   └── _updateTile()          ← Color coding (RED/ORANGE/GREEN)
 │   │
 │   └── View1.controller.js        [Admin UI - v1.2.0]
 │       ├── onCreateNotification()

@@ -7,6 +7,8 @@ CLASS zcl_notification_rest DEFINITION
     INTERFACES: if_http_extension.
 
   PRIVATE SECTION.
+    TYPES: tt_db_notifications TYPE STANDARD TABLE OF ztnotify_msgs WITH DEFAULT KEY.
+
     DATA: mo_server TYPE REF TO if_http_server.
 
     METHODS: handle_get_notifications,
@@ -18,6 +20,26 @@ CLASS zcl_notification_rest DEFINITION
              handle_get_valid_modes,
              handle_get_valid_types,
              handle_acknowledge,
+             handle_csrf_token
+               IMPORTING
+                 iv_method TYPE string
+               RETURNING
+                 VALUE(rv_continue) TYPE abap_bool,
+             send_json
+               IMPORTING
+                 iv_status TYPE i
+                 iv_reason TYPE string
+                 iv_json TYPE string,
+             send_error
+               IMPORTING
+                 iv_status TYPE i
+                 iv_reason TYPE string
+                 iv_message TYPE string,
+             map_db_to_notifications
+               IMPORTING
+                 it_db_notifications TYPE tt_db_notifications
+               RETURNING
+                 VALUE(rt_notifications) TYPE zcl_notification_manager=>tt_notifications,
              serialize_notifications
                IMPORTING
                  it_notifications TYPE zcl_notification_manager=>tt_notifications
@@ -40,25 +62,30 @@ CLASS zcl_notification_rest IMPLEMENTATION.
     " Store server reference for use in other methods
     mo_server = server.
 
-    " Set CORS headers to allow cross-origin requests from Fiori apps
-    server->response->set_header_field( name = 'Access-Control-Allow-Origin' value = '*' ).
-    server->response->set_header_field( name = 'Access-Control-Allow-Methods' value = 'GET,POST,PUT,DELETE,OPTIONS' ).
-    server->response->set_header_field( name = 'Access-Control-Allow-Headers' value = 'Content-Type,Accept,Authorization,X-Requested-With' ).
-    server->response->set_header_field( name = 'Access-Control-Max-Age' value = '3600' ).
+    " No CORS headers: the Fiori apps are served from the same origin
+    " (BSP / HTML5 repository via the same host), so cross-origin access
+    " is neither needed nor allowed.
 
     " Get HTTP method and path
     lv_method = server->request->get_header_field( '~request_method' ).
     lv_path = server->request->get_header_field( '~path_info' ).
 
-    " Handle OPTIONS preflight request for CORS
+    " Handle OPTIONS requests
     IF lv_method = 'OPTIONS'.
+      server->response->set_header_field( name = 'Allow' value = 'GET,POST,PUT,DELETE,OPTIONS' ).
       server->response->set_status( code = 200 reason = 'OK' ).
+      RETURN.
+    ENDIF.
+
+    " CSRF protection: hand out tokens on 'X-CSRF-Token: Fetch' and
+    " require a valid token for every modifying request
+    IF handle_csrf_token( lv_method ) = abap_false.
       RETURN.
     ENDIF.
 
     " Route based on HTTP method and path
     CASE lv_method.
-      WHEN 'GET'.
+      WHEN 'GET' OR 'HEAD'.
         IF lv_path CS '/stats'.
           handle_get_stats( ).
         ELSEIF lv_path CS '/log'.
@@ -87,88 +114,120 @@ CLASS zcl_notification_rest IMPLEMENTATION.
 
       WHEN OTHERS.
         " Method not allowed
-        server->response->set_status( code = 405 reason = 'Method Not Allowed' ).
+        send_error( iv_status = 405 iv_reason = 'Method Not Allowed' iv_message = 'Method not allowed' ).
     ENDCASE.
+
+  ENDMETHOD.
+
+  METHOD handle_csrf_token.
+    "*----------------------------------------------------------------------*
+    "* Standard SAP CSRF handshake (same protocol as OData / CL_REST_HTTP_HANDLER):
+    "* - Any request with header 'X-CSRF-Token: Fetch' receives a token
+    "* - POST/PUT/DELETE must send that token back, otherwise 403 is returned
+    "*   with header 'X-CSRF-Token: Required' so the client can re-fetch
+    "*----------------------------------------------------------------------*
+    DATA: lv_header TYPE string,
+          lv_token TYPE string,
+          lv_valid TYPE abap_bool.
+
+    rv_continue = abap_true.
+
+    lv_header = mo_server->request->get_header_field( 'x-csrf-token' ).
+
+    IF to_upper( lv_header ) = 'FETCH'.
+      mo_server->get_xsrf_token(
+        IMPORTING
+          token = lv_token
+        EXCEPTIONS
+          OTHERS = 1 ).
+      IF sy-subrc = 0.
+        mo_server->response->set_header_field( name = 'x-csrf-token' value = lv_token ).
+      ENDIF.
+    ENDIF.
+
+    IF iv_method = 'POST' OR iv_method = 'PUT' OR iv_method = 'DELETE'.
+      mo_server->validate_xsrf_token(
+        IMPORTING
+          successful = lv_valid
+        EXCEPTIONS
+          OTHERS = 1 ).
+      IF sy-subrc <> 0 OR lv_valid <> abap_true.
+        mo_server->response->set_header_field( name = 'x-csrf-token' value = 'Required' ).
+        send_error( iv_status = 403 iv_reason = 'Forbidden' iv_message = 'CSRF token validation failed' ).
+        rv_continue = abap_false.
+      ENDIF.
+    ENDIF.
+
+  ENDMETHOD.
+
+  METHOD send_json.
+
+    mo_server->response->set_status( code = iv_status reason = iv_reason ).
+    mo_server->response->set_header_field( name = 'Content-Type' value = 'application/json' ).
+    mo_server->response->set_cdata( data = iv_json ).
+
+  ENDMETHOD.
+
+  METHOD send_error.
+    " Serialize via /ui2/cl_json so quotes or backslashes in the message
+    " (e.g. exception texts) never break the JSON response
+    TYPES: BEGIN OF ty_error,
+             success TYPE abap_bool,
+             message TYPE string,
+             error TYPE string,
+           END OF ty_error.
+
+    DATA(ls_error) = VALUE ty_error( success = abap_false
+                                     message = iv_message
+                                     error = iv_message ).
+
+    send_json( iv_status = iv_status
+               iv_reason = iv_reason
+               iv_json = /ui2/cl_json=>serialize( data = ls_error
+                                                  pretty_name = /ui2/cl_json=>pretty_mode-low_case ) ).
 
   ENDMETHOD.
 
   METHOD handle_get_notifications.
 
     DATA: lt_notifications TYPE zcl_notification_manager=>tt_notifications,
-          ls_notification TYPE zcl_notification_manager=>ty_notification,
-          lt_db_notifications TYPE TABLE OF ztnotify_msgs,
-          ls_db_notification TYPE ztnotify_msgs,
-          lv_json TYPE string,
-          lv_user_id_str TYPE string,
-          lv_user_id TYPE sy-uname,
-          lv_all_str TYPE string,
-          lv_today TYPE sy-datum,
-          lv_expired_count TYPE i.
-
-    " Get user ID from query parameter
-    lv_user_id_str = mo_server->request->get_form_field( 'user_id' ).
-    lv_user_id = lv_user_id_str.
+          lt_db_notifications TYPE tt_db_notifications,
+          lv_all_str TYPE string.
 
     " Get 'all' parameter - if 'X', return all notifications (for admin app)
     lv_all_str = mo_server->request->get_form_field( 'all' ).
 
-    " Auto-expire notifications: Deactivate notifications where end_date has passed
-    lv_today = sy-datum.
-    UPDATE ztnotify_msgs
-      SET active = ''
-          changed_by = sy-uname
-          changed_at = sy-datum
-      WHERE end_date < lv_today
-        AND active = 'X'.
-
-    lv_expired_count = sy-dbcnt.
-
-    " Log expired notifications count (optional - for monitoring)
-    IF lv_expired_count > 0.
-      " Could write to application log here if needed
-      " MESSAGE s001(00) WITH 'Auto-expired' lv_expired_count 'notifications'.
-    ENDIF.
-
     " Admin app: Return ALL notifications (active + inactive + expired)
     IF lv_all_str = 'X'.
+
+      " Only notification administrators may see inactive/expired entries
+      IF zcl_notification_manager=>check_user_authorization( ) = abap_false.
+        send_error( iv_status = 403 iv_reason = 'Forbidden'
+                    iv_message = 'Unauthorized to list all notifications' ).
+        RETURN.
+      ENDIF.
+
+      " Auto-expire: deactivate notifications whose end_date has passed.
+      " Done here (admin list only) instead of on every end-user poll;
+      " end users are not affected because they only get notifications
+      " within their validity period anyway.
+      zcl_notification_manager=>expire_outdated_notifications( ).
+
       SELECT *
         FROM ztnotify_msgs
         INTO TABLE @lt_db_notifications
         ORDER BY changed_at DESCENDING.
 
-      " Convert to notification structure
-      LOOP AT lt_db_notifications INTO ls_db_notification.
-        CLEAR ls_notification.
-        ls_notification-message_id = ls_db_notification-message_id.
-        ls_notification-message_type = ls_db_notification-message_type.
-        ls_notification-severity = ls_db_notification-severity.
-        ls_notification-title = ls_db_notification-title.
-        ls_notification-message_text = ls_db_notification-message_text.
-        ls_notification-start_date = ls_db_notification-start_date.
-        ls_notification-end_date = ls_db_notification-end_date.
-        ls_notification-target_users = ls_db_notification-target_users.
-        ls_notification-active = ls_db_notification-active.
-        ls_notification-display_mode = ls_db_notification-display_mode.
-        ls_notification-requires_ack = ls_db_notification-requires_ack.
-        ls_notification-created_by = ls_db_notification-created_by.
-        ls_notification-created_at = ls_db_notification-created_at.
-        ls_notification-changed_by = ls_db_notification-changed_by.
-        ls_notification-changed_at = ls_db_notification-changed_at.
-        APPEND ls_notification TO lt_notifications.
-      ENDLOOP.
+      lt_notifications = map_db_to_notifications( lt_db_notifications ).
 
     ELSE.
-      " Normal mode: Return only active notifications for current user
-      lt_notifications = zcl_notification_manager=>get_active_notifications( lv_user_id ).
+      " Normal mode: Return only active notifications for the logged-on user.
+      " The user is always taken from the session (sy-uname), never from
+      " a request parameter.
+      lt_notifications = zcl_notification_manager=>get_active_notifications( ).
     ENDIF.
 
-    " Serialize to JSON
-    lv_json = serialize_notifications( lt_notifications ).
-
-    " Set response
-    mo_server->response->set_status( code = 200 reason = 'OK' ).
-    mo_server->response->set_header_field( name = 'Content-Type' value = 'application/json' ).
-    mo_server->response->set_cdata( data = lv_json ).
+    send_json( iv_status = 200 iv_reason = 'OK' iv_json = serialize_notifications( lt_notifications ) ).
 
   ENDMETHOD.
 
@@ -177,7 +236,6 @@ CLASS zcl_notification_rest IMPLEMENTATION.
     DATA: lv_json TYPE string,
           ls_notification TYPE zcl_notification_manager=>ty_notification,
           lv_success TYPE abap_bool,
-          lv_error_msg TYPE string,
           lv_message_id TYPE char32,
           lt_message_ids TYPE string_table,
           lv_response_json TYPE string.
@@ -216,6 +274,13 @@ CLASS zcl_notification_rest IMPLEMENTATION.
           ls_response_single TYPE ty_response_single.
 
     TRY.
+        " Check authorization first so that a 403 is not reported as a validation error
+        IF zcl_notification_manager=>check_user_authorization( ) = abap_false.
+          send_error( iv_status = 403 iv_reason = 'Forbidden'
+                      iv_message = 'Unauthorized to create notifications' ).
+          RETURN.
+        ENDIF.
+
         " Get JSON from request body
         lv_json = mo_server->request->get_cdata( ).
 
@@ -238,12 +303,9 @@ CLASS zcl_notification_rest IMPLEMENTATION.
         ls_notification-active = ls_extended-active.
         ls_notification-display_mode = ls_extended-display_mode.
 
-        " Set response header
-        mo_server->response->set_header_field( name = 'Content-Type' value = 'application/json' ).
-
         " Check if recurring notification requested
         IF ls_extended-is_recurring = abap_true.
-          " Create recurring notifications
+          " Create recurring notifications (all or nothing)
           lv_success = zcl_notification_manager=>create_recurring_notifications(
             EXPORTING
               is_notification = ls_notification
@@ -258,13 +320,13 @@ CLASS zcl_notification_rest IMPLEMENTATION.
             ls_response_recurring-message = |Created { lines( lt_message_ids ) } recurring notifications|.
             ls_response_recurring-message_ids = lt_message_ids.
 
-            lv_response_json = /ui2/cl_json=>serialize( data = ls_response_recurring ).
-
-            mo_server->response->set_status( code = 201 reason = 'Created' ).
-            mo_server->response->set_cdata( data = lv_response_json ).
+            lv_response_json = /ui2/cl_json=>serialize( data = ls_response_recurring
+                                                        pretty_name = /ui2/cl_json=>pretty_mode-low_case ).
+            send_json( iv_status = 201 iv_reason = 'Created' iv_json = lv_response_json ).
           ELSE.
-            mo_server->response->set_status( code = 500 reason = 'Internal Server Error' ).
-            mo_server->response->set_cdata( data = '{"success": false, "message": "Failed to create recurring notifications"}' ).
+            send_error( iv_status = 400 iv_reason = 'Bad Request'
+                        iv_message = 'Failed to create recurring notifications - check recurrence settings '
+                                  && 'and the severity/type/display mode combination' ).
           ENDIF.
 
         ELSE.
@@ -281,22 +343,20 @@ CLASS zcl_notification_rest IMPLEMENTATION.
             ls_response_single-message = 'Notification created'.
             ls_response_single-message_id = lv_message_id.
 
-            lv_response_json = /ui2/cl_json=>serialize( data = ls_response_single ).
-
-            mo_server->response->set_status( code = 201 reason = 'Created' ).
-            mo_server->response->set_cdata( data = lv_response_json ).
+            lv_response_json = /ui2/cl_json=>serialize( data = ls_response_single
+                                                        pretty_name = /ui2/cl_json=>pretty_mode-low_case ).
+            send_json( iv_status = 201 iv_reason = 'Created' iv_json = lv_response_json ).
           ELSE.
-            mo_server->response->set_status( code = 500 reason = 'Internal Server Error' ).
-            mo_server->response->set_cdata( data = '{"success": false, "message": "Failed to create notification - check authorization"}' ).
+            send_error( iv_status = 400 iv_reason = 'Bad Request'
+                        iv_message = 'Failed to create notification - severity/type/display mode '
+                                  && 'combination not allowed by notification matrix' ).
           ENDIF.
         ENDIF.
 
       CATCH cx_root INTO DATA(lx_error).
         " Catch any exception and return detailed error message
-        lv_error_msg = lx_error->get_text( ).
-        mo_server->response->set_header_field( name = 'Content-Type' value = 'application/json' ).
-        mo_server->response->set_status( code = 500 reason = 'Internal Server Error' ).
-        mo_server->response->set_cdata( data = '{"success": false, "message": "Exception: ' && lv_error_msg && '"}' ).
+        send_error( iv_status = 500 iv_reason = 'Internal Server Error'
+                    iv_message = |Exception: { lx_error->get_text( ) }| ).
     ENDTRY.
 
   ENDMETHOD.
@@ -307,13 +367,24 @@ CLASS zcl_notification_rest IMPLEMENTATION.
           ls_notification TYPE zcl_notification_manager=>ty_notification,
           lv_message_id_str TYPE string,
           lv_message_id TYPE char32,
-          lv_success TYPE abap_bool,
-          lv_error_msg TYPE string.
+          lv_success TYPE abap_bool.
 
     TRY.
+        " Check authorization first so that a 403 is not reported as a validation error
+        IF zcl_notification_manager=>check_user_authorization( ) = abap_false.
+          send_error( iv_status = 403 iv_reason = 'Forbidden'
+                      iv_message = 'Unauthorized to update notifications' ).
+          RETURN.
+        ENDIF.
+
         " Get message ID from query parameter
         lv_message_id_str = mo_server->request->get_form_field( 'message_id' ).
         lv_message_id = lv_message_id_str.
+
+        IF lv_message_id IS INITIAL.
+          send_error( iv_status = 400 iv_reason = 'Bad Request' iv_message = 'message_id is required' ).
+          RETURN.
+        ENDIF.
 
         " Get JSON from request body
         lv_json = mo_server->request->get_cdata( ).
@@ -326,23 +397,19 @@ CLASS zcl_notification_rest IMPLEMENTATION.
           iv_message_id = lv_message_id
           is_notification = ls_notification ).
 
-        " Set response
-        mo_server->response->set_header_field( name = 'Content-Type' value = 'application/json' ).
-
         IF lv_success = abap_true.
-          mo_server->response->set_status( code = 200 reason = 'OK' ).
-          mo_server->response->set_cdata( data = '{"success": true, "message": "Notification updated"}' ).
+          send_json( iv_status = 200 iv_reason = 'OK'
+                     iv_json = '{"success": true, "message": "Notification updated"}' ).
         ELSE.
-          mo_server->response->set_status( code = 500 reason = 'Internal Server Error' ).
-          mo_server->response->set_cdata( data = '{"success": false, "message": "Failed to update notification"}' ).
+          send_error( iv_status = 400 iv_reason = 'Bad Request'
+                      iv_message = 'Failed to update notification - not found or combination '
+                                && 'not allowed by notification matrix' ).
         ENDIF.
 
       CATCH cx_root INTO DATA(lx_error).
         " Catch any exception and return detailed error message
-        lv_error_msg = lx_error->get_text( ).
-        mo_server->response->set_header_field( name = 'Content-Type' value = 'application/json' ).
-        mo_server->response->set_status( code = 500 reason = 'Internal Server Error' ).
-        mo_server->response->set_cdata( data = '{"success": false, "message": "Exception: ' && lv_error_msg && '"}' ).
+        send_error( iv_status = 500 iv_reason = 'Internal Server Error'
+                    iv_message = |Exception: { lx_error->get_text( ) }| ).
     ENDTRY.
 
   ENDMETHOD.
@@ -351,7 +418,6 @@ CLASS zcl_notification_rest IMPLEMENTATION.
 
     DATA: lv_message_id_str TYPE string,
           lv_message_id TYPE char32,
-          lv_error_msg TYPE string,
           lv_deleted_rows TYPE i.
 
     TRY.
@@ -361,9 +427,8 @@ CLASS zcl_notification_rest IMPLEMENTATION.
 
         " Check authorization
         IF zcl_notification_manager=>check_user_authorization( ) = abap_false.
-          mo_server->response->set_header_field( name = 'Content-Type' value = 'application/json' ).
-          mo_server->response->set_status( code = 403 reason = 'Forbidden' ).
-          mo_server->response->set_cdata( data = '{"success": false, "message": "Unauthorized to delete notifications"}' ).
+          send_error( iv_status = 403 iv_reason = 'Forbidden'
+                      iv_message = 'Unauthorized to delete notifications' ).
           RETURN.
         ENDIF.
 
@@ -372,25 +437,31 @@ CLASS zcl_notification_rest IMPLEMENTATION.
         lv_deleted_rows = sy-dbcnt.
 
         IF lv_deleted_rows > 0.
+          " Remove acknowledgment records of the deleted notification
+          " so no orphaned rows remain in ZNOTIFY_ACK_LOG
+          DELETE FROM znotify_ack_log WHERE message_id = @lv_message_id.
           COMMIT WORK.
-          mo_server->response->set_header_field( name = 'Content-Type' value = 'application/json' ).
-          mo_server->response->set_status( code = 200 reason = 'OK' ).
-          mo_server->response->set_cdata( data = '{"success": true, "message": "Notification permanently deleted"}' ).
+          send_json( iv_status = 200 iv_reason = 'OK'
+                     iv_json = '{"success": true, "message": "Notification permanently deleted"}' ).
         ELSE.
           " No rows deleted - record not found
-          mo_server->response->set_header_field( name = 'Content-Type' value = 'application/json' ).
-          mo_server->response->set_status( code = 404 reason = 'Not Found' ).
-          mo_server->response->set_cdata( data = '{"success": false, "message": "Notification not found"}' ).
+          send_error( iv_status = 404 iv_reason = 'Not Found' iv_message = 'Notification not found' ).
         ENDIF.
 
       CATCH cx_root INTO DATA(lx_error).
         " Catch any exception and return detailed error message
         ROLLBACK WORK.
-        lv_error_msg = lx_error->get_text( ).
-        mo_server->response->set_header_field( name = 'Content-Type' value = 'application/json' ).
-        mo_server->response->set_status( code = 500 reason = 'Internal Server Error' ).
-        mo_server->response->set_cdata( data = '{"success": false, "message": "Exception: ' && lv_error_msg && '"}' ).
+        send_error( iv_status = 500 iv_reason = 'Internal Server Error'
+                    iv_message = |Exception: { lx_error->get_text( ) }| ).
     ENDTRY.
+
+  ENDMETHOD.
+
+  METHOD map_db_to_notifications.
+
+    LOOP AT it_db_notifications INTO DATA(ls_db_notification).
+      APPEND CORRESPONDING #( ls_db_notification ) TO rt_notifications.
+    ENDLOOP.
 
   ENDMETHOD.
 
@@ -473,10 +544,7 @@ CLASS zcl_notification_rest IMPLEMENTATION.
     " Format: { "d": { "number": "X", "numberUnit": "Active", "info": "🔴 X  🟠 X  🟢 X", "infoState": "Error" } }
     lv_json = '{"d":{"number":"' && lv_number && '","numberUnit":"Active","info":"' && lv_info && '","infoState":"' && lv_info_state && '"}}'.
 
-    " Set response
-    mo_server->response->set_status( code = 200 reason = 'OK' ).
-    mo_server->response->set_header_field( name = 'Content-Type' value = 'application/json' ).
-    mo_server->response->set_cdata( data = lv_json ).
+    send_json( iv_status = 200 iv_reason = 'OK' iv_json = lv_json ).
 
   ENDMETHOD.
 
@@ -485,17 +553,24 @@ CLASS zcl_notification_rest IMPLEMENTATION.
     " Used for audit logging and reporting
 
     DATA: lt_notifications TYPE zcl_notification_manager=>tt_notifications,
-          ls_notification TYPE zcl_notification_manager=>ty_notification,
-          lt_db_notifications TYPE TABLE OF ztnotify_msgs,
-          ls_db_notification TYPE ztnotify_msgs,
-          lv_json TYPE string,
-          lv_user_id TYPE string,
+          lt_db_notifications TYPE tt_db_notifications,
+          lv_user_id_str TYPE string,
+          lv_user_id TYPE sy-uname,
           lv_today TYPE sy-datum.
 
     lv_today = sy-datum.
 
-    " Get user ID from query parameter (optional filter)
-    lv_user_id = mo_server->request->get_form_field( 'user_id' ).
+    " Optional filter: only notifications visible to this user (target audience).
+    " Querying the visibility of another user is reserved for administrators.
+    lv_user_id_str = mo_server->request->get_form_field( 'user_id' ).
+    lv_user_id = to_upper( lv_user_id_str ).
+
+    IF lv_user_id IS NOT INITIAL AND lv_user_id <> sy-uname
+       AND zcl_notification_manager=>check_user_authorization( ) = abap_false.
+      send_error( iv_status = 403 iv_reason = 'Forbidden'
+                  iv_message = 'Unauthorized to query the log of other users' ).
+      RETURN.
+    ENDIF.
 
     " Select all notifications with SILENT display mode
     SELECT * FROM ztnotify_msgs
@@ -506,43 +581,20 @@ CLASS zcl_notification_rest IMPLEMENTATION.
         AND display_mode = 'SILENT'
       ORDER BY changed_at DESCENDING.
 
-    " Convert to notification structure
-    LOOP AT lt_db_notifications INTO ls_db_notification.
-      CLEAR ls_notification.
-      ls_notification-message_id = ls_db_notification-message_id.
-      ls_notification-message_type = ls_db_notification-message_type.
-      ls_notification-severity = ls_db_notification-severity.
-      ls_notification-title = ls_db_notification-title.
-      ls_notification-message_text = ls_db_notification-message_text.
-      ls_notification-start_date = ls_db_notification-start_date.
-      ls_notification-end_date = ls_db_notification-end_date.
-      ls_notification-target_users = ls_db_notification-target_users.
-      ls_notification-active = ls_db_notification-active.
-      ls_notification-display_mode = ls_db_notification-display_mode.
-      ls_notification-requires_ack = ls_db_notification-requires_ack.
-      ls_notification-created_by = ls_db_notification-created_by.
-      ls_notification-created_at = ls_db_notification-created_at.
-      ls_notification-changed_by = ls_db_notification-changed_by.
-      ls_notification-changed_at = ls_db_notification-changed_at.
+    lt_notifications = map_db_to_notifications( lt_db_notifications ).
 
-      " Apply user filter if specified
-      IF lv_user_id IS NOT INITIAL.
-        IF ls_notification-target_users IS INITIAL OR
-           ls_notification-target_users CS lv_user_id.
-          APPEND ls_notification TO lt_notifications.
+    " Apply user filter if specified (based on TARGET_USERS role mapping)
+    IF lv_user_id IS NOT INITIAL.
+      LOOP AT lt_notifications ASSIGNING FIELD-SYMBOL(<ls_notification>).
+        IF zcl_notification_manager=>check_target_audience(
+             iv_target_users = <ls_notification>-target_users
+             iv_user_id = lv_user_id ) = abap_false.
+          DELETE lt_notifications.
         ENDIF.
-      ELSE.
-        APPEND ls_notification TO lt_notifications.
-      ENDIF.
-    ENDLOOP.
+      ENDLOOP.
+    ENDIF.
 
-    " Serialize to JSON
-    lv_json = serialize_notifications( lt_notifications ).
-
-    " Set response
-    mo_server->response->set_status( code = 200 reason = 'OK' ).
-    mo_server->response->set_header_field( name = 'Content-Type' value = 'application/json' ).
-    mo_server->response->set_cdata( data = lv_json ).
+    send_json( iv_status = 200 iv_reason = 'OK' iv_json = serialize_notifications( lt_notifications ) ).
 
   ENDMETHOD.
 
@@ -565,10 +617,8 @@ CLASS zcl_notification_rest IMPLEMENTATION.
 
     " Validate required parameters
     IF lv_severity IS INITIAL OR lv_message_type IS INITIAL.
-      lv_json = '{"error":"Missing required parameters: severity and message_type"}'.
-      mo_server->response->set_status( code = 400 reason = 'Bad Request' ).
-      mo_server->response->set_header_field( name = 'Content-Type' value = 'application/json' ).
-      mo_server->response->set_cdata( data = lv_json ).
+      send_error( iv_status = 400 iv_reason = 'Bad Request'
+                  iv_message = 'Missing required parameters: severity and message_type' ).
       RETURN.
     ENDIF.
 
@@ -583,14 +633,12 @@ CLASS zcl_notification_rest IMPLEMENTATION.
     ).
 
     IF lv_success = abap_false.
-      lv_json = '{"error":"Failed to retrieve valid display modes"}'.
-      mo_server->response->set_status( code = 500 reason = 'Internal Server Error' ).
-      mo_server->response->set_header_field( name = 'Content-Type' value = 'application/json' ).
-      mo_server->response->set_cdata( data = lv_json ).
+      send_error( iv_status = 500 iv_reason = 'Internal Server Error'
+                  iv_message = 'Failed to retrieve valid display modes' ).
       RETURN.
     ENDIF.
 
-    " Build JSON response manually
+    " Build JSON response manually (values come from domain fixed values)
     lv_json = '{"display_modes":['.
     lv_first = abap_true.
 
@@ -605,10 +653,7 @@ CLASS zcl_notification_rest IMPLEMENTATION.
     CONCATENATE lv_json '],"default_mode":"' lv_default_mode '"' INTO lv_json.
     CONCATENATE lv_json '}' INTO lv_json.
 
-    " Set response
-    mo_server->response->set_status( code = 200 reason = 'OK' ).
-    mo_server->response->set_header_field( name = 'Content-Type' value = 'application/json' ).
-    mo_server->response->set_cdata( data = lv_json ).
+    send_json( iv_status = 200 iv_reason = 'OK' iv_json = lv_json ).
 
   ENDMETHOD.
 
@@ -629,10 +674,8 @@ CLASS zcl_notification_rest IMPLEMENTATION.
 
     " Validate required parameter
     IF lv_severity IS INITIAL.
-      lv_json = '{"error":"Missing required parameter: severity"}'.
-      mo_server->response->set_status( code = 400 reason = 'Bad Request' ).
-      mo_server->response->set_header_field( name = 'Content-Type' value = 'application/json' ).
-      mo_server->response->set_cdata( data = lv_json ).
+      send_error( iv_status = 400 iv_reason = 'Bad Request'
+                  iv_message = 'Missing required parameter: severity' ).
       RETURN.
     ENDIF.
 
@@ -646,14 +689,12 @@ CLASS zcl_notification_rest IMPLEMENTATION.
     ).
 
     IF lv_success = abap_false.
-      lv_json = '{"error":"Failed to retrieve valid message types"}'.
-      mo_server->response->set_status( code = 500 reason = 'Internal Server Error' ).
-      mo_server->response->set_header_field( name = 'Content-Type' value = 'application/json' ).
-      mo_server->response->set_cdata( data = lv_json ).
+      send_error( iv_status = 500 iv_reason = 'Internal Server Error'
+                  iv_message = 'Failed to retrieve valid message types' ).
       RETURN.
     ENDIF.
 
-    " Build JSON response manually
+    " Build JSON response manually (values come from domain fixed values)
     lv_json = '{"message_types":['.
     lv_first = abap_true.
 
@@ -668,10 +709,7 @@ CLASS zcl_notification_rest IMPLEMENTATION.
     CONCATENATE lv_json '],"default_type":"' lv_default_type '"' INTO lv_json.
     CONCATENATE lv_json '}' INTO lv_json.
 
-    " Set response
-    mo_server->response->set_status( code = 200 reason = 'OK' ).
-    mo_server->response->set_header_field( name = 'Content-Type' value = 'application/json' ).
-    mo_server->response->set_cdata( data = lv_json ).
+    send_json( iv_status = 200 iv_reason = 'OK' iv_json = lv_json ).
 
   ENDMETHOD.
 
@@ -681,78 +719,70 @@ CLASS zcl_notification_rest IMPLEMENTATION.
     "*----------------------------------------------------------------------*
     "* Handle POST /acknowledge endpoint
     "* Records user acknowledgment of a notification
+    "* Request: {"message_id": "abc123", "client_info": "Mozilla/5.0..."}
     "*----------------------------------------------------------------------*
-    DATA: lv_json_request  TYPE string,
+    TYPES: BEGIN OF ty_ack_request,
+             message_id  TYPE char32,
+             client_info TYPE char255,
+           END OF ty_ack_request.
+
+    DATA: ls_request       TYPE ty_ack_request,
           lv_json_response TYPE string,
-          lv_message_id    TYPE char32,
-          lv_client_info   TYPE char255,
           lv_success       TYPE abap_bool,
+          lv_exists        TYPE abap_bool,
           lv_timestamp     TYPE string.
 
     TRY.
-        " Get request body (JSON)
-        lv_json_request = mo_server->request->get_cdata( ).
-
-        " Parse JSON to extract message_id and client_info
-        " Format: {"message_id": "abc123", "client_info": "Mozilla/5.0..."}
-
-        " Extract message_id using REGEX
-        FIND REGEX '"message_id"\s*:\s*"([^"]+)"' IN lv_json_request
-             SUBMATCHES lv_message_id.
-
-        " Extract client_info (optional)
-        FIND REGEX '"client_info"\s*:\s*"([^"]+)"' IN lv_json_request
-             SUBMATCHES lv_client_info.
+        " Parse JSON body with the standard serializer (handles escaped
+        " characters in the user agent string correctly)
+        /ui2/cl_json=>deserialize(
+          EXPORTING
+            json = mo_server->request->get_cdata( )
+            pretty_name = /ui2/cl_json=>pretty_mode-low_case
+          CHANGING
+            data = ls_request ).
 
         " Validate message_id is provided
-        IF lv_message_id IS INITIAL.
-          " Bad request - missing message_id
-          mo_server->response->set_status( code = 400 reason = 'Bad Request' ).
-          lv_json_response = '{"success":false,"error":"message_id is required"}'.
-          mo_server->response->set_cdata( data = lv_json_response ).
-          mo_server->response->set_header_field( name = 'Content-Type' value = 'application/json' ).
+        IF ls_request-message_id IS INITIAL.
+          send_error( iv_status = 400 iv_reason = 'Bad Request' iv_message = 'message_id is required' ).
           RETURN.
         ENDIF.
 
-        " Record acknowledgment
-        lv_success = zcl_notification_manager=>record_acknowledgment(
-          iv_message_id  = lv_message_id
-          iv_client_info = lv_client_info
-        ).
+        " Only existing notifications can be acknowledged
+        SELECT SINGLE @abap_true
+          FROM ztnotify_msgs
+          INTO @lv_exists
+          WHERE message_id = @ls_request-message_id.
 
-        " Prepare response
-        mo_server->response->set_header_field( name = 'Content-Type' value = 'application/json' ).
+        IF sy-subrc <> 0.
+          send_error( iv_status = 404 iv_reason = 'Not Found' iv_message = 'Notification not found' ).
+          RETURN.
+        ENDIF.
+
+        " Record acknowledgment (always for the logged-on user)
+        lv_success = zcl_notification_manager=>record_acknowledgment(
+          iv_message_id  = ls_request-message_id
+          iv_client_info = ls_request-client_info
+        ).
 
         IF lv_success = abap_true.
           " Success - acknowledgment recorded
-          mo_server->response->set_status( code = 200 reason = 'OK' ).
-
-          " Get current timestamp for response
           lv_timestamp = |{ sy-datum }T{ sy-uzeit }|.
-
           lv_json_response = '{"success":true,"timestamp":"' && lv_timestamp && '"}'.
-          mo_server->response->set_cdata( data = lv_json_response ).
+          send_json( iv_status = 200 iv_reason = 'OK' iv_json = lv_json_response ).
+
+        ELSEIF zcl_notification_manager=>has_user_acknowledged( ls_request-message_id ) = abap_true.
+          " Already acknowledged - return 409 Conflict
+          send_error( iv_status = 409 iv_reason = 'Conflict' iv_message = 'Already acknowledged' ).
 
         ELSE.
-          " Failed - check if already acknowledged
-          IF zcl_notification_manager=>has_user_acknowledged( lv_message_id ) = abap_true.
-            " Already acknowledged - return 409 Conflict
-            mo_server->response->set_status( code = 409 reason = 'Conflict' ).
-            lv_json_response = '{"success":false,"error":"Already acknowledged"}'.
-          ELSE.
-            " Generic error - return 500 Internal Server Error
-            mo_server->response->set_status( code = 500 reason = 'Internal Server Error' ).
-            lv_json_response = '{"success":false,"error":"Failed to record acknowledgment"}'.
-          ENDIF.
-          mo_server->response->set_cdata( data = lv_json_response ).
+          " Generic error - return 500 Internal Server Error
+          send_error( iv_status = 500 iv_reason = 'Internal Server Error'
+                      iv_message = 'Failed to record acknowledgment' ).
         ENDIF.
 
       CATCH cx_root INTO DATA(lx_error).
-        " Exception handling
-        mo_server->response->set_status( code = 500 reason = 'Internal Server Error' ).
-        lv_json_response = '{"success":false,"error":"' && lx_error->get_text( ) && '"}'.
-        mo_server->response->set_cdata( data = lv_json_response ).
-        mo_server->response->set_header_field( name = 'Content-Type' value = 'application/json' ).
+        send_error( iv_status = 500 iv_reason = 'Internal Server Error' iv_message = lx_error->get_text( ) ).
     ENDTRY.
 
   ENDMETHOD.

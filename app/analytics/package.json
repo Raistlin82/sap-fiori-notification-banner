@@ -1,6 +1,6 @@
 {
   "name": "notifications-analytics",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Notification Acknowledgment Analytics Dashboard",
   "scripts": {
     "start": "ui5 serve --port 8081 --open index.html",

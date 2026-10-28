@@ -2,6 +2,7 @@
     controllerName="com.sap.notifications.analytics.controller.Analytics"
     xmlns="sap.m"
     xmlns:mvc="sap.ui.core.mvc"
+    xmlns:core="sap.ui.core"
     xmlns:l="sap.ui.layout"
     xmlns:viz="sap.viz.ui5.controls"
     xmlns:viz.feeds="sap.viz.ui5.controls.common.feeds"
@@ -17,18 +18,18 @@
             <l:VerticalLayout width="100%" class="sapUiContentPadding">
 
                 <!-- Notification Selector -->
-                <l:HorizontalLayout width="100%" class="sapUiSmallMarginBottom">
+                <HBox alignItems="Center" class="sapUiSmallMarginBottom">
                     <Label
                         text="{i18n>selectNotificationLabel}"
                         labelFor="notificationSelect"
                         class="sapUiSmallMarginEnd sapUiSmallMarginTop" />
                     <ComboBox
                         id="notificationSelect"
-                        width="60%"
+                        width="40rem"
                         placeholder="{i18n>selectNotificationPlaceholder}"
                         items="{analytics>/notifications}"
                         selectedKey="{analytics>/selectedNotificationId}"
-                        change=".onNotificationChange">
+                        selectionChange=".onNotificationChange">
                         <items>
                             <core:Item
                                 key="{analytics>message_id}"
@@ -40,16 +41,17 @@
                         text="{i18n>refreshButton}"
                         press=".onRefresh"
                         class="sapUiSmallMarginBegin" />
-                </l:HorizontalLayout>
+                </HBox>
 
-                <!-- Statistics and Chart Section -->
-                <l:HorizontalLayout
+                <!-- Statistics and Chart Section (side by side on desktop, stacked on phone) -->
+                <l:Grid
                     width="100%"
-                    visible="{= ${analytics>/selectedNotification} !== undefined }"
+                    defaultSpan="XL6 L6 M12 S12"
+                    visible="{= !!${analytics>/selectedNotification} }"
                     class="sapUiSmallMarginBottom">
 
                     <!-- Pie Chart -->
-                    <l:VerticalLayout width="40%" class="sapUiSmallMarginEnd">
+                    <VBox width="100%">
                         <Title text="{i18n>chartTitle}" level="H2" class="sapUiSmallMarginBottom" />
                         <viz:VizFrame
                             id="pieChart"
@@ -72,44 +74,44 @@
                                 <viz.feeds:FeedItem uid="color" type="Dimension" values="Status" />
                             </viz:feeds>
                         </viz:VizFrame>
-                    </l:VerticalLayout>
+                    </VBox>
 
                     <!-- Statistics Panel -->
-                    <l:VerticalLayout width="60%">
+                    <VBox width="100%">
                         <Panel
                             headerText="{i18n>statisticsTitle}"
                             class="sapUiResponsiveMargin">
                             <content>
                                 <l:VerticalLayout class="sapUiContentPadding">
                                     <ObjectStatus
-                                        text="{i18n>totalUsersLabel}"
-                                        title="{analytics>/selectedNotification/total_targets}"
+                                        title="{i18n>totalUsersLabel}"
+                                        text="{analytics>/selectedNotification/total_targets}"
                                         state="None"
                                         class="sapUiSmallMarginBottom" />
                                     <ObjectStatus
-                                        text="{i18n>acknowledgedLabel}"
-                                        title="{analytics>/selectedNotification/acknowledged} ({analytics>/selectedNotification/compliance_pct}%)"
+                                        title="{i18n>acknowledgedLabel}"
+                                        text="{analytics>/selectedNotification/acknowledged} ({analytics>/selectedNotification/compliance_pct}%)"
                                         state="Success"
                                         class="sapUiSmallMarginBottom" />
                                     <ObjectStatus
-                                        text="{i18n>pendingLabel}"
-                                        title="{analytics>/selectedNotification/pending}"
+                                        title="{i18n>pendingLabel}"
+                                        text="{analytics>/selectedNotification/pending}"
                                         state="Warning"
                                         class="sapUiSmallMarginBottom" />
                                     <ObjectStatus
-                                        text="{i18n>createdDateLabel}"
-                                        title="{analytics>/selectedNotification/created_at}"
+                                        title="{i18n>createdDateLabel}"
+                                        text="{analytics>/selectedNotification/created_at}"
                                         state="None" />
                                 </l:VerticalLayout>
                             </content>
                         </Panel>
-                    </l:VerticalLayout>
+                    </VBox>
 
-                </l:HorizontalLayout>
+                </l:Grid>
 
                 <!-- Filter Bar -->
                 <Toolbar
-                    visible="{= ${analytics>/users} !== undefined &amp;&amp; ${analytics>/users}.length > 0 }">
+                    visible="{= !!${analytics>/users} &amp;&amp; ${analytics>/users}.length > 0 }">
                     <SegmentedButton
                         id="statusFilter"
                         selectedKey="ALL"
@@ -143,7 +145,7 @@
                             descending: true
                         }
                     }"
-                    visible="{= ${analytics>/users} !== undefined }"
+                    visible="{= !!${analytics>/selectedNotification} }"
                     growing="true"
                     growingThreshold="50"
                     mode="None"
@@ -198,7 +200,7 @@
                 <MessageStrip
                     text="{i18n>noNotificationSelected}"
                     type="Information"
-                    visible="{= ${analytics>/selectedNotification} === undefined }"
+                    visible="{= !${analytics>/selectedNotification} }"
                     showIcon="true"
                     class="sapUiResponsiveMargin" />
 

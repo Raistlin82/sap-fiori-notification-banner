@@ -3,9 +3,13 @@
   "sap.app": {
     "id": "com.sap.notifications.analytics",
     "type": "application",
-    "i18n": "i18n/i18n.properties",
+    "i18n": {
+      "bundleUrl": "i18n/i18n.properties",
+      "supportedLocales": [""],
+      "fallbackLocale": ""
+    },
     "applicationVersion": {
-      "version": "1.0.0"
+      "version": "1.0.1"
     },
     "title": "{{appTitle}}",
     "description": "{{appDescription}}",
@@ -40,7 +44,10 @@
         "sap.ui.core": {},
         "sap.m": {},
         "sap.ui.layout": {},
-        "sap.viz": {}
+        "sap.viz": {},
+        "sap.ui.export": {
+          "lazy": true
+        }
       }
     },
     "models": {

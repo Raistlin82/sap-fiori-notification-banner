@@ -9,13 +9,38 @@ sap.ui.define([
     "sap/m/HBox",
     "sap/m/VBox",
     "sap/m/FlexBox",
+    "sap/m/FlexItemData",
     "sap/ui/core/library",
     "sap/ui/model/json/JSONModel",
-    "sap/base/Log"
-], function(BaseObject, MessageStrip, MessageToast, MessageBox, Button, Text, Title, HBox, VBox, FlexBox, coreLibrary, JSONModel, Log) {
+    "sap/base/Log",
+    "com/sap/notifications/banner2/util/CsrfAjax"
+], function(BaseObject, MessageStrip, MessageToast, MessageBox, Button, Text, Title, HBox, VBox, FlexBox, FlexItemData, coreLibrary, JSONModel, Log, CsrfAjax) {
     "use strict";
 
     var MessageType = coreLibrary.MessageType;
+    var LOG_COMPONENT = "com.sap.notifications.banner2.NotificationBanner";
+
+    /**
+     * Debug trace via sap/base/Log (visible with sap-ui-debug / log level DEBUG)
+     * instead of console output in production
+     * @private
+     */
+    function _debug() {
+        if (!Log.isLoggable(Log.Level.DEBUG, LOG_COMPONENT)) {
+            return;
+        }
+        var sMessage = Array.prototype.map.call(arguments, function(vValue) {
+            if (vValue !== null && typeof vValue === "object") {
+                try {
+                    return JSON.stringify(vValue);
+                } catch (e) {
+                    return String(vValue);
+                }
+            }
+            return String(vValue);
+        }).join(" ");
+        Log.debug(sMessage, "", LOG_COMPONENT);
+    }
 
     return BaseObject.extend("com.sap.notifications.banner2.controller.NotificationBanner", {
 
@@ -49,36 +74,21 @@ sap.ui.define([
         loadNotifications: function() {
             var that = this;
 
-            console.log("[NotificationBanner] Loading notifications...");
+            _debug("[NotificationBanner] Loading notifications...");
 
             // Check circuit breaker state
             if (this._isCircuitOpen) {
-                console.warn("[NotificationBanner] Circuit breaker is open, skipping notification load");
-                Log.warning("Circuit breaker is open, skipping notification load");
+                Log.warning("Circuit breaker is open, skipping notification load", "", LOG_COMPONENT);
                 return;
             }
 
-            // Get user ID safely (works in both FLP and standalone modes)
-            var sUserId = "ANONYMOUS";
-            try {
-                if (typeof sap !== "undefined" && sap.ushell && sap.ushell.Container) {
-                    sUserId = sap.ushell.Container.getUser().getId();
-                }
-            } catch (e) {
-                Log.warning("Could not retrieve user ID from FLP, using ANONYMOUS: " + e.message);
-            }
-
-            console.log("[NotificationBanner] User ID:", sUserId);
-
+            // No user parameter: the backend always uses the logged-on user (sy-uname)
             jQuery.ajax({
                 url: "/sap/bc/rest/zcl_notif_rest/",
                 type: "GET",
-                data: {
-                    user_id: sUserId
-                },
                 timeout: 10000, // 10 second timeout
                 success: function(data) {
-                    console.log("[NotificationBanner] Notifications loaded successfully:", data);
+                    _debug("[NotificationBanner] Notifications loaded successfully:", data);
 
                     // Reset error counters on success
                     that._retryCount = 0;
@@ -88,7 +98,6 @@ sap.ui.define([
                     that._processNotifications(data);
                 },
                 error: function(xhr, status, error) {
-                    console.error("[NotificationBanner] Failed to load notifications:", error, "Status:", xhr.status);
                     that._handleLoadError(xhr, status, error);
                 }
             });
@@ -200,9 +209,9 @@ sap.ui.define([
                 type: MessageType.Error,
                 showIcon: true,
                 showCloseButton: true,
-                class: "sapUiMediumMargin notificationBanner notificationBanner--error",
                 close: this._onErrorBannerClose.bind(this)
             });
+            this._currentBanner.addStyleClass("sapUiMediumMargin notificationBanner notificationBanner--error");
 
             // Insert banner
             this._insertBannerInShell();
@@ -284,6 +293,19 @@ sap.ui.define([
          * @param {Array} notifications - array of notifications
          */
         _processNotifications: function(notifications) {
+            // Results received before the banner is attached to the shell are
+            // discarded: storing them would make the first load after
+            // attachToShell() look "unchanged" and nothing would be displayed
+            if (!this._isAttachedToShell) {
+                _debug("[NotificationBanner] Not attached to shell yet - ignoring result");
+                return;
+            }
+
+            // Backend returns an array; tolerate a {notifications: [...]} wrapper
+            if (!Array.isArray(notifications)) {
+                notifications = (notifications && notifications.notifications) || [];
+            }
+
             // Clean up expired dismissed notifications
             this._cleanupDismissed();
 
@@ -293,13 +315,13 @@ sap.ui.define([
             var filteredNotifications = notifications.filter(function(notification) {
                 var dismissedTime = dismissed[notification.message_id];
                 if (dismissedTime && (now - dismissedTime) < this._dismissedTimeout) {
-                    console.log("[NotificationBanner] Skipping dismissed notification:", notification.message_id, notification.title);
+                    _debug("[NotificationBanner] Skipping dismissed notification:", notification.message_id, notification.title);
                     return false; // Skip dismissed notification
                 }
                 return true;
             }.bind(this));
 
-            console.log("[NotificationBanner] Filtered notifications:", filteredNotifications.length, "of", notifications.length);
+            _debug("[NotificationBanner] Filtered notifications:", filteredNotifications.length, "of", notifications.length);
 
             var hasNewNotifications = false;
 
@@ -319,11 +341,11 @@ sap.ui.define([
             }
 
             if (hasNewNotifications) {
-                console.log("[NotificationBanner] New notifications detected, updating display");
+                _debug("[NotificationBanner] New notifications detected, updating display");
                 this._allNotifications = filteredNotifications;
                 this._displayNotifications();
             } else {
-                console.log("[NotificationBanner] No new notifications");
+                _debug("[NotificationBanner] No new notifications");
             }
         },
 
@@ -332,10 +354,10 @@ sap.ui.define([
          * @private
          */
         _displayNotifications: function() {
-            console.log("[NotificationBanner] _displayNotifications called. isAttachedToShell:", this._isAttachedToShell);
+            _debug("[NotificationBanner] _displayNotifications called. isAttachedToShell:", this._isAttachedToShell);
 
             if (!this._isAttachedToShell) {
-                console.warn("[NotificationBanner] Not attached to shell - cannot display notifications");
+                Log.warning("Not attached to shell - cannot display notifications", "", LOG_COMPONENT);
                 return;
             }
 
@@ -352,7 +374,7 @@ sap.ui.define([
                 var notification = this._allNotifications[i];
                 var displayMode = (notification.display_mode || "BANNER").toUpperCase();
 
-                console.log("[NotificationBanner] Notification", i, "- Mode:", displayMode, "Title:", notification.title);
+                _debug("[NotificationBanner] Notification", i, "- Mode:", displayMode, "Title:", notification.title);
 
                 switch(displayMode) {
                 case "BANNER":
@@ -372,7 +394,7 @@ sap.ui.define([
                 }
             }
 
-            console.log("[NotificationBanner] Grouped notifications - BANNER:", bannerNotifications.length,
+            _debug("[NotificationBanner] Grouped notifications - BANNER:", bannerNotifications.length,
                 "TOAST:", toastNotifications.length, "BOTH:", bothNotifications.length, "SILENT:", silentNotifications.length);
 
             // Store banner notifications for navigation (BANNER + BOTH)
@@ -413,13 +435,13 @@ sap.ui.define([
 
             // Skip if already shown in current session
             if (this._shownToasts[notification.message_id]) {
-                console.log("[NotificationBanner] Toast already shown in this session:", notification.message_id);
+                _debug("[NotificationBanner] Toast already shown in this session:", notification.message_id);
                 return;
             }
 
             // Add severity prefix to differentiate visually (MessageToast doesn't support colors)
             var severityPrefix = "";
-            switch (notification.severity.toUpperCase()) {
+            switch ((notification.severity || "").toUpperCase()) {
             case "HIGH":
                 severityPrefix = "🔴 CRITICAL: ";
                 break;
@@ -436,8 +458,7 @@ sap.ui.define([
             MessageToast.show(message, {
                 duration: 6000, // 6 seconds
                 width: "35em",
-                my: "center bottom",
-                at: "center bottom",
+                // my/at default to "center bottom"
                 of: window,
                 offset: "0 -50",
                 autoClose: true
@@ -445,7 +466,7 @@ sap.ui.define([
 
             // Mark as shown in this session (not localStorage - let user see it on page refresh)
             this._shownToasts[notification.message_id] = true;
-            console.log("[NotificationBanner] Toast shown:", notification.message_id, notification.title);
+            _debug("[NotificationBanner] Toast shown:", notification.message_id, notification.title);
         },
 
         /**
@@ -482,20 +503,20 @@ sap.ui.define([
          * @private
          */
         _showBanner: function() {
-            console.log("[NotificationBanner] _showBanner called. Banner notifications count:", this._bannerNotifications.length);
+            _debug("[NotificationBanner] _showBanner called. Banner notifications count:", this._bannerNotifications.length);
 
             if (this._bannerNotifications.length === 0) {
-                console.log("[NotificationBanner] No banner notifications to show - exiting");
+                _debug("[NotificationBanner] No banner notifications to show - exiting");
                 return;
             }
 
             var notification = this._bannerNotifications[this._currentBannerIndex];
             var messageType = this._getMessageType(notification.severity);
 
-            console.log("[NotificationBanner] Creating banner for notification:", notification);
-            console.log("[NotificationBanner] Title:", notification.title);
-            console.log("[NotificationBanner] Message text:", notification.message_text);
-            console.log("[NotificationBanner] Message type:", messageType);
+            _debug("[NotificationBanner] Creating banner for notification:", notification);
+            _debug("[NotificationBanner] Title:", notification.title);
+            _debug("[NotificationBanner] Message text:", notification.message_text);
+            _debug("[NotificationBanner] Message type:", messageType);
 
             // Build banner text with visual separators (MessageStrip text doesn't support HTML)
             var bannerText = "■ " + notification.title;
@@ -508,76 +529,78 @@ sap.ui.define([
                 bannerText += "  (" + (this._currentBannerIndex + 1) + " of " + this._bannerNotifications.length + ")";
             }
 
-            console.log("[NotificationBanner] Final banner text:", bannerText);
+            _debug("[NotificationBanner] Final banner text:", bannerText);
 
             // Check if notification requires acknowledgment
             var requiresAck = notification.requires_ack === "X" || notification.requires_ack === true;
-            console.log("[NotificationBanner] Requires acknowledgment:", requiresAck);
+            _debug("[NotificationBanner] Requires acknowledgment:", requiresAck);
 
-            // Create banner
+            // Create banner (X button only if no acknowledgment is required)
             var messageStrip = new MessageStrip({
                 text: bannerText,
                 type: messageType,
                 showIcon: true,
-                showCloseButton: !requiresAck,  // Hide X button if acknowledgment required
-                close: requiresAck ? null : this._onBannerClose.bind(this)  // Only bind close event if simple dismiss
+                showCloseButton: !requiresAck
             });
+            if (!requiresAck) {
+                messageStrip.attachClose(this._onBannerClose, this);
+            }
 
-            // If acknowledgment is required, add custom OK button
+            // Add CSS classes for styling
+            messageStrip.addStyleClass("notificationBannerCustom");
+            messageStrip.addStyleClass("notificationBanner--" + (notification.severity || "low").toLowerCase());
+
+            // MessageStrip has no aggregation for buttons and no width property:
+            // OK and navigation buttons are placed next to it in an HBox and the
+            // strip takes the remaining space via FlexItemData
+            messageStrip.setLayoutData(new FlexItemData({ growFactor: 1, shrinkFactor: 1 }));
+
+            var aItems = [messageStrip];
+
+            // If acknowledgment is required, add OK button next to the banner
             if (requiresAck) {
                 var that = this;
-                var oAckButton = new Button({
+                aItems.push(new Button({
                     text: "OK",
                     type: "Emphasized",
                     icon: "sap-icon://accept",
                     press: function() {
-                        that._acknowledgeNotification(notification, messageStrip);
+                        that._acknowledgeNotification(notification);
                     }
-                });
-                messageStrip.addCustomAction(oAckButton);
-                console.log("[NotificationBanner] Added OK acknowledgment button");
+                }).addStyleClass("sapUiTinyMarginBegin"));
+                _debug("[NotificationBanner] Added OK acknowledgment button");
             }
 
-            // Add CSS classes for styling
-            messageStrip.addStyleClass("sapUiMediumMargin");
-            messageStrip.addStyleClass("notificationBannerCustom");
-            messageStrip.addStyleClass("notificationBanner--" + notification.severity.toLowerCase());
-
-            // If multiple notifications, wrap in HBox with navigation buttons
+            // If multiple notifications, add navigation buttons
             if (this._bannerNotifications.length > 1) {
-                var prevButton = new Button({
+                aItems.unshift(new Button({
                     icon: "sap-icon://navigation-left-arrow",
                     type: "Transparent",
                     press: this._showPreviousNotification.bind(this),
                     tooltip: "Previous notification"
-                });
+                }));
 
-                var nextButton = new Button({
+                aItems.push(new Button({
                     icon: "sap-icon://navigation-right-arrow",
                     type: "Transparent",
                     press: this._showNextNotification.bind(this),
                     tooltip: "Next notification"
-                });
+                }));
+            }
 
-                // Set explicit width for MessageStrip to fill available space
-                messageStrip.setWidth("100%");
-
+            if (aItems.length > 1) {
+                // No explicit width: the HBox fills the row, and width 100% plus
+                // the margin class would overflow the viewport and cut off the buttons
                 this._currentBanner = new HBox({
-                    width: "100%",
                     alignItems: "Center",
-                    justifyContent: "SpaceBetween",
-                    items: [
-                        prevButton,
-                        messageStrip,
-                        nextButton
-                    ]
+                    items: aItems
                 });
-                this._currentBanner.addStyleClass("sapUiMediumMargin");
             } else {
                 this._currentBanner = messageStrip;
             }
+            this._currentBanner.addStyleClass("sapUiMediumMargin");
 
-            console.log("[NotificationBanner] Banner created, inserting into shell...");
+            _debug("[NotificationBanner] Banner created, inserting into shell...");
 
             // Insert banner at the top of the page
             this._insertBannerInShell();
@@ -592,25 +615,25 @@ sap.ui.define([
                                jQuery(".sapUshellShellHeader")[0] ||
                                jQuery("body")[0];
 
-            console.log("[NotificationBanner] Looking for shell container...");
-            console.log("[NotificationBanner] Found container:", shellContainer ? shellContainer.tagName : "NONE");
+            _debug("[NotificationBanner] Looking for shell container...");
+            _debug("[NotificationBanner] Found container:", shellContainer ? shellContainer.tagName : "NONE");
 
             if (shellContainer) {
                 var bannerContainer = jQuery("<div id='globalNotificationBanner'></div>");
 
                 if (shellContainer.tagName === "BODY") {
-                    console.log("[NotificationBanner] Prepending to BODY");
+                    _debug("[NotificationBanner] Prepending to BODY");
                     bannerContainer.prependTo(jQuery(shellContainer));
                 } else {
-                    console.log("[NotificationBanner] Inserting after shell header");
+                    _debug("[NotificationBanner] Inserting after shell header");
                     bannerContainer.insertAfter(jQuery(shellContainer));
                 }
 
                 this._currentBanner.placeAt("globalNotificationBanner");
                 this._bannerContainer = bannerContainer[0];
-                console.log("[NotificationBanner] ========== BANNER DISPLAYED ==========");
+                _debug("[NotificationBanner] ========== BANNER DISPLAYED ==========");
             } else {
-                console.error("[NotificationBanner] No shell container found - cannot display banner!");
+                Log.error("No shell container found - cannot display banner", "", LOG_COMPONENT);
             }
         },
 
@@ -635,14 +658,14 @@ sap.ui.define([
          * @private
          */
         _onBannerClose: function(oEvent) {
-            console.log("[NotificationBanner] ========== BANNER CLOSE CLICKED ==========");
-            console.log("[NotificationBanner] Event:", oEvent);
-            console.log("[NotificationBanner] Current banner index:", this._currentBannerIndex);
-            console.log("[NotificationBanner] Banner notifications count:", this._bannerNotifications.length);
+            _debug("[NotificationBanner] ========== BANNER CLOSE CLICKED ==========");
+            _debug("[NotificationBanner] Event:", oEvent);
+            _debug("[NotificationBanner] Current banner index:", this._currentBannerIndex);
+            _debug("[NotificationBanner] Banner notifications count:", this._bannerNotifications.length);
 
             // Prevent duplicate close events
             if (this._isClosing) {
-                console.log("[NotificationBanner] Already closing, ignoring duplicate event");
+                _debug("[NotificationBanner] Already closing, ignoring duplicate event");
                 return;
             }
             this._isClosing = true;
@@ -650,17 +673,17 @@ sap.ui.define([
             // Save dismissed notification
             var notification = this._bannerNotifications[this._currentBannerIndex];
             if (notification && notification.message_id) {
-                console.log("[NotificationBanner] Dismissing notification:", notification.message_id, notification.title);
+                _debug("[NotificationBanner] Dismissing notification:", notification.message_id, notification.title);
                 this._dismissNotification(notification.message_id);
 
                 // Verify it was saved
                 var dismissed = this._getDismissedNotifications();
-                console.log("[NotificationBanner] Dismissed saved in localStorage:", dismissed[notification.message_id] ? "YES" : "NO");
+                _debug("[NotificationBanner] Dismissed saved in localStorage:", dismissed[notification.message_id] ? "YES" : "NO");
             }
 
             // Remove current notification from display
             this._bannerNotifications.splice(this._currentBannerIndex, 1);
-            console.log("[NotificationBanner] Removed from bannerNotifications, new count:", this._bannerNotifications.length);
+            _debug("[NotificationBanner] Removed from bannerNotifications, new count:", this._bannerNotifications.length);
 
             // Also remove from all notifications
             if (notification) {
@@ -669,7 +692,7 @@ sap.ui.define([
                 });
                 if (index !== -1) {
                     this._allNotifications.splice(index, 1);
-                    console.log("[NotificationBanner] Removed from allNotifications, new count:", this._allNotifications.length);
+                    _debug("[NotificationBanner] Removed from allNotifications, new count:", this._allNotifications.length);
                 }
             }
 
@@ -679,7 +702,7 @@ sap.ui.define([
             }
 
             // Update display
-            console.log("[NotificationBanner] Calling _updateBanner...");
+            _debug("[NotificationBanner] Calling _updateBanner...");
             this._updateBanner();
 
             // Reset closing flag after a short delay
@@ -687,7 +710,7 @@ sap.ui.define([
                 this._isClosing = false;
             }.bind(this), 500);
 
-            console.log("[NotificationBanner] ========== BANNER CLOSE COMPLETED ==========");
+            _debug("[NotificationBanner] ========== BANNER CLOSE COMPLETED ==========");
         },
 
         /**
@@ -731,7 +754,7 @@ sap.ui.define([
          * @returns {sap.ui.core.MessageType} UI5 message type
          */
         _getMessageType: function(severity) {
-            switch (severity.toUpperCase()) {
+            switch ((severity || "").toUpperCase()) {
             case "HIGH":
                 return MessageType.Error;
             case "MEDIUM":
@@ -747,13 +770,12 @@ sap.ui.define([
          * Handle notification acknowledgment (user clicked OK)
          * @private
          * @param {object} notification - The notification object
-         * @param {sap.m.MessageStrip} messageStrip - The message strip control
          */
-        _acknowledgeNotification: function(notification, messageStrip) {
+        _acknowledgeNotification: function(notification) {
             var that = this;
 
-            console.log("[NotificationBanner] ========== ACKNOWLEDGE NOTIFICATION ==========");
-            console.log("[NotificationBanner] Acknowledging notification:", notification.message_id, notification.title);
+            _debug("[NotificationBanner] ========== ACKNOWLEDGE NOTIFICATION ==========");
+            _debug("[NotificationBanner] Acknowledging notification:", notification.message_id, notification.title);
 
             /**
              * CRITICAL: Prevent duplicate acknowledgments
@@ -765,7 +787,7 @@ sap.ui.define([
              * This flag ensures only ONE acknowledgment request is processed at a time
              */
             if (this._isAcknowledging) {
-                console.log("[NotificationBanner] Already acknowledging, ignoring duplicate request");
+                _debug("[NotificationBanner] Already acknowledging, ignoring duplicate request");
                 return;
             }
             this._isAcknowledging = true;
@@ -784,7 +806,7 @@ sap.ui.define([
              * - 409 Conflict: User already acknowledged this notification (duplicate)
              * - 500 Internal Server Error: Database error or ABAP exception
              */
-            jQuery.ajax({
+            CsrfAjax.ajax({
                 url: "/sap/bc/rest/zcl_notif_rest/acknowledge",
                 type: "POST",
                 contentType: "application/json",
@@ -794,7 +816,7 @@ sap.ui.define([
                 }),
                 timeout: 10000,  // 10 second timeout
                 success: function(response) {
-                    console.log("[NotificationBanner] Acknowledgment recorded successfully:", response);
+                    _debug("[NotificationBanner] Acknowledgment recorded successfully:", response);
 
                     /**
                      * DUAL PERSISTENCE STRATEGY:
@@ -812,13 +834,11 @@ sap.ui.define([
                     MessageToast.show("Notification acknowledged");
 
                     // Remove notification from display and show next one if available
-                    that._handleAcknowledgedNotification(notification, messageStrip);
+                    that._handleAcknowledgedNotification(notification);
 
                     that._isAcknowledging = false;
                 },
                 error: function(xhr, status, error) {
-                    console.error("[NotificationBanner] Failed to acknowledge notification:", error, "Status:", xhr.status);
-
                     that._isAcknowledging = false;
 
                     /**
@@ -833,12 +853,17 @@ sap.ui.define([
                      *   - Do NOT remove notification from display
                      *   - User can retry acknowledgment
                      */
-                    var errorMsg = "Failed to acknowledge notification";
                     if (xhr.status === 409) {
-                        errorMsg = "Notification already acknowledged";
+                        // Already acknowledged (e.g. on another device): treat as success
+                        that._markAsAcknowledged(notification.message_id);
+                        MessageToast.show("Notification already acknowledged");
+                        that._handleAcknowledgedNotification(notification);
+                        return;
                     }
 
-                    MessageBox.error(errorMsg + ": " + error, {
+                    Log.error("Failed to acknowledge notification " + notification.message_id + ": " + error +
+                              " (Status: " + xhr.status + ")", "", LOG_COMPONENT);
+                    MessageBox.error("Failed to acknowledge notification: " + error, {
                         title: "Acknowledgment Error",
                         actions: [MessageBox.Action.CLOSE]
                     });
@@ -879,7 +904,7 @@ sap.ui.define([
                     timestamp: Date.now()  // Unix timestamp in milliseconds
                 };
                 localStorage.setItem("acknowledgedNotifications", JSON.stringify(acknowledged));
-                console.log("[NotificationBanner] Marked as acknowledged in localStorage:", messageId);
+                _debug("[NotificationBanner] Marked as acknowledged in localStorage:", messageId);
             } catch (e) {
                 // IMPORTANT: Don't show error to user - backend persistence is sufficient
                 Log.error("Failed to save acknowledged notification to localStorage: " + e.message);
@@ -919,16 +944,15 @@ sap.ui.define([
          * Handle acknowledged notification removal from display
          * @private
          * @param {object} notification - The notification object
-         * @param {sap.m.MessageStrip} messageStrip - The message strip control
          */
-        _handleAcknowledgedNotification: function(notification, messageStrip) {
-            console.log("[NotificationBanner] Removing acknowledged notification from display");
+        _handleAcknowledgedNotification: function(notification) {
+            _debug("[NotificationBanner] Removing acknowledged notification from display");
 
             // Remove current notification from display list
             var index = this._bannerNotifications.indexOf(notification);
             if (index > -1) {
                 this._bannerNotifications.splice(index, 1);
-                console.log("[NotificationBanner] Removed from bannerNotifications, new count:", this._bannerNotifications.length);
+                _debug("[NotificationBanner] Removed from bannerNotifications, new count:", this._bannerNotifications.length);
             }
 
             // Also remove from all notifications
@@ -945,11 +969,11 @@ sap.ui.define([
                 if (this._currentBannerIndex >= this._bannerNotifications.length) {
                     this._currentBannerIndex = this._bannerNotifications.length - 1;
                 }
-                console.log("[NotificationBanner] Showing next notification at index:", this._currentBannerIndex);
+                _debug("[NotificationBanner] Showing next notification at index:", this._currentBannerIndex);
                 this._removeBanner();
-                this._createBanner(this._bannerNotifications[this._currentBannerIndex]);
+                this._showBanner();
             } else {
-                console.log("[NotificationBanner] No more notifications to show, removing banner");
+                _debug("[NotificationBanner] No more notifications to show, removing banner");
                 this._removeBanner();
             }
         },
@@ -959,7 +983,7 @@ sap.ui.define([
          * @public
          */
         attachToShell: function() {
-            console.log("[NotificationBanner] ========== ATTACHING TO SHELL ==========");
+            _debug("[NotificationBanner] ========== ATTACHING TO SHELL ==========");
             this._isAttachedToShell = true;
 
             // Load and display notifications
@@ -971,6 +995,10 @@ sap.ui.define([
          * @public
          */
         destroy: function() {
+            if (this._circuitResetTimeout) {
+                clearTimeout(this._circuitResetTimeout);
+                this._circuitResetTimeout = null;
+            }
             this._removeBanner();
             BaseObject.prototype.destroy.apply(this, arguments);
         }

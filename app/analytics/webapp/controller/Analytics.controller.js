@@ -44,7 +44,7 @@ sap.ui.define([
                     oModel.setProperty("/busy", false);
                 },
                 error: function (xhr, status, error) {
-                    MessageBox.error("Failed to load notifications: " + error);
+                    MessageBox.error("Failed to load notifications: " + that._getErrorText(xhr, error));
                     oModel.setProperty("/busy", false);
                 }
             });
@@ -54,8 +54,8 @@ sap.ui.define([
          * Handle notification selection change
          */
         onNotificationChange: function (oEvent) {
-            var sSelectedKey = oEvent.getParameter("selectedItem").getKey();
-            this.loadAnalytics(sSelectedKey);
+            var oSelectedItem = oEvent.getParameter("selectedItem");
+            this.loadAnalytics(oSelectedItem ? oSelectedItem.getKey() : null);
         },
 
         /**
@@ -72,7 +72,7 @@ sap.ui.define([
             oModel.setProperty("/busy", true);
 
             jQuery.ajax({
-                url: "/sap/bc/rest/zcl_notif_analytics/analytics/" + sMessageId,
+                url: "/sap/bc/rest/zcl_notif_analytics/analytics/" + encodeURIComponent(sMessageId),
                 type: "GET",
                 success: function (data) {
                     // Set selected notification data
@@ -98,10 +98,19 @@ sap.ui.define([
                     oModel.setProperty("/busy", false);
                 },
                 error: function (xhr, status, error) {
-                    MessageBox.error("Failed to load analytics: " + error);
+                    MessageBox.error("Failed to load analytics: " + that._getErrorText(xhr, error));
                     oModel.setProperty("/busy", false);
                 }
             });
+        },
+
+        /**
+         * Error text from backend JSON ({"error": "..."}) or HTTP status text
+         * @private
+         */
+        _getErrorText: function (xhr, sFallback) {
+            var oBody = xhr && xhr.responseJSON;
+            return (oBody && (oBody.error || oBody.message)) || sFallback;
         },
 
         /**
@@ -214,7 +223,6 @@ sap.ui.define([
          * Export table data to Excel
          */
         onExport: function () {
-            var oTable = this.byId("userTable");
             var oModel = this.getView().getModel("analytics");
             var aUsers = oModel.getProperty("/users");
 
@@ -282,13 +290,16 @@ sap.ui.define([
 
         /**
          * Format timestamp for display
-         * @param {string} sTimestamp - ABAP timestamp (YYYYMMDDHHMMSS.mmm)
-         * @returns {string} Formatted date/time
+         * @param {string|number} vTimestamp - ABAP timestamp (YYYYMMDDHHMMSS.mmm), serialized
+         *                                     as number by /ui2/cl_json
+         * @returns {string} Formatted date/time (UTC timestamp shown in local time)
          */
-        formatTimestamp: function (sTimestamp) {
-            if (!sTimestamp) {
+        formatTimestamp: function (vTimestamp) {
+            if (!vTimestamp) {
                 return "-";
             }
+
+            var sTimestamp = String(vTimestamp);
 
             try {
                 // Parse ABAP timestamp format: 20251010123045.123
@@ -302,7 +313,8 @@ sap.ui.define([
                 var iMin = parseInt(sTime.substring(2, 4));
                 var iSec = parseInt(sTime.substring(4, 6));
 
-                var oDate = new Date(iYear, iMonth, iDay, iHour, iMin, iSec);
+                // ABAP timestamps are UTC
+                var oDate = new Date(Date.UTC(iYear, iMonth, iDay, iHour, iMin, iSec));
 
                 var oDateFormat = DateFormat.getDateTimeInstance({
                     pattern: "dd/MM/yyyy HH:mm"
