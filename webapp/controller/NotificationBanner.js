@@ -589,8 +589,9 @@ sap.ui.define([
             }
 
             if (aItems.length > 1) {
+                // No explicit width: the HBox fills the row, and width 100% plus
+                // the margin class would overflow the viewport and cut off the buttons
                 this._currentBanner = new HBox({
-                    width: "100%",
                     alignItems: "Center",
                     items: aItems
                 });

@@ -34,6 +34,7 @@
 - ✅ View did not load (missing `xmlns:core` namespace)
 - ✅ Notification selection used a non-existing event parameter (`change` → `selectionChange`)
 - ✅ Statistics/"no selection" visibility, numeric ABAP timestamps (shown in local time), `sap.ui.export` declared as lazy dependency
+- ✅ Page content was collapsed to zero height (`index.html` without height); chart and statistics laid out with a responsive `Grid`; statistic labels and values no longer swapped
 
 **Backend - `ZCL_NOTIF_ANALYTICS`**
 - ✅ Class did not compile (`CONCATENATE` with numeric fields) and `serialize_json` always returned `[]` → now uses `/UI2/CL_JSON`
