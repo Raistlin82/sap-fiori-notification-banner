@@ -3,9 +3,8 @@ sap.ui.define([
     "sap/ui/Device",
     "com/sap/notifications/banner2/model/models",
     "com/sap/notifications/banner2/controller/NotificationBanner",
-    "com/sap/notifications/banner2/controller/TileCounter",
     "sap/base/Log"
-], function (UIComponent, Device, models, NotificationBanner, TileCounter, Log) {
+], function (UIComponent, Device, models, NotificationBanner, Log) {
     "use strict";
 
     return UIComponent.extend("com.sap.notifications.banner2.Component", {
@@ -53,9 +52,11 @@ sap.ui.define([
         _initMockServer: function() {
             return new Promise(function(resolve) {
                 sap.ui.require(["com/sap/notifications/banner2/localService/mockserver"], function(mockserver) {
-                    // Initialize mock server for local development
-                    mockserver.init();
-                    resolve();
+                    // Initialize mock server for local development (wait until it is running)
+                    mockserver.init().then(resolve, function(oError) {
+                        Log.error("[Component.js] Mock server initialization failed: " + oError);
+                        resolve();
+                    });
                 }, function() {
                     // Mockserver not available - continue without it (production mode)
                     resolve();
@@ -88,9 +89,8 @@ sap.ui.define([
             this._notificationBanner = new NotificationBanner();
             Log.info("[Component.js] NotificationBanner instance created");
 
-            // Create tile counter instance
-            this._tileCounter = new TileCounter();
-            Log.info("[Component.js] TileCounter instance created");
+            // Note: the dynamic FLP tile reads /stats directly via its
+            // "Service URL" (see docs/FLP_CONFIGURATION.md), no client code needed
 
             // Start polling for notifications every 30 seconds
             this._startNotificationPolling();
@@ -104,14 +104,12 @@ sap.ui.define([
                 if (oRenderer) {
                     Log.info("[Component.js] Shell renderer already exists - attaching banner immediately");
                     that._notificationBanner.attachToShell();
-                    that._tileCounter.start();
                 } else {
                     Log.info("[Component.js] Shell renderer not ready - waiting for RendererCreatedEvent");
                     // FLP mode - wait for shell to be ready
                     sap.ushell.Container.attachRendererCreatedEvent(function() {
                         Log.info("[Component.js] Shell renderer created - attaching banner");
                         that._notificationBanner.attachToShell();
-                        that._tileCounter.start();
                     });
                 }
             } else {
@@ -119,7 +117,6 @@ sap.ui.define([
                 // Standalone mode - attach immediately
                 setTimeout(function() {
                     that._notificationBanner.attachToShell();
-                    // Tile counter only works in FLP mode
                 }, 1000);
             }
         },
@@ -152,15 +149,6 @@ sap.ui.define([
         },
 
         /**
-         * Get tile counter instance
-         * @public
-         * @returns {TileCounter} tile counter
-         */
-        getTileCounter: function() {
-            return this._tileCounter;
-        },
-
-        /**
          * Clean up component
          * @public
          */
@@ -176,12 +164,6 @@ sap.ui.define([
             if (this._notificationBanner) {
                 this._notificationBanner.destroy();
                 this._notificationBanner = null;
-            }
-
-            // Destroy tile counter
-            if (this._tileCounter) {
-                this._tileCounter.destroy();
-                this._tileCounter = null;
             }
 
             Log.info("[Component.js] Component cleanup completed");

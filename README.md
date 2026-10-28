@@ -2,7 +2,7 @@
 
 [![SAP](https://img.shields.io/badge/SAP-S%2F4HANA-blue)](https://www.sap.com/)
 [![UI5](https://img.shields.io/badge/UI5-1.60%2B-green)](https://ui5.sap.com/)
-[![Version](https://img.shields.io/badge/Version-1.2.0-brightgreen)]()
+[![Version](https://img.shields.io/badge/Version-1.4.1-brightgreen)]()
 [![License](https://img.shields.io/badge/License-Proprietary-red)]()
 
 A comprehensive global notification banner system for SAP Fiori applications on S/4HANA. Display urgent system messages, maintenance notifications, and alerts across all Fiori apps with a unified, responsive, and accessible banner component.
@@ -35,10 +35,18 @@ Choose how notifications appear to users:
 | 🔇 **SILENT** | Logged only, no UI display | Audit trail, compliance monitoring |
 
 ### 📊 Dynamic Tile Counter (v1.1.0+)
-- Real-time statistics: "10 Active | 3H|5M|2L"
+- Real-time statistics: "🔴 3  🟠 5  🟢 2" with total active count
 - Color-coded by highest severity (RED/ORANGE/GREEN)
-- Auto-updates every 60 seconds
-- Disabled in plugin mode (global loading)
+- Served by `GET /sap/bc/rest/zcl_notif_rest/stats`, configured as the dynamic tile's Service URL (see [FLP Configuration](docs/FLP_CONFIGURATION.md))
+
+### 🆕 v1.4.1 Highlights (bug fixes & security)
+- ✅ **Analytics dashboard works** - backend class compiles and returns real data, view loads
+- ✅ **Acknowledgment button fixed** - OK button no longer crashes the banner; next banner shown after acknowledging
+- ✅ **CSRF protection** - standard `X-CSRF-Token` handshake for all modifying requests, no more `CORS: *`
+- ✅ **Admin-only endpoints** - `GET ?all=X` and analytics require notification admin authorization
+- ✅ **Recurring notifications are atomic** and monthly recurrence uses real calendar months
+- ✅ **No DB writes on end-user polling** - auto-expiration runs only from the admin list
+- See [Release Notes](docs/RELEASE_NOTES.md) for details
 
 ### 🆕 v1.2.0 Highlights
 - ✅ **SAP Logging Standard** - Replaced console.log with sap/base/Log
@@ -62,8 +70,9 @@ sap-fiori-notification-banner/
 │   ├── 📄 manifest.json         # App descriptor (sap.flp plugin config)
 │   ├── 📁 controller/
 │   │   ├── 📄 NotificationBanner.js  # Core banner logic
-│   │   ├── 📄 TileCounter.js         # Dynamic tile counter
 │   │   └── 📄 View1.controller.js    # Admin UI controller
+│   ├── 📁 util/
+│   │   └── 📄 CsrfAjax.js            # CSRF token handling (POST/PUT/DELETE)
 │   ├── 📁 view/
 │   │   └── 📄 View1.view.xml         # Admin UI view
 │   ├── 📁 model/
@@ -84,9 +93,7 @@ sap-fiori-notification-banner/
 │       ├── zdomain_display_mode.se11  # DISPLAY_MODE (4 values)
 │       └── zdomain_target_users.se11  # TARGET_USERS (3 values)
 │
-├── 📁 admin/                    # Admin Interface Components
-│   ├── notification_admin.controller.js
-│   └── notification_admin.view.xml
+├── 📁 app/analytics/            # Acknowledgment Analytics Dashboard (v1.4.0)
 │
 ├── 📁 docs/                     # Documentation Hub
 │   ├── 📄 INDEX.md                    # Documentation navigation center

@@ -3,8 +3,10 @@ sap.ui.define([
     "sap/ui/model/json/JSONModel",
     "sap/m/MessageToast",
     "sap/m/MessageBox",
-    "com/sap/notifications/banner2/model/formatter"
-], function (Controller, JSONModel, MessageToast, MessageBox, formatter) {
+    "sap/base/Log",
+    "com/sap/notifications/banner2/model/formatter",
+    "com/sap/notifications/banner2/util/CsrfAjax"
+], function (Controller, JSONModel, MessageToast, MessageBox, Log, formatter, CsrfAjax) {
     "use strict";
 
     return Controller.extend("com.sap.notifications.banner2.controller.View1", {
@@ -382,7 +384,7 @@ sap.ui.define([
                 url += "?message_id=" + encodeURIComponent(oData.message_id);
             }
 
-            jQuery.ajax({
+            CsrfAjax.ajax({
                 url: url,
                 type: method,
                 contentType: "application/json",
@@ -404,9 +406,21 @@ sap.ui.define([
                 },
                 error: function (xhr, status, error) {
                     MessageBox.error(oI18n.getProperty("msgSaveError") +
-                                   "\nStatus: " + xhr.status + "\n" + error);
+                                   "\nStatus: " + xhr.status + "\n" + that._getBackendMessage(xhr, error));
                 }
             });
+        },
+
+        /**
+         * Extract the error text sent by the backend (JSON "message" field)
+         * @private
+         * @param {object} xhr - XMLHttpRequest object
+         * @param {string} sFallback - Fallback text (HTTP status text)
+         * @returns {string} Error message
+         */
+        _getBackendMessage: function (xhr, sFallback) {
+            var oBody = xhr && xhr.responseJSON;
+            return (oBody && (oBody.message || oBody.error)) || sFallback;
         },
 
         /**
@@ -423,7 +437,7 @@ sap.ui.define([
                 title: oI18n.getProperty("msgDeleteConfirmTitle"),
                 onClose: function (sAction) {
                     if (sAction === MessageBox.Action.OK) {
-                        jQuery.ajax({
+                        CsrfAjax.ajax({
                             url: "/sap/bc/rest/zcl_notif_rest/?message_id=" + encodeURIComponent(oMessage.message_id),
                             type: "DELETE",
                             timeout: 10000,
@@ -433,7 +447,7 @@ sap.ui.define([
                             },
                             error: function (xhr, status, error) {
                                 MessageBox.error(oI18n.getProperty("msgDeleteError") +
-                                               "\nStatus: " + xhr.status + "\n" + error);
+                                               "\nStatus: " + xhr.status + "\n" + that._getBackendMessage(xhr, error));
                             }
                         });
                     }
@@ -459,7 +473,7 @@ sap.ui.define([
             oData.start_date = this._formatDateForABAP(oData.start_date);
             oData.end_date = this._formatDateForABAP(oData.end_date);
 
-            jQuery.ajax({
+            CsrfAjax.ajax({
                 url: "/sap/bc/rest/zcl_notif_rest/?message_id=" + encodeURIComponent(oMessage.message_id),
                 type: "PUT",
                 contentType: "application/json",
@@ -475,7 +489,7 @@ sap.ui.define([
                 },
                 error: function (xhr, status, error) {
                     MessageBox.error(oI18n.getProperty("msgSaveError") +
-                                   "\nStatus: " + xhr.status + "\n" + error);
+                                   "\nStatus: " + xhr.status + "\n" + that._getBackendMessage(xhr, error));
                     // Revert switch
                     oEvent.getSource().setState(!bNewState);
                 }
@@ -838,7 +852,7 @@ sap.ui.define([
                     }
                 },
                 error: function (xhr, status, error) {
-                    console.error("Failed to load valid message types:", error);
+                    Log.error("Failed to load valid message types:" + " " + error);
                     MessageToast.show("Error loading valid message types");
                     // Fallback to all types
                     oEditModel.setProperty("/availableMessageTypes", ["INFO", "WARNING", "ERROR", "SUCCESS", "URGENT"]);
@@ -894,7 +908,7 @@ sap.ui.define([
                     }
                 },
                 error: function (xhr, status, error) {
-                    console.error("Failed to load valid display modes:", error);
+                    Log.error("Failed to load valid display modes:" + " " + error);
                     // Fallback to all modes
                     oEditModel.setProperty("/availableDisplayModes", ["BANNER", "TOAST", "BOTH", "SILENT"]);
                     that._filterDisplayModeItems();
@@ -936,7 +950,7 @@ sap.ui.define([
                     }
                 },
                 error: function (xhr, status, error) {
-                    console.error("Failed to validate matrix combination:", error);
+                    Log.error("Failed to validate matrix combination:" + " " + error);
                     // On error, allow the save to proceed (fail-open)
                     callback(true, "");
                 }
@@ -1006,7 +1020,7 @@ sap.ui.define([
                     that._updateButtonVisibility();
                 },
                 error: function (xhr, status, error) {
-                    console.error("Failed to load valid message types:", error);
+                    Log.error("Failed to load valid message types:" + " " + error);
                     MessageBox.error("Error loading valid message types from notification matrix");
                 }
             });
@@ -1057,7 +1071,7 @@ sap.ui.define([
                     that._updateButtonVisibility();
                 },
                 error: function (xhr, status, error) {
-                    console.error("Failed to load valid display modes:", error);
+                    Log.error("Failed to load valid display modes:" + " " + error);
                     MessageBox.error("Error loading valid display modes from notification matrix");
                 }
             });

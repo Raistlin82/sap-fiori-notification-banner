@@ -44,7 +44,9 @@
                     app: new ComponentContainer({
                         id: "app",
                         height : "100%",
-                        name : "com.sap.notifications.banner2"
+                        name : "com.sap.notifications.banner2",
+                        async: true,
+                        manifest: true
                     })
                 }).placeAt("content");
             });

@@ -196,7 +196,7 @@ sap-fiori-notification-banner/
 │
 ├── 📁 webapp/                        # Frontend UI5 Application
 ├── 📁 abap/                          # Backend ABAP Components
-├── 📁 admin/                         # Admin Interface
+├── 📁 app/analytics/                 # Acknowledgment Analytics Dashboard
 │
 ├── 📄 README.md                      # Project Overview
 ├── 📄 TEST_REPORT.md                 # Complete Test Report

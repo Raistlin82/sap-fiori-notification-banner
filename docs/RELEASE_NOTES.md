@@ -2,16 +2,69 @@
 
 ## 📋 Table of Contents
 
-1. [Version 1.3.0 - October 10, 2025](#version-130---october-10-2025)
-2. [Version 1.2.0 - October 2025](#version-120---october-2025)
-3. [Version 1.1.1 - October 2025](#version-111---october-2025)
-4. [Changes & Fixes](#-changes--fixes)
-5. [Technical Details](#-technical-details)
-6. [Documentation Updates](#-documentation-updates)
-7. [Next Steps](#-next-steps)
-8. [Known Issues](#-known-issues)
-9. [Lessons Learned](#-lessons-learned)
-10. [Support](#-support)
+1. [Version 1.4.1 - October 28, 2026](#version-141---october-28-2026)
+2. [Version 1.3.0 - October 10, 2025](#version-130---october-10-2025)
+3. [Version 1.2.0 - October 2025](#version-120---october-2025)
+4. [Version 1.1.1 - October 2025](#version-111---october-2025)
+5. [Changes & Fixes](#-changes--fixes)
+6. [Technical Details](#-technical-details)
+7. [Documentation Updates](#-documentation-updates)
+8. [Next Steps](#-next-steps)
+9. [Known Issues](#-known-issues)
+10. [Lessons Learned](#-lessons-learned)
+11. [Support](#-support)
+
+---
+
+## Version 1.4.1 - October 28, 2026
+
+### 🎯 Summary
+**Bug fixes & security hardening** after a full codebase review. No database or customizing changes are required; ABAP classes and the UI5 apps must be redeployed.
+
+### 🐛 Bug Fixes
+
+**Frontend - Notification Banner** (`webapp/controller/NotificationBanner.js`)
+- ✅ Acknowledgment banners crashed: `sap.m.MessageStrip` has no `addCustomAction` aggregation and no `width` property. The OK and navigation buttons are now placed next to the strip in an `HBox`
+- ✅ After acknowledging a notification the next banner is shown (undefined `_createBanner()` caused a `TypeError`)
+- ✅ `409 Conflict` (already acknowledged, e.g. on another device) is treated as success instead of showing an error dialog
+- ✅ Startup race condition: a poll answered before `attachToShell()` made the next poll look "unchanged", so banners did not appear until data changed
+- ✅ `console.*` output replaced by `sap/base/Log` (debug traces only at log level DEBUG)
+
+**Frontend - Analytics Dashboard** (`app/analytics/`)
+- ✅ View did not load (missing `xmlns:core` namespace)
+- ✅ Notification selection used a non-existing event parameter (`change` → `selectionChange`)
+- ✅ Statistics/"no selection" visibility, numeric ABAP timestamps (shown in local time), `sap.ui.export` declared as lazy dependency
+
+**Backend - `ZCL_NOTIF_ANALYTICS`**
+- ✅ Class did not compile (`CONCATENATE` with numeric fields) and `serialize_json` always returned `[]` → now uses `/UI2/CL_JSON`
+- ✅ Response format matches the dashboard (`{"notifications": [...]}`)
+- ✅ Totals consider the notification's target audience (ALL / ADMIN / DEVELOPER) instead of all users
+- ✅ `created_at` timestamp correctly converted to a date; no more N+1 queries per user
+
+**Backend - `ZCL_NOTIFICATION_MANAGER` / `ZCL_NOTIFICATION_REST`**
+- ✅ Recurring notifications are created in one LUW (all or nothing) - previously each occurrence was committed individually
+- ✅ Monthly recurrence adds calendar months (31.01 → 28/29.02) instead of 30 days
+- ✅ End-user polling no longer writes to the database: auto-expiration moved to the admin list (`GET ?all=X`) and stores a correct timestamp in `CHANGED_AT`
+- ✅ Deleting a notification also deletes its acknowledgment records
+- ✅ `/log?user_id=` filters by target audience (role mapping) instead of a meaningless string match
+- ✅ Validation errors return `400` with a message instead of `500`
+
+### 🔒 Security
+- ✅ CSRF protection: standard `X-CSRF-Token` handshake in `ZCL_NOTIFICATION_REST`; frontend uses `webapp/util/CsrfAjax.js`; approuter `csrfProtection` re-enabled in `xs-app.json`
+- ✅ Removed `Access-Control-Allow-Origin: *` (apps are same-origin)
+- ✅ `GET ?all=X` (inactive/expired notifications) and the analytics service require notification admin authorization
+- ✅ User is always taken from the session (`sy-uname`), the `user_id` request parameter is no longer trusted
+- ✅ Error responses serialized with `/UI2/CL_JSON` (no broken JSON from exception texts)
+
+### 🧹 Cleanup
+- ✅ Removed `webapp/controller/TileCounter.js` (never updated anything in plugin mode, polled `/stats` every 60s) - the dynamic tile reads `/stats` via its Service URL
+- ✅ Removed legacy `admin/` folder (pointed to a non-existing endpoint)
+- ✅ Mock server mirrors the real API (array responses, all endpoints, CSRF handshake)
+- ✅ Versions aligned (`package.json` / `manifest.json` 1.4.1)
+
+### ⚠️ Deployment Notes
+- Verify on your system that `IF_HTTP_SERVER~GET_XSRF_TOKEN` / `VALIDATE_XSRF_TOKEN` are available (standard since SAP NetWeaver 7.31; all S/4HANA releases)
+- Users of the admin UI and analytics dashboard need role `Z_BR_ADMINISTRATOR` or authorization object `Z_NOTIFY` (ACTVT 02)
 
 ---
 

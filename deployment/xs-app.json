@@ -11,7 +11,7 @@
       "target": "/sap/bc/rest/$1",
       "destination": "backend",
       "authenticationType": "xsuaa",
-      "csrfProtection": false
+      "csrfProtection": true
     },
     {
       "source": "^/sap/(.*)$",

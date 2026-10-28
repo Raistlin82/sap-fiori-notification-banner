@@ -135,7 +135,7 @@ app/analytics/
          "userid": "JSMITH",
          "user_name": "John Smith",
          "acknowledged": true,
-         "ack_timestamp": "20251010123045.123",
+         "ack_timestamp": 20251010123045.1234567,
          "client_info": "Mozilla/5.0...",
          "days_pending": 0
        }
@@ -151,10 +151,20 @@ app/analytics/
    - NO date range filter (shows historical data)
    - Source: `ztnotify_msgs` table
 
-2. **I_User** (SAP Standard CDS)
-   - User master data
-   - Fields: UserID, PersonFullName, UserType, UserAccountIsBlocked
-   - Filters: Only dialog users (`UserType='A'`)
+2. **USR02 / USER_ADDR** (SAP standard user master, v1.4.1)
+   - Dialog users only (`USTYP = 'A'`), not locked (`UFLAG = 0`), still valid (`GLTGB`)
+   - Full name from `USER_ADDR-NAME_TEXTC`
+
+**Target audience** (v1.4.1): total/pending counts consider only the users who are
+expected to see the notification, mirroring `ZCL_NOTIFICATION_MANAGER=>CHECK_TARGET_AUDIENCE`:
+- `ALL` → all dialog users
+- `ADMIN` → dialog users with role `Z_BR_ADMINISTRATOR`
+- `DEVELOPER` → dialog users with role `SAP_BR_DEVELOPER`
+
+**Notes**:
+- `ack_timestamp` is a UTC ABAP timestamp serialized as number (`0` = not acknowledged); the dashboard shows it in local time
+- `created_at` is returned as a date
+- Both endpoints return `403` unless the user has `Z_BR_ADMINISTRATOR` or the `Z_NOTIFY` authorization
 
 **Database Tables**:
 
@@ -335,23 +345,22 @@ Edit statistics panel in `Analytics.view.xml`
 **Possible Causes**:
 1. No notifications have `requires_ack='X'`
 2. Backend REST endpoint not accessible
-3. CORS headers not configured
+3. Missing authorization (endpoint returns `403`)
 
 **Solution**:
 - Check `ZTNOTIFY_MSGS` table for notifications with `requires_ack='X'`
 - Test endpoint: `GET /sap/bc/rest/zcl_notif_analytics/notifications`
-- Verify CORS headers in `ZCL_NOTIF_ANALYTICS`
+- Verify the user has role `Z_BR_ADMINISTRATOR` or authorization object `Z_NOTIFY` (ACTVT 02)
 
 ### Analytics Data Not Loading
 
 **Possible Causes**:
 1. CDS view `ztnotify_messages_analytics` not activated
-2. `I_User` CDS view not available (old SAP system)
+2. Read access to `USR02` / `USER_ADDR` / `AGR_USERS` restricted
 3. Authorization issue
 
 **Solution**:
 - Activate CDS view in SE80
-- Check SAP version supports `I_User` CDS
 - Verify user has authorization to view user data
 
 ### Chart Not Displaying
@@ -408,9 +417,9 @@ For organizations with > 10,000 users:
 
 ### Access Control
 
-**Required Authorization**:
-- Same as notification admin application
-- Role: `Z_NOTIFICATION_ADMIN`
+**Required Authorization** (enforced in `ZCL_NOTIF_ANALYTICS` since v1.4.1):
+- Same as notification admin application: role `Z_BR_ADMINISTRATOR` or authorization object `Z_NOTIFY` (ACTVT 02)
+- Role template: `Z_NOTIFICATION_ADMIN`
 
 **Data Privacy**:
 - Only shows users within authorized scope

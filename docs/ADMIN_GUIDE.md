@@ -660,7 +660,9 @@ GET /sap/bc/rest/zcl_notification_rest/
 ```
 
 **Query Parameters:**
-- `user_id` (optional): Filter by specific user
+- `all` (optional): `X` returns all notifications incl. inactive/expired (requires `Z_BR_ADMINISTRATOR` or `Z_NOTIFY`, otherwise `403`)
+
+Without parameters the active notifications for the **logged-on user** are returned (target audience and acknowledgments are evaluated for `sy-uname`).
 
 **Response:**
 ```json

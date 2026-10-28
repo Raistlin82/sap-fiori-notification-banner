@@ -2,6 +2,7 @@
     controllerName="com.sap.notifications.analytics.controller.Analytics"
     xmlns="sap.m"
     xmlns:mvc="sap.ui.core.mvc"
+    xmlns:core="sap.ui.core"
     xmlns:l="sap.ui.layout"
     xmlns:viz="sap.viz.ui5.controls"
     xmlns:viz.feeds="sap.viz.ui5.controls.common.feeds"
@@ -28,7 +29,7 @@
                         placeholder="{i18n>selectNotificationPlaceholder}"
                         items="{analytics>/notifications}"
                         selectedKey="{analytics>/selectedNotificationId}"
-                        change=".onNotificationChange">
+                        selectionChange=".onNotificationChange">
                         <items>
                             <core:Item
                                 key="{analytics>message_id}"
@@ -45,7 +46,7 @@
                 <!-- Statistics and Chart Section -->
                 <l:HorizontalLayout
                     width="100%"
-                    visible="{= ${analytics>/selectedNotification} !== undefined }"
+                    visible="{= !!${analytics>/selectedNotification} }"
                     class="sapUiSmallMarginBottom">
 
                     <!-- Pie Chart -->
@@ -109,7 +110,7 @@
 
                 <!-- Filter Bar -->
                 <Toolbar
-                    visible="{= ${analytics>/users} !== undefined &amp;&amp; ${analytics>/users}.length > 0 }">
+                    visible="{= !!${analytics>/users} &amp;&amp; ${analytics>/users}.length > 0 }">
                     <SegmentedButton
                         id="statusFilter"
                         selectedKey="ALL"
@@ -143,7 +144,7 @@
                             descending: true
                         }
                     }"
-                    visible="{= ${analytics>/users} !== undefined }"
+                    visible="{= !!${analytics>/selectedNotification} }"
                     growing="true"
                     growingThreshold="50"
                     mode="None"
@@ -198,7 +199,7 @@
                 <MessageStrip
                     text="{i18n>noNotificationSelected}"
                     type="Information"
-                    visible="{= ${analytics>/selectedNotification} === undefined }"
+                    visible="{= !${analytics>/selectedNotification} }"
                     showIcon="true"
                     class="sapUiResponsiveMargin" />
 

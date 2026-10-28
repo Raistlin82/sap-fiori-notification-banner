@@ -589,19 +589,11 @@ METHOD if_http_extension~handle_request.
   " Store server reference
   mo_server = server.
 
-  " Set CORS headers for Fiori apps
-  server->response->set_header_field(
-    name = 'Access-Control-Allow-Origin' value = '*' ).
-  server->response->set_header_field(
-    name = 'Access-Control-Allow-Methods'
-    value = 'GET,POST,PUT,DELETE,OPTIONS' ).
-  server->response->set_header_field(
-    name = 'Access-Control-Allow-Headers'
-    value = 'Content-Type,Accept,Authorization,X-Requested-With' ).
+  " No CORS headers: the Fiori apps are served from the same origin
 
-  " Handle OPTIONS preflight for CORS
-  IF lv_method = 'OPTIONS'.
-    server->response->set_status( code = 200 reason = 'OK' ).
+  " CSRF protection: token on 'X-CSRF-Token: Fetch',
+  " valid token required for POST/PUT/DELETE (403 + 'X-CSRF-Token: Required' otherwise)
+  IF handle_csrf_token( lv_method ) = abap_false.
     RETURN.
   ENDIF.
 
@@ -640,16 +632,17 @@ ENDMETHOD.
 **🎯 Key Features**:
 - ✅ **IF_HTTP_EXTENSION** interface (required by SICF handlers)
 - ✅ **Direct HTTP server access** via `mo_server->request/response`
-- ✅ **CORS handling** in code (no SICF configuration needed)
-- ✅ **OPTIONS preflight** support for cross-origin requests
-- ✅ **JSON serialization** using `/UI2/CL_JSON` (standard SAP class)
-- ✅ **HTTP status codes**: 200 OK, 201 Created, 409 Conflict, 500 Internal Server Error
-- ✅ **Query parameter handling**: `get_form_field('user_id')`, `get_form_field('message_id')`
+- ✅ **CSRF protection** in code (standard SAP `X-CSRF-Token` handshake, v1.4.1)
+- ✅ **Same-origin only**: no CORS headers are sent (v1.4.1)
+- ✅ **Authorization**: create/update/delete and `GET ?all=X` require `Z_BR_ADMINISTRATOR` or `Z_NOTIFY`
+- ✅ **JSON serialization** using `/UI2/CL_JSON` (standard SAP class), also for error responses
+- ✅ **HTTP status codes**: 200 OK, 201 Created, 400 Bad Request, 403 Forbidden, 404 Not Found, 409 Conflict, 500 Internal Server Error
+- ✅ **Query parameter handling**: `get_form_field('message_id')`, `get_form_field('all')` - the user is always taken from the session (`sy-uname`)
 - ✅ **Request body parsing**: `mo_server->request->get_cdata()`
 - ✅ **Response formatting**: `mo_server->response->set_cdata( lv_json )`
 - ✅ **Acknowledgment endpoint** (v1.3.0):
   - POST /acknowledge with JSON body `{"message_id":"abc","client_info":"..."}`
-  - REGEX parsing for message_id extraction
+  - Body parsed with `/UI2/CL_JSON`, unknown message IDs return 404
   - 409 Conflict for duplicate acknowledgments
   - Calls ZCL_NOTIFICATION_MANAGER=>record_acknowledgment()
 
@@ -710,13 +703,12 @@ Configure the REST endpoint to make the notification service accessible via HTTP
      - ✅ **SAP Logon Ticket**
    - Security Requirement: **Standard User**
 
-5. **CORS Configuration** (handled in code):
-   - ✅ **No SICF configuration needed** - CORS headers are set in `ZCL_NOTIFICATION_REST->IF_HTTP_EXTENSION~HANDLE_REQUEST`
-   - The class automatically sets:
-     - `Access-Control-Allow-Origin: *`
-     - `Access-Control-Allow-Methods: GET,POST,PUT,DELETE,OPTIONS`
-     - `Access-Control-Allow-Headers: Content-Type,Accept,Authorization,X-Requested-With`
-     - `Access-Control-Max-Age: 3600`
+5. **CSRF Protection** (handled in code, v1.4.1):
+   - ✅ **No SICF configuration needed** - `ZCL_NOTIFICATION_REST->HANDLE_CSRF_TOKEN` implements the standard handshake
+   - `GET` with header `X-CSRF-Token: Fetch` returns the token in the `X-CSRF-Token` response header
+   - `POST`/`PUT`/`DELETE` without a valid token are rejected with `403` and `X-CSRF-Token: Required`
+   - The Fiori apps fetch and send the token automatically (`webapp/util/CsrfAjax.js`)
+   - No CORS headers are sent: the apps must be served from the same origin as the service
 
 6. **Activate Service**:
    - Right-click on `zcl_notif_rest` → **Activate Service**
@@ -730,7 +722,7 @@ Interface: IF_HTTP_EXTENSION
 Service Type: Standalone (Independent Service)
 Administration: No (Standard Application Service)
 Security: SAP Standard + Basic Auth + Logon Ticket
-CORS: Handled in code (automatic)
+CSRF: Handled in code (X-CSRF-Token handshake)
 ```
 
 **Test the Endpoint**:
@@ -747,18 +739,19 @@ HTTP Status: 200 OK
 ```
 URL: https://<your-server>:<port>/sap/bc/rest/zcl_notif_rest/stats?sap-client=<client>
 Method: GET
-Expected Response: {"total":0,"high_count":0,"medium_count":0,"low_count":0}
+Expected Response: {"d":{"number":"0","numberUnit":"Active","info":"🔴 0  🟠 0  🟢 0","infoState":"Success"}}
 HTTP Status: 200 OK
 ```
 
-**Test 3 - CORS Preflight**:
+**Test 3 - CSRF Token**:
 ```
-URL: https://<your-server>:<port>/sap/bc/rest/zcl_notif_rest?sap-client=<client>
-Method: OPTIONS
-Expected Headers:
-  Access-Control-Allow-Origin: *
-  Access-Control-Allow-Methods: GET,POST,PUT,DELETE,OPTIONS
+URL: https://<your-server>:<port>/sap/bc/rest/zcl_notif_rest/stats?sap-client=<client>
+Method: GET
+Request Header: X-CSRF-Token: Fetch
+Expected Response Header: X-CSRF-Token: <token>
 HTTP Status: 200 OK
+
+A POST/PUT/DELETE without this token must return 403 with header X-CSRF-Token: Required
 ```
 
 **Example Working URL** (based on your test):
@@ -779,7 +772,7 @@ Response: []  ✅ SERVICE WORKING!
 - ✅ Response returns `[]` (empty array) if no data exists
 - ✅ Response returns JSON array with notifications if data exists
 - ✅ HTTP Status: 200 OK
-- ✅ CORS headers present in response (check browser Developer Tools → Network)
+- ✅ `X-CSRF-Token` header returned when requested with `X-CSRF-Token: Fetch`
 
 **🎯 Success Criteria**:
 - Browser/Postman returns `[]` without authentication errors

@@ -44,6 +44,7 @@ CLASS zcl_notification_manager DEFINITION
                    create_notification
                      IMPORTING
                        is_notification TYPE ty_notification
+                       iv_commit TYPE abap_bool DEFAULT abap_true
                      EXPORTING
                        ev_message_id TYPE char32
                      RETURNING
@@ -77,6 +78,17 @@ CLASS zcl_notification_manager DEFINITION
                        iv_user_id TYPE sy-uname OPTIONAL
                      RETURNING
                        VALUE(rv_authorized) TYPE abap_bool,
+
+                   check_target_audience
+                     IMPORTING
+                       iv_target_users TYPE char10
+                       iv_user_id TYPE sy-uname DEFAULT sy-uname
+                     RETURNING
+                       VALUE(rv_authorized) TYPE abap_bool,
+
+                   expire_outdated_notifications
+                     RETURNING
+                       VALUE(rv_expired_count) TYPE i,
 
                    validate_notif_combination
                      IMPORTING
@@ -136,11 +148,12 @@ CLASS zcl_notification_manager DEFINITION
                      RETURNING
                        VALUE(rv_message_id) TYPE char32,
 
-                   check_target_audience
+                   add_months
                      IMPORTING
-                       iv_target_users TYPE char10
+                       iv_date TYPE d
+                       iv_months TYPE i
                      RETURNING
-                       VALUE(rv_authorized) TYPE abap_bool.
+                       VALUE(rv_date) TYPE d.
 
 ENDCLASS.
 
@@ -177,7 +190,8 @@ CLASS zcl_notification_manager IMPLEMENTATION.
 
     " Filter by target audience (role-based authorization)
     LOOP AT lt_all_notifications INTO DATA(ls_notification).
-      IF check_target_audience( ls_notification-target_users ) = abap_true.
+      IF check_target_audience( iv_target_users = ls_notification-target_users
+                                iv_user_id = lv_user_id ) = abap_true.
         APPEND ls_notification TO rt_notifications.
       ENDIF.
     ENDLOOP.
@@ -266,9 +280,13 @@ CLASS zcl_notification_manager IMPLEMENTATION.
     INSERT ztnotify_msgs FROM ls_notification.
 
     IF sy-subrc = 0.
-      COMMIT WORK.
+      " Callers that group several inserts (e.g. recurring notifications)
+      " pass iv_commit = abap_false and control the LUW themselves
+      IF iv_commit = abap_true.
+        COMMIT WORK.
+      ENDIF.
       rv_success = abap_true.
-    ELSE.
+    ELSEIF iv_commit = abap_true.
       ROLLBACK WORK.
     ENDIF.
 
@@ -280,11 +298,11 @@ CLASS zcl_notification_manager IMPLEMENTATION.
     "*& Input: Notification template, recurrence type (D/W/M), occurrences
     "*& Output: List of created message IDs, success flag
     "*& Logic: Calculate dates based on recurrence and create N notifications
+    "*&        in a single LUW: either all occurrences are saved or none
     "*&---------------------------------------------------------------------*
     DATA: ls_new_notification TYPE ty_notification,
           lv_duration_days TYPE i,
           lv_counter TYPE i,
-          lv_offset_days TYPE i,
           lv_message_id TYPE char32,
           lv_success TYPE abap_bool.
 
@@ -311,25 +329,24 @@ CLASS zcl_notification_manager IMPLEMENTATION.
     DO iv_occurrences TIMES.
       lv_counter = sy-index.
 
-      " Calculate offset based on recurrence type
+      " Calculate start date based on recurrence type
+      ls_new_notification = is_notification.
       CASE iv_recurrence_type.
         WHEN 'D'.  " Daily
-          lv_offset_days = ( lv_counter - 1 ) * 1.
+          ls_new_notification-start_date = is_notification-start_date + ( lv_counter - 1 ).
         WHEN 'W'.  " Weekly
-          lv_offset_days = ( lv_counter - 1 ) * 7.
-        WHEN 'M'.  " Monthly (approximate 30 days)
-          lv_offset_days = ( lv_counter - 1 ) * 30.
+          ls_new_notification-start_date = is_notification-start_date + ( lv_counter - 1 ) * 7.
+        WHEN 'M'.  " Monthly (same day of month, clamped to the month's last day)
+          ls_new_notification-start_date = add_months( iv_date = is_notification-start_date
+                                                       iv_months = lv_counter - 1 ).
       ENDCASE.
-
-      " Create new notification with calculated dates
-      ls_new_notification = is_notification.
-      ls_new_notification-start_date = is_notification-start_date + lv_offset_days.
       ls_new_notification-end_date = ls_new_notification-start_date + lv_duration_days.
 
-      " Create the notification
+      " Create the notification without committing - commit once at the end
       lv_success = create_notification(
         EXPORTING
           is_notification = ls_new_notification
+          iv_commit = abap_false
         IMPORTING
           ev_message_id = lv_message_id ).
 
@@ -462,6 +479,30 @@ CLASS zcl_notification_manager IMPLEMENTATION.
 
   ENDMETHOD.
 
+  METHOD expire_outdated_notifications.
+    "*&---------------------------------------------------------------------*
+    "*& Deactivate active notifications whose END_DATE has passed
+    "*& Called from the admin list (GET ?all=X) - end users never write here
+    "*&---------------------------------------------------------------------*
+    DATA: lv_timestamp TYPE timestampl.
+
+    GET TIME STAMP FIELD lv_timestamp.
+
+    UPDATE ztnotify_msgs
+      SET active = ' ',
+          changed_by = @sy-uname,
+          changed_at = @lv_timestamp
+      WHERE end_date < @sy-datum
+        AND active = 'X'.
+
+    rv_expired_count = sy-dbcnt.
+
+    IF rv_expired_count > 0.
+      COMMIT WORK.
+    ENDIF.
+
+  ENDMETHOD.
+
   METHOD check_user_authorization.
 
     DATA: lv_has_admin_role TYPE abap_bool.
@@ -520,9 +561,53 @@ CLASS zcl_notification_manager IMPLEMENTATION.
 
   ENDMETHOD.
 
+  METHOD add_months.
+    "*&---------------------------------------------------------------------*
+    "*& Add N calendar months to a date, keeping the day of month
+    "*& Example: 31.01. + 1 month = 28.02. (or 29.02. in leap years)
+    "*&---------------------------------------------------------------------*
+    DATA: lv_year       TYPE i,
+          lv_month      TYPE i,
+          lv_day        TYPE i,
+          lv_next_year  TYPE i,
+          lv_next_month TYPE i,
+          lv_last_day   TYPE d,
+          lv_max_day    TYPE i.
+
+    lv_year  = iv_date+0(4).
+    lv_month = iv_date+4(2).
+    lv_day   = iv_date+6(2).
+
+    " Zero-based month arithmetic
+    lv_month = lv_month - 1 + iv_months.
+    lv_year  = lv_year + lv_month DIV 12.
+    lv_month = lv_month MOD 12 + 1.
+
+    " Last day of target month = first day of following month - 1
+    lv_next_year  = lv_year.
+    lv_next_month = lv_month + 1.
+    IF lv_next_month > 12.
+      lv_next_month = 1.
+      lv_next_year = lv_next_year + 1.
+    ENDIF.
+    lv_last_day = |{ lv_next_year WIDTH = 4 ALIGN = RIGHT PAD = '0' }|
+               && |{ lv_next_month WIDTH = 2 ALIGN = RIGHT PAD = '0' }01|.
+    lv_last_day = lv_last_day - 1.
+    lv_max_day = lv_last_day+6(2).
+
+    IF lv_day > lv_max_day.
+      lv_day = lv_max_day.
+    ENDIF.
+
+    rv_date = |{ lv_year WIDTH = 4 ALIGN = RIGHT PAD = '0' }|
+           && |{ lv_month WIDTH = 2 ALIGN = RIGHT PAD = '0' }|
+           && |{ lv_day WIDTH = 2 ALIGN = RIGHT PAD = '0' }|.
+
+  ENDMETHOD.
+
   METHOD check_target_audience.
     "*&---------------------------------------------------------------------*
-    "*& Check if current user is authorized to see notification
+    "*& Check if a user (default: current user) is authorized to see notification
     "*& based on TARGET_USERS domain fixed value (3 values: ALL, ADMIN, DEVELOPER)
     "*&
     "*& IMPORTANT: Uses exact role name matching (no LIKE patterns)
@@ -544,7 +629,7 @@ CLASS zcl_notification_manager IMPLEMENTATION.
         SELECT SINGLE @abap_true
           FROM agr_users
           INTO @lv_has_role
-          WHERE uname = @sy-uname
+          WHERE uname = @iv_user_id
             AND agr_name = 'Z_BR_ADMINISTRATOR'.
         IF sy-subrc = 0.
           rv_authorized = abap_true.
@@ -555,7 +640,7 @@ CLASS zcl_notification_manager IMPLEMENTATION.
         SELECT SINGLE @abap_true
           FROM agr_users
           INTO @lv_has_role
-          WHERE uname = @sy-uname
+          WHERE uname = @iv_user_id
             AND agr_name = 'SAP_BR_DEVELOPER'.
         IF sy-subrc = 0.
           rv_authorized = abap_true.
@@ -735,8 +820,7 @@ CLASS zcl_notification_manager IMPLEMENTATION.
     SELECT COUNT(*)
       FROM znotify_ack_log
       INTO @lv_count
-      WHERE mandt = @sy-mandt
-        AND message_id = @iv_message_id
+      WHERE message_id = @iv_message_id
         AND userid = @lv_userid.
 
     " Return true if acknowledgment record exists
@@ -799,8 +883,7 @@ CLASS zcl_notification_manager IMPLEMENTATION.
     SELECT *
       FROM znotify_ack_log
       INTO TABLE @lt_acks
-      WHERE mandt = @sy-mandt
-        AND message_id = @iv_message_id
+      WHERE message_id = @iv_message_id
       ORDER BY ack_timestamp DESCENDING.
 
     " Convert to output structure
